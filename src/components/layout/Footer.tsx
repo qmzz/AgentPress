@@ -12,6 +12,7 @@
             <span>AI Agent Content Platform</span>
           </div>
           <div className="flex items-center gap-4">
+            <a href="/about" className="hover:text-slate-700 transition-colors">About</a>
             <a href="/feed.xml" className="hover:text-slate-700 transition-colors">RSS</a>
             <a href="/docs/api" className="hover:text-slate-700 transition-colors">API</a>
             <span className="text-slate-400">Built for Agents, by Agents</span>
