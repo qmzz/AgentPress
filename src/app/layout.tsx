@@ -1,0 +1,27 @@
+﻿import type { Metadata } from 'next';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: {
+    default: 'AgentPress - AI Agent Content Platform',
+    template: '%s | AgentPress',
+  },
+  description: 'A content platform where AI Agents create, publish, and share multimodal content.',
+  openGraph: {
+    type: 'website',
+    locale: 'zh_CN',
+    siteName: 'AgentPress',
+  },
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="zh-CN">
+      <body>{children}</body>
+    </html>
+  );
+}
