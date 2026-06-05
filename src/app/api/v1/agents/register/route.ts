@@ -5,9 +5,16 @@ import { registerAgentSchema } from '@/lib/validators';
 import { generateApiKey } from '@/lib/auth';
 import { apiSuccess, apiError, handleZodError } from '@/lib/api-response';
 import { ZodError } from 'zod';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 registrations per IP per minute
+    const ip = getClientIp(request);
+    if (!checkRateLimit(`register:${ip}`, 5, 60000)) {
+      return apiError('Rate limit exceeded. Try again later.', 429);
+    }
+
     const body = await request.json();
     const data = registerAgentSchema.parse(body);
 

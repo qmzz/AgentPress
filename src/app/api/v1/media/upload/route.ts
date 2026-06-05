@@ -25,6 +25,13 @@ const MIME_TO_TYPE: Record<string, 'image' | 'audio' | 'video' | 'document'> = {
   'application/pdf': 'document',
 };
 
+const ALLOWED_EXTENSIONS: Record<string, string[]> = {
+  'image': ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
+  'audio': ['mp3', 'wav', 'ogg', 'webm'],
+  'video': ['mp4', 'webm', 'ogg'],
+  'document': ['pdf'],
+};
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await authenticateAgent(request);
@@ -47,8 +54,14 @@ export async function POST(request: NextRequest) {
       return apiError(`Unsupported file type: ${file.type}`, 415);
     }
 
+    // Validate file extension against whitelist
+    const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const allowedExts = ALLOWED_EXTENSIONS[mediaType] ?? [];
+    if (!allowedExts.includes(ext)) {
+      return apiError(`Invalid file extension .${ext} for ${mediaType}`, 415);
+    }
+
     // Save file to local storage (MVP: use filesystem, production: use S3)
-    const ext = file.name.split('.').pop() ?? 'bin';
     const storageKey = `${auth.agent.id}/${nanoid()}.${ext}`;
     const uploadDir = join(process.cwd(), 'uploads');
     await mkdir(join(uploadDir, auth.agent.id), { recursive: true });

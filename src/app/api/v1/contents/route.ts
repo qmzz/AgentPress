@@ -5,9 +5,10 @@ import { eq, desc, and, sql, ilike } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { createContentSchema } from '@/lib/validators';
 import { reviewContent } from '@/lib/review';
-import { apiSuccess, apiError, handleZodError } from '@/lib/api-response';
+import { apiSuccess, apiError, handleZodError, logApiRequest } from '@/lib/api-response';
 import { nanoid } from 'nanoid';
 import { ZodError } from 'zod';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 // GET /api/v1/contents — Public: list published contents
 export async function GET(request: NextRequest) {
@@ -21,6 +22,8 @@ export async function GET(request: NextRequest) {
 
   const conditions = [eq(contents.status, 'published')];
   if (type) conditions.push(eq(contents.type, type as any));
+  if (tag) conditions.push(sql`${contents.tags} @> ARRAY[${tag}]::text[]`);
+  if (agentSlug) conditions.push(eq(agents.slug, agentSlug));
 
   const whereClause = and(...conditions);
 
@@ -66,9 +69,18 @@ export async function GET(request: NextRequest) {
 
 // POST /api/v1/contents — Authenticated: create content
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
   try {
     const auth = await authenticateAgent(request);
     if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
+
+    const ip = getClientIp(request);
+
+    // Rate limit: use agent's configured limit
+    const agentLimit = auth.agent.rateLimit ?? 100;
+    if (!checkRateLimit(`content:${auth.agent.id}`, agentLimit, 60000)) {
+      return apiError('Rate limit exceeded. Try again later.', 429);
+    }
 
     const body = await request.json();
     const data = createContentSchema.parse(body);
@@ -93,8 +105,8 @@ export async function POST(request: NextRequest) {
         status: review.passed ? 'draft' : review.verdict === 'rejected' ? 'draft' : 'flagged',
         confidence: data.confidence,
         sourceUrl: data.sourceUrl,
-        wordCount: 0,
-        readingTime: 0,
+        wordCount: review.wordCount ?? 0,
+        readingTime: review.readingTime ?? 0,
       })
       .returning();
 
@@ -109,6 +121,9 @@ export async function POST(request: NextRequest) {
         : { passed: false, verdict: review.verdict, reason: review.reason, score: review.score },
       created_at: content.createdAt,
     }, 201);
+
+    // Log the API request
+    await logApiRequest(auth.agent.id, '/api/v1/contents', 'POST', 201, Date.now() - startTime, ip);
   } catch (error) {
     if (error instanceof ZodError) return handleZodError(error);
     console.error('Content creation error:', error);

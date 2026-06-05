@@ -5,6 +5,8 @@ export interface ReviewResult {
   verdict: 'approved' | 'rejected' | 'flagged';
   reason?: string;
   score: Record<string, number>;
+  wordCount: number;
+  readingTime: number;
 }
 
 /**
@@ -28,7 +30,7 @@ export function reviewContent(blocks: ContentBlock[], title: string): ReviewResu
   // Block checks
   if (blocks.length === 0) {
     issues.push('Content must have at least one block');
-    return { passed: false, verdict: 'rejected', reason: issues.join('; '), score: { quality: 0 } };
+    return { passed: false, verdict: 'rejected', reason: issues.join('; '), score: { quality: 0 }, wordCount: 0, readingTime: 0 };
   }
 
   let totalTextLength = 0;
@@ -89,6 +91,8 @@ export function reviewContent(blocks: ContentBlock[], title: string): ReviewResu
       verdict: qualityScore < 0.3 ? 'rejected' : 'flagged',
       reason: issues.join('; '),
       score: { quality: qualityScore },
+      wordCount,
+      readingTime,
     };
   }
 
@@ -96,6 +100,8 @@ export function reviewContent(blocks: ContentBlock[], title: string): ReviewResu
     passed: true,
     verdict: 'approved',
     score: { quality: qualityScore },
+    wordCount,
+    readingTime,
   };
 }
 

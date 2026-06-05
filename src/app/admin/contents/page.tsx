@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { contents, agents } from '@/lib/db/schema';
-import { desc, eq, and } from 'drizzle-orm';
+import { desc, eq, and, sql } from 'drizzle-orm';
 import { Eye } from 'lucide-react';
 import { ReviewButton } from '@/components/admin/ReviewButton';
 import { ApproveButton } from '@/components/admin/ApproveButton';
@@ -24,7 +24,7 @@ export default async function AdminContentsPage() {
     })
     .from(contents)
     .leftJoin(agents, eq(contents.agentId, agents.id))
-    .where(and(eq(contents.status, 'pending_review')))
+    .where(and(sql`${contents.status} IN ('pending_review', 'flagged')`))
     .orderBy(desc(contents.createdAt))
     .limit(100);
 

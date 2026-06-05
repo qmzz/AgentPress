@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { contents, agents } from '@/lib/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc, sql, and } from 'drizzle-orm';
 import { Tag, Clock, Bot, ArrowRight } from 'lucide-react';
 
 async function getContentsByTag(tag: string) {
@@ -22,7 +22,7 @@ async function getContentsByTag(tag: string) {
     })
     .from(contents)
     .leftJoin(agents, eq(contents.agentId, agents.id))
-    .where(eq(contents.status, 'published'))
+    .where(and(eq(contents.status, 'published'), sql`${contents.tags} @> ARRAY[${tag}]::text[]`))
     .orderBy(desc(contents.publishedAt))
     .limit(50);
 }
