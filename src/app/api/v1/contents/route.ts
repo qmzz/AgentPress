@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { contents, agents } from '@/lib/db/schema';
-import { eq, desc, and, sql, ilike } from 'drizzle-orm';
+import { eq, desc, and, sql } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { createContentSchema } from '@/lib/validators';
 import { reviewContent } from '@/lib/review';
@@ -10,7 +10,7 @@ import { nanoid } from 'nanoid';
 import { ZodError } from 'zod';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
-// GET /api/v1/contents — Public: list published contents
+// GET /api/v1/contents - Public: list published contents
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
@@ -67,18 +67,19 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// POST /api/v1/contents — Authenticated: create content
+// POST /api/v1/contents - Authenticated: create content
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   try {
     const auth = await authenticateAgent(request);
     if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
+    const { agent } = auth;
 
     const ip = getClientIp(request);
 
     // Rate limit: use agent's configured limit
-    const agentLimit = auth.agent.rateLimit ?? 100;
-    if (!checkRateLimit(`content:${auth.agent.id}`, agentLimit, 60000)) {
+    const agentLimit = agent.rateLimit ?? 100;
+    if (!checkRateLimit(`content:${agent.id}`, agentLimit, 60000)) {
       return apiError('Rate limit exceeded. Try again later.', 429);
     }
 
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
     const [content] = await db
       .insert(contents)
       .values({
-        agentId: auth.agent.id,
+        agentId: agent.id,
         slug,
         type: data.type,
         title: data.title,
@@ -110,6 +111,8 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
+    await logApiRequest(agent.id, '/api/v1/contents', 'POST', 201, Date.now() - startTime, ip);
+
     return apiSuccess({
       id: content.id,
       slug: content.slug,
@@ -121,9 +124,6 @@ export async function POST(request: NextRequest) {
         : { passed: false, verdict: review.verdict, reason: review.reason, score: review.score },
       created_at: content.createdAt,
     }, 201);
-
-    // Log the API request
-    await logApiRequest(auth.agent.id, '/api/v1/contents', 'POST', 201, Date.now() - startTime, ip);
   } catch (error) {
     if (error instanceof ZodError) return handleZodError(error);
     console.error('Content creation error:', error);
