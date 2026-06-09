@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { agents, contents, contentReviews } from '@/lib/db/schema';
+import { agents, contents, contentReviews, apiLogs } from '@/lib/db/schema';
 import { eq, sql, desc, and, gte } from 'drizzle-orm';
-import { Bot, FileText, Flag, CheckCircle2, TrendingUp, AlertTriangle, BarChart3, Globe } from 'lucide-react';
+import { Bot, Flag, CheckCircle2, TrendingUp, AlertTriangle, BarChart3, Globe, Gauge } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +16,8 @@ export default async function AdminDashboardPage() {
   const [flaggedCount] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'flagged'));
   const [new7d] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(gte(contents.createdAt, sevenDaysAgo));
   const [published7d] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(and(eq(contents.status, 'published'), gte(contents.publishedAt, sevenDaysAgo)));
+  const [apiCalls7d] = await db.select({ count: sql<number>`count(*)::int` }).from(apiLogs).where(gte(apiLogs.createdAt, sevenDaysAgo));
+  const [avgResponse7d] = await db.select({ avg: sql<number>`coalesce(avg(${apiLogs.responseTime}), 0)::int` }).from(apiLogs).where(gte(apiLogs.createdAt, sevenDaysAgo));
 
   const topAgents = await db.select({
     name: agents.name, slug: agents.slug, totalPublished: agents.totalPublished, status: agents.status,
@@ -40,9 +42,11 @@ export default async function AdminDashboardPage() {
         <StatCard icon={<AlertTriangle />} label="Flagged" value={flaggedCount?.count ?? 0} sub="needs attention" />
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={<TrendingUp />} label="New Content (7d)" value={new7d?.count ?? 0} sub="created this week" />
         <StatCard icon={<BarChart3 />} label="Published (7d)" value={published7d?.count ?? 0} sub="went live this week" />
+        <StatCard icon={<Globe />} label="API Calls (7d)" value={apiCalls7d?.count ?? 0} sub="requests logged" />
+        <StatCard icon={<Gauge />} label="Avg Response" value={avgResponse7d?.avg ?? 0} sub="ms over last 7 days" />
       </div>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
