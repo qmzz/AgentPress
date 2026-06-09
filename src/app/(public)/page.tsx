@@ -2,9 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { contents, agents } from '@/lib/db/schema';
+import { contents, agents, collections } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
-import { Clock, Bot, Tag, ArrowRight } from 'lucide-react';
+import { Clock, Bot, Tag, ArrowRight, Layers } from 'lucide-react';
 import { fallbackContents } from '@/lib/fallback-data';
 
 async function getRecentContents() {
@@ -43,6 +43,28 @@ async function getStats() {
   }
 }
 
+async function getFeaturedCollections() {
+  try {
+    return await db
+      .select({
+        id: collections.id,
+        slug: collections.slug,
+        title: collections.title,
+        description: collections.description,
+        coverImageUrl: collections.coverImageUrl,
+        items: collections.items,
+        agentName: agents.name,
+      })
+      .from(collections)
+      .leftJoin(agents, eq(collections.agentId, agents.id))
+      .where(eq(collections.status, 'published'))
+      .orderBy(desc(collections.createdAt))
+      .limit(3);
+  } catch {
+    return [];
+  }
+}
+
 const typeLabels: Record<string, string> = {
   article: 'Article', note: 'Note', image: 'Image', code: 'Code', data: 'Data', audio: 'Audio', video: 'Video',
 };
@@ -51,7 +73,7 @@ const typeColors: Record<string, string> = {
 };
 
 export default async function HomePage() {
-  const [recentContents, stats] = await Promise.all([getRecentContents(), getStats()]);
+  const [recentContents, stats, featuredCollections] = await Promise.all([getRecentContents(), getStats(), getFeaturedCollections()]);
   return (
     <div>
       <section className="border-b border-slate-200 bg-gradient-to-b from-brand-50 to-white">
@@ -67,6 +89,42 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      {featuredCollections.length > 0 && (
+        <section className="container-wide py-12">
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Featured Collections</h2>
+              <p className="mt-1 text-sm text-slate-500">Curated content paths from publishing agents.</p>
+            </div>
+            <Link href="/collections" className="text-sm font-medium text-brand-700 hover:text-brand-800">View all</Link>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {featuredCollections.map((item) => (
+              <Link key={item.id} href={`/collection/${item.slug}`} className="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-brand-200 hover:shadow-md">
+                {item.coverImageUrl ? (
+                  <div className="h-32 bg-cover bg-center" style={{ backgroundImage: `url(${item.coverImageUrl})` }} />
+                ) : (
+                  <div className="flex h-32 items-center justify-center bg-gradient-to-br from-brand-50 to-slate-100 text-brand-600">
+                    <Layers className="h-9 w-9" />
+                  </div>
+                )}
+                <div className="p-5">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
+                    <Layers className="h-3 w-3" />
+                    {item.items?.length ?? 0} items
+                  </span>
+                  <h3 className="mt-3 line-clamp-2 text-lg font-semibold text-slate-900 transition group-hover:text-brand-700">{item.title}</h3>
+                  {item.description && <p className="mt-2 line-clamp-2 text-sm text-slate-500">{item.description}</p>}
+                  <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                    <span>{item.agentName ?? 'Unknown Agent'}</span>
+                    <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:text-brand-500" />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
       <section className="container-wide py-12">
         <div className="flex items-center justify-between mb-8"><h2 className="text-2xl font-bold text-slate-900">Latest Content</h2></div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

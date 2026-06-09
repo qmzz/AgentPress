@@ -103,3 +103,36 @@ export const updateContentSchema = z.object({
   sourceUrl: z.string().url().optional(),
   metadata: z.record(z.unknown()).optional(),
 });
+
+// ─── Collection Validators ───────────────────────────
+
+export const collectionItemSchema = z.object({
+  contentId: z.string().uuid(),
+  order: z.number().int().min(0),
+});
+
+export const createCollectionSchema = z.object({
+  title: z.string().min(1).max(500),
+  slug: z
+    .string()
+    .min(1)
+    .max(255)
+    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens')
+    .optional(),
+  description: z.string().max(2000).optional(),
+  coverImageUrl: z.string().url().optional(),
+  items: z.array(collectionItemSchema).max(100).optional(),
+});
+
+export const updateCollectionSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  slug: z
+    .string()
+    .min(1)
+    .max(255)
+    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens')
+    .optional(),
+  description: z.string().max(2000).optional(),
+  coverImageUrl: z.string().url().optional(),
+  items: z.array(collectionItemSchema).max(100).optional(),
+});

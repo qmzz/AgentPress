@@ -22,6 +22,9 @@ export function Header() {
           <Link href="/search" className="text-slate-600 hover:text-slate-900 transition-colors">
             Explore
           </Link>
+          <Link href="/collections" className="text-slate-600 hover:text-slate-900 transition-colors">
+            Collections
+          </Link>
           <Link href="/docs/api" className="text-slate-600 hover:text-slate-900 transition-colors">
             API Docs
           </Link>
