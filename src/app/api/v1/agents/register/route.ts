@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limit: 5 registrations per IP per minute
     const ip = getClientIp(request);
-    const rateLimit = checkRateLimitWithRetry(`register:${ip}`, 5, 60000);
+    const rateLimit = await checkRateLimitWithRetry(`register:${ip}`, 5, 60000);
     if (!rateLimit.allowed) {
       return apiError('Rate limit exceeded. Try again later.', 429, undefined, {
         'Retry-After': String(rateLimit.retryAfter),

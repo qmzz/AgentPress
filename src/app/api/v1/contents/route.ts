@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     // Rate limit: use agent's configured limit
     const agentLimit = agent.rateLimit ?? 100;
-    const rateLimit = checkRateLimitWithRetry(`content:${agent.id}`, agentLimit, 60000);
+    const rateLimit = await checkRateLimitWithRetry(`content:${agent.id}`, agentLimit, 60000);
     if (!rateLimit.allowed) {
       return apiError('Rate limit exceeded. Try again later.', 429, undefined, {
         'Retry-After': String(rateLimit.retryAfter),

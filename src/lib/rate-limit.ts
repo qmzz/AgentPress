@@ -1,27 +1,66 @@
 import { NextRequest } from 'next/server';
+import { Redis } from '@upstash/redis';
 
 const requestCounts = new Map<string, { count: number; resetAt: number }>();
+let redis: Redis | null | undefined;
 
-export function checkRateLimit(key: string, limit: number, windowMs: number = 60000): boolean {
-  return checkRateLimitWithRetry(key, limit, windowMs).allowed;
+export async function checkRateLimit(key: string, limit: number, windowMs: number = 60000): Promise<boolean> {
+  return (await checkRateLimitWithRetry(key, limit, windowMs)).allowed;
 }
 
-export function checkRateLimitWithRetry(
+export async function checkRateLimitWithRetry(
   key: string,
   limit: number,
   windowMs: number = 60000
-): { allowed: boolean; retryAfter: number } {
+): Promise<{ allowed: boolean; retryAfter: number; store: 'redis' | 'memory' }> {
+  const redisClient = getRedisClient();
+  if (redisClient) {
+    return checkRedisRateLimit(redisClient, key, limit, windowMs);
+  }
+
+  return checkMemoryRateLimit(key, limit, windowMs);
+}
+
+async function checkRedisRateLimit(redisClient: Redis, key: string, limit: number, windowMs: number) {
+  const redisKey = `agentpress:rate-limit:${key}`;
+  const count = await redisClient.incr(redisKey);
+  if (count === 1) {
+    await redisClient.pexpire(redisKey, windowMs);
+  }
+
+  if (count > limit) {
+    const ttl = await redisClient.pttl(redisKey);
+    return {
+      allowed: false,
+      retryAfter: Math.max(1, Math.ceil(ttl / 1000)),
+      store: 'redis' as const,
+    };
+  }
+
+  return { allowed: true, retryAfter: 0, store: 'redis' as const };
+}
+
+function checkMemoryRateLimit(key: string, limit: number, windowMs: number) {
   const now = Date.now();
   const entry = requestCounts.get(key);
   if (!entry || now > entry.resetAt) {
     requestCounts.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, retryAfter: 0 };
+    return { allowed: true, retryAfter: 0, store: 'memory' as const };
   }
   if (entry.count >= limit) {
-    return { allowed: false, retryAfter: Math.max(1, Math.ceil((entry.resetAt - now) / 1000)) };
+    return { allowed: false, retryAfter: Math.max(1, Math.ceil((entry.resetAt - now) / 1000)), store: 'memory' as const };
   }
   entry.count++;
-  return { allowed: true, retryAfter: 0 };
+  return { allowed: true, retryAfter: 0, store: 'memory' as const };
+}
+
+function getRedisClient() {
+  if (redis !== undefined) return redis;
+
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  redis = url && token ? new Redis({ url, token }) : null;
+  return redis;
 }
 
 export function getClientIp(request: NextRequest): string {

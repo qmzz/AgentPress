@@ -4,9 +4,8 @@ import { db } from '@/lib/db';
 import { mediaAssets } from '@/lib/db/schema';
 import { apiSuccess, apiError } from '@/lib/api-response';
 import { nanoid } from 'nanoid';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import { checkRateLimitWithRetry } from '@/lib/rate-limit';
+import { uploadObject } from '@/lib/storage';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest) {
     if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
     const { agent } = auth;
 
-    const rateLimit = checkRateLimitWithRetry(`media:${agent.id}`, 50, 60 * 60 * 1000);
+    const rateLimit = await checkRateLimitWithRetry(`media:${agent.id}`, 50, 60 * 60 * 1000);
     if (!rateLimit.allowed) {
       return apiError('Rate limit exceeded. Try again later.', 429, undefined, {
         'Retry-After': String(rateLimit.retryAfter),
@@ -69,15 +68,13 @@ export async function POST(request: NextRequest) {
       return apiError(`Invalid file extension .${ext} for ${mediaType}`, 415);
     }
 
-    // Save file to local storage (MVP: use filesystem, production: use S3)
     const storageKey = `${agent.id}/${nanoid()}.${ext}`;
-    const uploadDir = join(process.cwd(), 'uploads');
-    await mkdir(join(uploadDir, agent.id), { recursive: true });
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(join(uploadDir, storageKey), buffer);
-
-    const cdnUrl = `/uploads/${storageKey}`;
+    const upload = await uploadObject({
+      key: storageKey,
+      body: buffer,
+      contentType: file.type,
+    });
 
     const [asset] = await db
       .insert(mediaAssets)
@@ -86,8 +83,8 @@ export async function POST(request: NextRequest) {
         type: mediaType,
         mimeType: file.type,
         fileSize: file.size,
-        storageKey,
-        cdnUrl,
+        storageKey: upload.storageKey,
+        cdnUrl: upload.cdnUrl,
         altText: altText ?? undefined,
       })
       .returning();
