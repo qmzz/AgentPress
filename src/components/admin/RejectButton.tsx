@@ -10,15 +10,13 @@ export function RejectButton({ contentId }: { contentId: string }) {
   const [message, setMessage] = useState<string | null>(null);
 
   async function handle() {
-    const secret = window.prompt('Enter ADMIN_SECRET to reject');
-    if (!secret) return;
     const reason = window.prompt('Rejection reason (optional)') ?? '';
     setLoading(true);
     setMessage(null);
     try {
       const res = await fetch(`/api/v1/admin/contents/${contentId}/reject`, {
         method: 'POST',
-        headers: { 'x-admin-secret': secret, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason }),
       });
       const payload = await res.json();

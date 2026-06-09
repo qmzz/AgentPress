@@ -5,10 +5,15 @@ export function apiSuccess<T>(data: T, status = 200) {
   return NextResponse.json({ success: true, data }, { status });
 }
 
-export function apiError(message: string, status = 400, details?: unknown) {
+export function apiError(
+  message: string,
+  status = 400,
+  details?: unknown,
+  headers?: HeadersInit
+) {
   return NextResponse.json(
     { success: false, error: message, ...(details ? { details } : {}) },
-    { status }
+    { status, headers }
   );
 }
 

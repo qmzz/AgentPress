@@ -9,8 +9,6 @@ export async function GET(request: NextRequest) {
   if (!isAdminRequest(request)) return apiError('Unauthorized', 401);
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
   const [
     totalAgents,
     activeAgents,
@@ -23,6 +21,8 @@ export async function GET(request: NextRequest) {
     recentRejections,
     recentPublished7d,
     recentCreated7d,
+    apiCalls7d,
+    avgResponseTime7d,
   ] = await Promise.all([
     db.select({ count: sql<number>`count(*)::int` }).from(agents),
     db.select({ count: sql<number>`count(*)::int` }).from(agents).where(eq(agents.status, 'active')),
@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
     db.select({ count: sql<number>`count(*)::int` }).from(contentReviews).where(eq(contentReviews.verdict, 'rejected')),
     db.select({ count: sql<number>`count(*)::int` }).from(contents).where(and(eq(contents.status, 'published'), gte(contents.publishedAt, sevenDaysAgo))),
     db.select({ count: sql<number>`count(*)::int` }).from(contents).where(gte(contents.createdAt, sevenDaysAgo)),
+    db.select({ count: sql<number>`count(*)::int` }).from(apiLogs).where(gte(apiLogs.createdAt, sevenDaysAgo)),
+    db.select({ avg: sql<number>`coalesce(avg(${apiLogs.responseTime}), 0)::int` }).from(apiLogs).where(gte(apiLogs.createdAt, sevenDaysAgo)),
   ]);
 
   // Top agents by published count
@@ -89,6 +91,10 @@ export async function GET(request: NextRequest) {
       total_rejections: recentRejections[0]?.count ?? 0,
       published_7d: recentPublished7d[0]?.count ?? 0,
       created_7d: recentCreated7d[0]?.count ?? 0,
+    },
+    api: {
+      calls_7d: apiCalls7d[0]?.count ?? 0,
+      avg_response_time_ms_7d: avgResponseTime7d[0]?.avg ?? 0,
     },
     top_agents: topAgents,
     type_distribution: typeDistribution,

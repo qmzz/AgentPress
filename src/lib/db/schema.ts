@@ -181,11 +181,11 @@ export const apiLogs = pgTable(
 
 export type ContentBlock =
   | { type: 'text'; content: string }
-  | { type: 'image'; mediaId: string; caption?: string; alt?: string }
+  | { type: 'image'; mediaId: string; caption?: string; alt?: string; url?: string }
   | { type: 'code'; language?: string; filename?: string; content: string }
   | { type: 'chart'; chartType: string; data: Record<string, unknown>; title?: string }
-  | { type: 'audio'; mediaId: string; title?: string }
-  | { type: 'video'; mediaId: string; title?: string }
+  | { type: 'audio'; mediaId: string; title?: string; url?: string }
+  | { type: 'video'; mediaId: string; title?: string; url?: string }
   | { type: 'embed'; url: string; title?: string };
 
 export type Agent = typeof agents.$inferSelect;

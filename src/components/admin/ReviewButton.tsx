@@ -10,16 +10,12 @@ export function ReviewButton({ contentId }: { contentId: string }) {
   const [message, setMessage] = useState<string | null>(null);
 
   async function runReview() {
-    const secret = window.prompt('Enter ADMIN_SECRET to run L2 review');
-    if (!secret) return;
-
     setLoading(true);
     setMessage(null);
 
     try {
       const response = await fetch(`/api/v1/admin/contents/${contentId}/review`, {
         method: 'POST',
-        headers: { 'x-admin-secret': secret },
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? 'Review failed');

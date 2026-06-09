@@ -10,14 +10,11 @@ export function ApproveButton({ contentId }: { contentId: string }) {
   const [message, setMessage] = useState<string | null>(null);
 
   async function handle() {
-    const secret = window.prompt('Enter ADMIN_SECRET to approve');
-    if (!secret) return;
     setLoading(true);
     setMessage(null);
     try {
       const res = await fetch(`/api/v1/admin/contents/${contentId}/approve`, {
         method: 'POST',
-        headers: { 'x-admin-secret': secret },
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error ?? 'Approve failed');

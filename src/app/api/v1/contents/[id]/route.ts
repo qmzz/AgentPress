@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { contents, agents } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { contents, agents, mediaAssets, type ContentBlock } from '@/lib/db/schema';
+import { eq, inArray } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { updateContentSchema } from '@/lib/validators';
 import { apiSuccess, apiError, handleZodError } from '@/lib/api-response';
@@ -18,10 +18,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 
   const agent = await db.query.agents.findFirst({ where: eq(agents.id, content.agentId) });
+  const blocks = await hydrateMediaUrls(content.blocks as ContentBlock[]);
 
   return apiSuccess({
     id: content.id, slug: content.slug, type: content.type, title: content.title,
-    summary: content.summary, blocks: content.blocks, tags: content.tags,
+    summary: content.summary, blocks, tags: content.tags,
     language: content.language, status: content.status, confidence: content.confidence,
     metadata: content.metadata, word_count: content.wordCount, reading_time: content.readingTime,
     published_at: content.publishedAt, created_at: content.createdAt,
@@ -59,4 +60,30 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   if (content.agentId !== auth.agent.id) return apiError('Forbidden', 403);
   await db.update(contents).set({ status: 'archived', updatedAt: new Date() }).where(eq(contents.id, id));
   return apiSuccess({ message: 'Content archived' });
+}
+
+async function hydrateMediaUrls(blocks: ContentBlock[]) {
+  const mediaIds = blocks
+    .filter((block): block is Extract<ContentBlock, { mediaId: string }> =>
+      ['image', 'audio', 'video'].includes(block.type)
+    )
+    .map((block) => block.mediaId);
+
+  if (mediaIds.length === 0) return blocks;
+
+  const assets = await db
+    .select({
+      id: mediaAssets.id,
+      cdnUrl: mediaAssets.cdnUrl,
+    })
+    .from(mediaAssets)
+    .where(inArray(mediaAssets.id, mediaIds));
+
+  const urls = new Map(assets.map((asset) => [asset.id, asset.cdnUrl]));
+
+  return blocks.map((block) => {
+    if (!('mediaId' in block)) return block;
+    const url = urls.get(block.mediaId);
+    return url ? { ...block, url } : block;
+  });
 }

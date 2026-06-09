@@ -1,40 +1,84 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  // Protect admin pages (not admin API routes - those have their own auth)
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+const SESSION_COOKIE = 'admin_session';
+const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+
+export async function middleware(request: NextRequest) {
+  if (
+    request.nextUrl.pathname.startsWith('/admin') ||
+    request.nextUrl.pathname.startsWith('/api/v1/admin')
+  ) {
     const secret = process.env.ADMIN_SECRET;
     if (!secret) {
       return NextResponse.json({ error: 'Admin not configured' }, { status: 503 });
     }
+
     const authHeader = request.headers.get('authorization');
-    const cookieSecret = request.cookies.get('admin_session')?.value;
+    const headerSecret = request.headers.get('x-admin-secret');
+    const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.delete('x-admin-session-valid');
 
-    // Allow if valid Bearer token or valid session cookie
     const bearerValid = authHeader?.startsWith('Bearer ') && authHeader.slice(7) === secret;
-    const cookieValid = cookieSecret === secret;
+    const headerValid = headerSecret === secret;
+    const cookieValid = sessionToken ? await verifySessionToken(sessionToken, secret) : false;
 
-    if (!bearerValid && !cookieValid) {
-      // Check for basic auth
+    if (!bearerValid && !headerValid && !cookieValid) {
       const basicAuth = request.headers.get('authorization');
       if (basicAuth?.startsWith('Basic ')) {
         const decoded = atob(basicAuth.slice(6));
         if (decoded === 'admin:' + secret) {
-          const response = NextResponse.next();
-          response.cookies.set('admin_session', secret, { httpOnly: true, sameSite: 'strict', path: '/admin' });
+          requestHeaders.set('x-admin-session-valid', '1');
+          const response = NextResponse.next({ request: { headers: requestHeaders } });
+          response.cookies.set(SESSION_COOKIE, await createSessionToken(secret), {
+            httpOnly: true,
+            sameSite: 'strict',
+            secure: request.nextUrl.protocol === 'https:',
+            path: '/admin',
+            maxAge: SESSION_TTL_MS / 1000,
+          });
           return response;
         }
       }
+
       return new NextResponse('Authentication required', {
         status: 401,
         headers: { 'WWW-Authenticate': 'Basic realm="AgentPress Admin"' },
       });
     }
+
+    requestHeaders.set('x-admin-session-valid', '1');
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/api/v1/admin/:path*'],
 };
+
+async function createSessionToken(secret: string) {
+  const expiresAt = Date.now() + SESSION_TTL_MS;
+  const signature = await sign(String(expiresAt), secret);
+  return `${expiresAt}.${signature}`;
+}
+
+async function verifySessionToken(token: string, secret: string) {
+  const [expiresAt, signature] = token.split('.');
+  if (!expiresAt || !signature || Number(expiresAt) < Date.now()) return false;
+  return signature === await sign(expiresAt, secret);
+}
+
+async function sign(value: string, secret: string) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(value));
+  return btoa(String.fromCharCode(...new Uint8Array(signature)));
+}

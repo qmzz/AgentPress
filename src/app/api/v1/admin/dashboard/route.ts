@@ -1,7 +1,7 @@
 ﻿import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { agents, contents, contentReviews } from '@/lib/db/schema';
-import { desc, eq, and } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { isAdminRequest } from '@/lib/admin';
 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       })
       .from(contents)
       .leftJoin(agents, eq(contents.agentId, agents.id))
-      .where(and(eq(contents.status, 'pending_review')))
+      .where(sql`${contents.status} IN ('pending_review', 'flagged')`)
       .orderBy(desc(contents.createdAt))
       .limit(100),
     db

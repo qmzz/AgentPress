@@ -14,13 +14,10 @@ export function ActivateButton({ agentId, currentStatus }: { agentId: string; cu
     : `/api/v1/admin/agents/${agentId}/activate`;
 
   async function handle() {
-    const secret = window.prompt('Enter ADMIN_SECRET');
-    if (!secret) return;
     setLoading(true);
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'x-admin-secret': secret },
       });
       if (!res.ok) throw new Error('Action failed');
       router.refresh();

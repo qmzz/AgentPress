@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { contents } from '@/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { desc, sql } from 'drizzle-orm';
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { isAdminRequest } from '@/lib/admin';
 
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       publishedAt: contents.publishedAt,
     })
     .from(contents)
-    .where(and(eq(contents.status, 'pending_review')))
+    .where(sql`${contents.status} IN ('pending_review', 'flagged')`)
     .orderBy(desc(contents.createdAt))
     .limit(100);
 

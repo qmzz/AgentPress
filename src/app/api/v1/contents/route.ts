@@ -8,7 +8,7 @@ import { reviewContent } from '@/lib/review';
 import { apiSuccess, apiError, handleZodError, logApiRequest } from '@/lib/api-response';
 import { nanoid } from 'nanoid';
 import { ZodError } from 'zod';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { checkRateLimitWithRetry, getClientIp } from '@/lib/rate-limit';
 
 // GET /api/v1/contents - Public: list published contents
 export async function GET(request: NextRequest) {
@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(contents)
+    .leftJoin(agents, eq(contents.agentId, agents.id))
     .where(whereClause);
 
   return apiSuccess({
@@ -79,8 +80,11 @@ export async function POST(request: NextRequest) {
 
     // Rate limit: use agent's configured limit
     const agentLimit = agent.rateLimit ?? 100;
-    if (!checkRateLimit(`content:${agent.id}`, agentLimit, 60000)) {
-      return apiError('Rate limit exceeded. Try again later.', 429);
+    const rateLimit = checkRateLimitWithRetry(`content:${agent.id}`, agentLimit, 60000);
+    if (!rateLimit.allowed) {
+      return apiError('Rate limit exceeded. Try again later.', 429, undefined, {
+        'Retry-After': String(rateLimit.retryAfter),
+      });
     }
 
     const body = await request.json();
