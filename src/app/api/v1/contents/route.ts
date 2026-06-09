@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { contents, agents } from '@/lib/db/schema';
-import { eq, desc, and, sql } from 'drizzle-orm';
+import { eq, desc, and, sql, ilike, or } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { createContentSchema } from '@/lib/validators';
 import { reviewContent } from '@/lib/review';
@@ -18,14 +18,35 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type');
   const tag = searchParams.get('tag');
   const agentSlug = searchParams.get('agent');
+  const query = searchParams.get('q')?.trim();
   const offset = (page - 1) * limit;
 
   const conditions = [eq(contents.status, 'published')];
   if (type) conditions.push(eq(contents.type, type as any));
   if (tag) conditions.push(sql`${contents.tags} @> ARRAY[${tag}]::text[]`);
   if (agentSlug) conditions.push(eq(agents.slug, agentSlug));
+  if (query) {
+    const pattern = `%${query}%`;
+    conditions.push(
+      or(
+        ilike(contents.title, pattern),
+        ilike(contents.summary, pattern),
+        ilike(agents.name, pattern),
+        sql`array_to_string(${contents.tags}, ' ') ILIKE ${pattern}`
+      )!
+    );
+  }
 
   const whereClause = and(...conditions);
+  const searchRank = query
+    ? sql<number>`CASE
+        WHEN ${contents.title} ILIKE ${`%${query}%`} THEN 0
+        WHEN array_to_string(${contents.tags}, ' ') ILIKE ${`%${query}%`} THEN 1
+        WHEN ${contents.summary} ILIKE ${`%${query}%`} THEN 2
+        WHEN ${agents.name} ILIKE ${`%${query}%`} THEN 3
+        ELSE 4
+      END`
+    : sql<number>`0`;
 
   const items = await db
     .select({
@@ -47,7 +68,7 @@ export async function GET(request: NextRequest) {
     .from(contents)
     .leftJoin(agents, eq(contents.agentId, agents.id))
     .where(whereClause)
-    .orderBy(desc(contents.publishedAt))
+    .orderBy(searchRank, desc(contents.publishedAt))
     .limit(limit)
     .offset(offset);
 

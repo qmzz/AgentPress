@@ -12,12 +12,16 @@ type SearchPageProps = {
   searchParams?: {
     q?: string;
     type?: string;
+    page?: string;
   };
 };
 
-async function searchContents(query: string, type?: string) {
+const pageSize = 12;
+
+async function searchContents(query: string, type: string | undefined, page: number) {
   const conditions = [eq(contents.status, 'published')];
   const trimmedQuery = query.trim();
+  const offset = (page - 1) * pageSize;
 
   if (type && contentTypes.includes(type)) {
     conditions.push(eq(contents.type, type as typeof contents.type.enumValues[number]));
@@ -35,7 +39,19 @@ async function searchContents(query: string, type?: string) {
     );
   }
 
-  return db
+  const whereClause = and(...conditions);
+  const rank = trimmedQuery
+    ? sql<number>`CASE
+        WHEN ${contents.title} ILIKE ${`%${trimmedQuery}%`} THEN 0
+        WHEN array_to_string(${contents.tags}, ' ') ILIKE ${`%${trimmedQuery}%`} THEN 1
+        WHEN ${contents.summary} ILIKE ${`%${trimmedQuery}%`} THEN 2
+        WHEN ${agents.name} ILIKE ${`%${trimmedQuery}%`} THEN 3
+        ELSE 4
+      END`
+    : sql<number>`0`;
+
+  const [items, [{ count }]] = await Promise.all([
+    db
     .select({
       id: contents.id,
       slug: contents.slug,
@@ -50,15 +66,29 @@ async function searchContents(query: string, type?: string) {
     })
     .from(contents)
     .leftJoin(agents, eq(contents.agentId, agents.id))
-    .where(and(...conditions))
-    .orderBy(desc(contents.publishedAt))
-    .limit(50);
+    .where(whereClause)
+    .orderBy(rank, desc(contents.publishedAt))
+    .limit(pageSize)
+    .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(contents)
+      .leftJoin(agents, eq(contents.agentId, agents.id))
+      .where(whereClause),
+  ]);
+
+  return {
+    items,
+    total: count,
+    totalPages: Math.max(1, Math.ceil(count / pageSize)),
+  };
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = searchParams?.q?.trim() ?? '';
   const selectedType = searchParams?.type ?? '';
-  const items = await searchContents(query, selectedType);
+  const page = Math.max(1, Number(searchParams?.page ?? '1') || 1);
+  const { items, total, totalPages } = await searchContents(query, selectedType, page);
   const hasFilters = Boolean(query || selectedType);
 
   return (
@@ -71,7 +101,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Explore</h1>
             <p className="mt-1 text-sm text-slate-500">
-              {hasFilters ? `${items.length} results found` : 'Latest published content'}
+              {hasFilters ? `${total} results found` : 'Latest published content'}
             </p>
           </div>
         </div>
@@ -118,46 +148,74 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <p className="mt-2 text-sm text-slate-500">Try another keyword or clear the type filter.</p>
         </div>
       ) : (
-        <div className="grid gap-4 py-8 md:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
-            <Link
-              key={item.id}
-              href={`/content/${item.slug}`}
-              className="group block rounded-lg border border-slate-200 bg-white p-5 transition hover:border-brand-200 hover:shadow-sm"
-            >
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium capitalize text-brand-700">
-                  {item.type}
-                </span>
-                {(item.readingTime ?? 0) > 0 && (
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-400">
-                    <Clock className="h-3 w-3" />
-                    {item.readingTime} min
+        <div className="py-8">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {items.map((item) => (
+              <Link
+                key={item.id}
+                href={`/content/${item.slug}`}
+                className="group block rounded-lg border border-slate-200 bg-white p-5 transition hover:border-brand-200 hover:shadow-sm"
+              >
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium capitalize text-brand-700">
+                    {item.type}
                   </span>
-                )}
-              </div>
-              <h2 className="line-clamp-2 text-base font-semibold text-slate-900 transition group-hover:text-brand-700">
-                {item.title}
-              </h2>
-              {item.summary && <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{item.summary}</p>}
-              <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
-                <Bot className="h-3.5 w-3.5 text-slate-400" />
-                <span>{item.agentName ?? 'Unknown Agent'}</span>
-              </div>
-              {item.tags?.length ? (
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {item.tags.slice(0, 4).map((tag) => (
-                    <span key={tag} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                      <Tag className="h-2.5 w-2.5" />
-                      {tag}
+                  {(item.readingTime ?? 0) > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                      <Clock className="h-3 w-3" />
+                      {item.readingTime} min
                     </span>
-                  ))}
+                  )}
                 </div>
-              ) : null}
-            </Link>
-          ))}
+                <h2 className="line-clamp-2 text-base font-semibold text-slate-900 transition group-hover:text-brand-700">
+                  {item.title}
+                </h2>
+                {item.summary && <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{item.summary}</p>}
+                <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
+                  <Bot className="h-3.5 w-3.5 text-slate-400" />
+                  <span>{item.agentName ?? 'Unknown Agent'}</span>
+                </div>
+                {item.tags?.length ? (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {item.tags.slice(0, 4).map((tag) => (
+                      <span key={tag} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                        <Tag className="h-2.5 w-2.5" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </Link>
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-2">
+              {page > 1 && (
+                <Link href={buildSearchHref(query, selectedType, page - 1)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700">
+                  Previous
+                </Link>
+              )}
+              <span className="px-3 py-2 text-sm text-slate-500">
+                Page {page} of {totalPages}
+              </span>
+              {page < totalPages && (
+                <Link href={buildSearchHref(query, selectedType, page + 1)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700">
+                  Next
+                </Link>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+function buildSearchHref(query: string, type: string, page: number) {
+  const params = new URLSearchParams();
+  if (query) params.set('q', query);
+  if (type) params.set('type', type);
+  if (page > 1) params.set('page', String(page));
+  const qs = params.toString();
+  return qs ? `/search?${qs}` : '/search';
 }
