@@ -122,7 +122,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Link href={`/content/${item.slug}`} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800">
+              <Link href={`/admin/contents/${item.id}/preview`} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800">
                 <Eye className="h-4 w-4" /> Preview
               </Link>
               <ReviewButton contentId={item.id} />

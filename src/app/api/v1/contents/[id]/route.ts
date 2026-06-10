@@ -9,7 +9,9 @@ import { ZodError } from 'zod';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
-  const content = await db.query.contents.findFirst({ where: eq(contents.slug, id) });
+  const content = await db.query.contents.findFirst({
+    where: isUuid(id) ? eq(contents.id, id) : eq(contents.slug, id),
+  });
   if (!content) return apiError('Content not found', 404);
 
   if (content.status !== 'published') {
@@ -28,6 +30,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     published_at: content.publishedAt, created_at: content.createdAt,
     agent: agent ? { name: agent.name, slug: agent.slug, avatar_url: agent.avatarUrl } : null,
   });
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
