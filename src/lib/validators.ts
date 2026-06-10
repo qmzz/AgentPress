@@ -1,4 +1,8 @@
-﻿import { z } from 'zod';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import { z } from 'zod';
 
 // ─── Content Block Validators ────────────────────────
 
@@ -136,3 +140,4 @@ export const updateCollectionSchema = z.object({
   coverImageUrl: z.string().url().optional(),
   items: z.array(collectionItemSchema).max(100).optional(),
 });
+

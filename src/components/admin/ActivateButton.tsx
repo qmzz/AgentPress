@@ -1,5 +1,9 @@
-'use client';
+﻿'use client';
 
+/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserCheck } from 'lucide-react';
@@ -39,3 +43,5 @@ export function ActivateButton({ agentId, currentStatus }: { agentId: string; cu
     </button>
   );
 }
+
+

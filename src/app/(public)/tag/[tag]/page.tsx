@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
@@ -75,3 +79,4 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
     </div>
   );
 }
+

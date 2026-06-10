@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { Metadata } from 'next';
 import { Shield, Key, FileText, Upload, Bot, Rss, Layers } from 'lucide-react';
 
@@ -226,3 +230,4 @@ curl -X POST /api/v1/admin/contents/{id}/review \\
     </div>
   );
 }
+

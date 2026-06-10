@@ -1,4 +1,8 @@
-﻿import type { ContentBlock } from '@/lib/db/schema';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import type { ContentBlock } from '@/lib/db/schema';
 
 export interface ReviewResult {
   passed: boolean;
@@ -111,3 +115,4 @@ function estimateWordCount(charCount: number): number {
   // Use a rough average
   return Math.round(charCount / 3);
 }
+

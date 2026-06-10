@@ -1,4 +1,8 @@
-﻿export interface L2ReviewResult {
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+export interface L2ReviewResult {
   passed: boolean;
   verdict: 'approved' | 'rejected' | 'flagged';
   score: {
@@ -108,3 +112,4 @@ export function reviewContentL2(input: { title: string; summary?: string | null;
 function clamp(value: number) {
   return Math.max(0, Math.min(1, Number(value.toFixed(3))));
 }
+

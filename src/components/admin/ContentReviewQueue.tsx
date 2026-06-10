@@ -1,5 +1,9 @@
-'use client';
+﻿'use client';
 
+/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -135,3 +139,5 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
     </div>
   );
 }
+
+

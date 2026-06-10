@@ -1,4 +1,8 @@
-﻿/** @type {import('postcss-load-config').Config} */
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+/** @type {import('postcss-load-config').Config} */
 const config = {
   plugins: {
     tailwindcss: {},
@@ -7,3 +11,4 @@ const config = {
 };
 
 export default config;
+

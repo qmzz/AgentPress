@@ -1,4 +1,8 @@
-﻿import { defineConfig } from 'drizzle-kit';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
   schema: './src/lib/db/schema.ts',
@@ -8,3 +12,4 @@ export default defineConfig({
     url: process.env.DATABASE_URL!,
   },
 });
+

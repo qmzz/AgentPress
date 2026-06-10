@@ -1,4 +1,8 @@
-﻿import { NextRequest } from 'next/server';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import { NextRequest } from 'next/server';
 
 export function isAdminRequest(request: NextRequest) {
   if (request.headers.get('x-admin-session-valid') === '1') return true;
@@ -14,3 +18,4 @@ export function isAdminRequest(request: NextRequest) {
 
   return false;
 }
+

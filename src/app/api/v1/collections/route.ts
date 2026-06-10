@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { agents, collections } from '@/lib/db/schema';
@@ -106,3 +110,4 @@ function generateSlug(title: string) {
 
   return `${base || 'collection'}-${Math.random().toString(36).slice(2, 8)}`;
 }
+

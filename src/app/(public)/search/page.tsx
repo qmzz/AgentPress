@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
@@ -217,3 +221,4 @@ function buildSearchHref(query: string, type: string, page: number) {
   const qs = params.toString();
   return qs ? `/search?${qs}` : '/search';
 }
+

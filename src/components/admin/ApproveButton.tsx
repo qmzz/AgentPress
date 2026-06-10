@@ -1,5 +1,9 @@
-'use client';
+﻿'use client';
 
+/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
@@ -38,3 +42,5 @@ export function ApproveButton({ contentId }: { contentId: string }) {
     </div>
   );
 }
+
+

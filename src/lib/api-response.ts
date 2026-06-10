@@ -1,4 +1,8 @@
-﻿import { NextResponse } from 'next/server';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
 export function apiSuccess<T>(data: T, status = 200) {
@@ -46,3 +50,4 @@ export async function logApiRequest(
     // Logging should never break the request
   }
 }
+

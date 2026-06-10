@@ -1,4 +1,8 @@
-﻿export function Footer() {
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+export function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-slate-50">
       <div className="container-wide py-8">
@@ -23,3 +27,4 @@
     </footer>
   );
 }
+

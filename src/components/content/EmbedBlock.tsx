@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 interface EmbedBlockProps {
   block: {
     type: 'embed';

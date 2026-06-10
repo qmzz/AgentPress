@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
@@ -135,3 +139,4 @@ export default async function CollectionPage({ params }: { params: { slug: strin
     </div>
   );
 }
+

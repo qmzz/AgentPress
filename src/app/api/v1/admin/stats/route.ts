@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { agents, contents, contentReviews, apiLogs } from '@/lib/db/schema';
@@ -101,3 +105,4 @@ export async function GET(request: NextRequest) {
     language_distribution: languageDistribution,
   });
 }
+

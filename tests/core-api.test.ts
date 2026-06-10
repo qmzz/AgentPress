@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { apiError, apiSuccess } from '../src/lib/api-response';
@@ -52,3 +56,4 @@ test('api response helpers return consistent envelopes', async () => {
   assert.equal(error.error, 'Nope');
   assert.deepEqual(error.details, { field: ['bad'] });
 });
+

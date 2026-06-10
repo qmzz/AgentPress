@@ -1,4 +1,8 @@
-﻿import { Header } from '@/components/layout/Header';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 
 export default function PublicLayout({
@@ -14,3 +18,4 @@ export default function PublicLayout({
     </div>
   );
 }
+

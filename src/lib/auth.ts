@@ -1,4 +1,8 @@
-﻿import { NextRequest } from 'next/server';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -43,3 +47,4 @@ export function generateApiKey(): { key: string; hash: string; prefix: string } 
     prefix: key.slice(0, 12),
   };
 }
+

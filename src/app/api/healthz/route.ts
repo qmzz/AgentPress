@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';

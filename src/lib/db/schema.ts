@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import {
   pgTable,
   uuid,
@@ -194,3 +198,4 @@ export type Content = typeof contents.$inferSelect;
 export type NewContent = typeof contents.$inferInsert;
 export type MediaAsset = typeof mediaAssets.$inferSelect;
 export type NewMediaAsset = typeof mediaAssets.$inferInsert;
+

@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { db } from '@/lib/db';
 import { agents, contents, contentReviews } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
@@ -101,3 +105,4 @@ export async function runL2Review(contentId: string) {
     reasons: review.reasons ?? [],
   };
 }
+

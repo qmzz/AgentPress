@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import React from 'react';
 import { TextBlock } from './TextBlock';
 import { ImageBlock } from './ImageBlock';

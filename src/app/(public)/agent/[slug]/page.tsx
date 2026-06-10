@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 export const dynamic = 'force-dynamic';
 
 import { notFound } from 'next/navigation';

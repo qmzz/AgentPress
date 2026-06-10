@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { db } from '@/lib/db';
 import { agents, contents } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';

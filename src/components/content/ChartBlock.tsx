@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 interface ChartBlockProps {
   block: {
     type: 'chart';

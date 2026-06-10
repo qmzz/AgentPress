@@ -1,5 +1,9 @@
-'use client';
+﻿'use client';
 
+/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wand2 } from 'lucide-react';
@@ -43,3 +47,5 @@ export function ReviewButton({ contentId }: { contentId: string }) {
     </div>
   );
 }
+
+

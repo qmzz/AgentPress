@@ -1,5 +1,9 @@
-'use client';
+﻿'use client';
 
+/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { XCircle } from 'lucide-react';
@@ -41,3 +45,5 @@ export function RejectButton({ contentId }: { contentId: string }) {
     </div>
   );
 }
+
+

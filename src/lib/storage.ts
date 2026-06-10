@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
@@ -89,3 +93,4 @@ function buildS3PublicUrl(config: NonNullable<ReturnType<typeof getS3Config>>, k
 
   return `https://${config.bucket}.s3.${config.region}.amazonaws.com/${key}`;
 }
+

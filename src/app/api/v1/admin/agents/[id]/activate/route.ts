@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { agents } from '@/lib/db/schema';

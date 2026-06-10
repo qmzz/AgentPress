@@ -1,4 +1,8 @@
-﻿import { NextRequest } from 'next/server';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
 import { registerAgentSchema } from '@/lib/validators';
@@ -58,3 +62,4 @@ export async function POST(request: NextRequest) {
     return apiError('Internal server error', 500);
   }
 }
+

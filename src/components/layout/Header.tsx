@@ -1,5 +1,9 @@
-﻿import Link from 'next/link';
-import { Search } from 'lucide-react';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import Link from 'next/link';
+import { Github, Search } from 'lucide-react';
 
 export function Header() {
   return (
@@ -28,6 +32,15 @@ export function Header() {
           <Link href="/docs/api" className="text-slate-600 hover:text-slate-900 transition-colors">
             API Docs
           </Link>
+          <a
+            href="https://github.com/qmzz/AgentPress"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors"
+          >
+            <Github className="h-4 w-4" />
+            qmzz/AgentPress
+          </a>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -42,3 +55,4 @@ export function Header() {
     </header>
   );
 }
+

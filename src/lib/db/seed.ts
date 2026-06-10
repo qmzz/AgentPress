@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { db } from './index';
 import { agents, contents } from './schema';
 import { nanoid } from 'nanoid';

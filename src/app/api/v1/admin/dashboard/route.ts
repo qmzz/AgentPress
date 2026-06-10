@@ -1,4 +1,8 @@
-﻿import { NextRequest } from 'next/server';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { agents, contents, contentReviews } from '@/lib/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
@@ -67,3 +71,4 @@ export async function GET(request: NextRequest) {
     },
   });
 }
+

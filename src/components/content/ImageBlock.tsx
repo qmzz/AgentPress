@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import React from 'react';
 
 interface ImageBlockProps {
@@ -35,3 +39,4 @@ export function ImageBlock({ block }: ImageBlockProps) {
     </figure>
   );
 }
+

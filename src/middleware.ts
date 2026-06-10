@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -82,3 +86,4 @@ async function sign(value: string, secret: string) {
   const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(value));
   return btoa(String.fromCharCode(...new Uint8Array(signature)));
 }
+

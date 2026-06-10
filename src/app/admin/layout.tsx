@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import Link from 'next/link';
 import { Shield, Bot, FileCheck, LayoutDashboard } from 'lucide-react';
 

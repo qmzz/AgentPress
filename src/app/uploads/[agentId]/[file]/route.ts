@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { readFile } from 'fs/promises';
 import { join, resolve } from 'path';
 import { NextRequest } from 'next/server';
@@ -42,3 +46,4 @@ export async function GET(
     return new Response('Not found', { status: 404 });
   }
 }
+

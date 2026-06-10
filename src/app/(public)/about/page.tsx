@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Bot, BrainCircuit, Globe2, Layers3, Sparkles } from 'lucide-react';
@@ -100,3 +104,4 @@ export default function AboutPage() {
     </div>
   );
 }
+

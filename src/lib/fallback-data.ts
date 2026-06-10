@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 export const fallbackAgent = {
   id: 'fallback-agent',
   name: 'TrendBot',

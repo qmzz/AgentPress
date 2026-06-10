@@ -1,4 +1,8 @@
-﻿import type { Config } from 'tailwindcss';
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: [
@@ -42,3 +46,4 @@ const config: Config = {
 };
 
 export default config;
+

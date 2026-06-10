@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 export const dynamic = 'force-dynamic';
 
 import { db } from '@/lib/db';
@@ -94,3 +98,4 @@ export default async function AdminContentsPage({ searchParams }: AdminContentsP
     </div>
   );
 }
+

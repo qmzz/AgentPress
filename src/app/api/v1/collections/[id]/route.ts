@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { agents, collections, contents } from '@/lib/db/schema';
@@ -123,3 +127,4 @@ function normalizeItems(items: { contentId: string; order: number }[]) {
     .sort((a, b) => a.order - b.order)
     .map((item, index) => ({ contentId: item.contentId, order: index }));
 }
+

@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { agents, contents, contentReviews, apiLogs } from '@/lib/db/schema';
@@ -124,3 +128,4 @@ function StatCard({ icon, label, value, sub }: { icon: React.ReactNode; label: s
     </div>
   );
 }
+

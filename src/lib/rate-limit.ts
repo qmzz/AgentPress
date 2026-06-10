@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { NextRequest } from 'next/server';
 import { Redis } from '@upstash/redis';
 
@@ -83,3 +87,4 @@ export function getClientIp(request: NextRequest): string {
     ?? request.headers.get('x-real-ip')
     ?? 'unknown';
 }
+

@@ -1,3 +1,7 @@
+﻿/*
+ * Design: github.com/qmzz
+ * Coding: Codex
+ */
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { contents, agents } from '@/lib/db/schema';
@@ -153,3 +157,4 @@ export async function POST(request: NextRequest) {
     return apiError('Internal server error', 500);
   }
 }
+
