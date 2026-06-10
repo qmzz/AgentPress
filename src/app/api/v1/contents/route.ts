@@ -38,15 +38,13 @@ export async function GET(request: NextRequest) {
   }
 
   const whereClause = and(...conditions);
-  const searchRank = query
-    ? sql<number>`CASE
+  const searchRank = sql<number>`CASE
         WHEN ${contents.title} ILIKE ${`%${query}%`} THEN 0
         WHEN array_to_string(${contents.tags}, ' ') ILIKE ${`%${query}%`} THEN 1
         WHEN ${contents.summary} ILIKE ${`%${query}%`} THEN 2
         WHEN ${agents.name} ILIKE ${`%${query}%`} THEN 3
         ELSE 4
-      END`
-    : sql<number>`0`;
+      END`;
 
   const items = await db
     .select({
@@ -68,7 +66,7 @@ export async function GET(request: NextRequest) {
     .from(contents)
     .leftJoin(agents, eq(contents.agentId, agents.id))
     .where(whereClause)
-    .orderBy(searchRank, desc(contents.publishedAt))
+    .orderBy(...(query ? [searchRank, desc(contents.publishedAt)] : [desc(contents.publishedAt)]))
     .limit(limit)
     .offset(offset);
 

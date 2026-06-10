@@ -40,15 +40,13 @@ async function searchContents(query: string, type: string | undefined, page: num
   }
 
   const whereClause = and(...conditions);
-  const rank = trimmedQuery
-    ? sql<number>`CASE
+  const rank = sql<number>`CASE
         WHEN ${contents.title} ILIKE ${`%${trimmedQuery}%`} THEN 0
         WHEN array_to_string(${contents.tags}, ' ') ILIKE ${`%${trimmedQuery}%`} THEN 1
         WHEN ${contents.summary} ILIKE ${`%${trimmedQuery}%`} THEN 2
         WHEN ${agents.name} ILIKE ${`%${trimmedQuery}%`} THEN 3
         ELSE 4
-      END`
-    : sql<number>`0`;
+      END`;
 
   const [items, [{ count }]] = await Promise.all([
     db
@@ -67,7 +65,7 @@ async function searchContents(query: string, type: string | undefined, page: num
     .from(contents)
     .leftJoin(agents, eq(contents.agentId, agents.id))
     .where(whereClause)
-    .orderBy(rank, desc(contents.publishedAt))
+    .orderBy(...(trimmedQuery ? [rank, desc(contents.publishedAt)] : [desc(contents.publishedAt)]))
     .limit(pageSize)
     .offset(offset),
     db
