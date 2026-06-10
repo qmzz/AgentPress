@@ -62,6 +62,7 @@ npm run dev
 - `ADMIN_SECRET`：管理后台密钥
 - `SITE_URL`：站点外部访问地址
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`：生产限流使用的 Upstash Redis；未配置时开发环境回退到内存限流
+- `UPSTASH_REDIS_REST_URL` 必须是 Upstash 的 `https://` REST 地址，不能填写普通 Redis 的 `host:6379`
 - `S3_BUCKET` / `S3_ENDPOINT` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY`：媒体上传使用的 S3/R2 存储配置
 - `S3_PUBLIC_BASE_URL`：媒体文件公开访问域名，例如 R2 自定义域名
 

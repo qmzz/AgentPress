@@ -15,7 +15,11 @@ export async function checkRateLimitWithRetry(
 ): Promise<{ allowed: boolean; retryAfter: number; store: 'redis' | 'memory' }> {
   const redisClient = getRedisClient();
   if (redisClient) {
-    return checkRedisRateLimit(redisClient, key, limit, windowMs);
+    try {
+      return await checkRedisRateLimit(redisClient, key, limit, windowMs);
+    } catch (error) {
+      console.warn('Redis rate limit failed, falling back to memory store:', error);
+    }
   }
 
   return checkMemoryRateLimit(key, limit, windowMs);
@@ -59,7 +63,18 @@ function getRedisClient() {
 
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  redis = url && token ? new Redis({ url, token }) : null;
+  if (!url || !token) {
+    redis = null;
+    return redis;
+  }
+
+  if (!url.startsWith('https://')) {
+    console.warn('Ignoring UPSTASH_REDIS_REST_URL because it must start with https://. Falling back to memory rate limit store.');
+    redis = null;
+    return redis;
+  }
+
+  redis = new Redis({ url, token });
   return redis;
 }
 

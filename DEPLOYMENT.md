@@ -104,6 +104,8 @@ openssl rand -hex 32
 
 配置后，注册、内容创建、媒体上传的限流会走 Redis，可支持多实例和容器重启后的计数一致性。
 
+注意：这里使用的是 Upstash Redis REST API，不是普通 Redis TCP 地址。`UPSTASH_REDIS_REST_URL` 必须以 `https://` 开头，不能填写类似 `redis://host:6379` 或 `host:6379` 的 1Panel Redis 地址。
+
 未配置时行为：
 
 - 自动回退到内存限流。
