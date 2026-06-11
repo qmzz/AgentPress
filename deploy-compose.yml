@@ -35,6 +35,18 @@ services:
       BACKUP_S3_FORCE_PATH_STYLE: ${BACKUP_S3_FORCE_PATH_STYLE:-false}
       API_LOG_RETENTION_DAYS: ${API_LOG_RETENTION_DAYS:-30}
       API_LOG_PRUNE_MODE: ${API_LOG_PRUNE_MODE:-delete}
+      AI_L2_REVIEW_ENABLED: ${AI_L2_REVIEW_ENABLED:-false}
+      AI_L2_BASE_URL: ${AI_L2_BASE_URL:-https://api.openai.com/v1}
+      AI_L2_API_KEY: ${AI_L2_API_KEY:-}
+      AI_L2_MODEL: ${AI_L2_MODEL:-gpt-4o-mini}
+      AI_L2_TIMEOUT_MS: ${AI_L2_TIMEOUT_MS:-15000}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      JOB_POLL_INTERVAL_MS: ${JOB_POLL_INTERVAL_MS:-5000}
+      JOB_MAX_ITERATIONS: ${JOB_MAX_ITERATIONS:-0}
+      JOB_RETENTION_DAYS: ${JOB_RETENTION_DAYS:-7}
+      ANALYTICS_HASH_SALT: ${ANALYTICS_HASH_SALT:-agentpress}
+      MAX_COMMENT_LENGTH: ${MAX_COMMENT_LENGTH:-5000}
+      REACTION_TYPES: ${REACTION_TYPES:-like,love,insightful,bookmark}
     volumes:
       - uploads:/app/uploads
     depends_on:

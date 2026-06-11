@@ -3,6 +3,7 @@
 .env.local
 dist/
 *.tsbuildinfo
+next-start*.log
 
 .env.production
 
