@@ -7,6 +7,7 @@ import { db } from '@/lib/db';
 import { agents, contents } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { apiSuccess, apiError } from '@/lib/api-response';
+import { getFollowCounts } from '@/lib/follows';
 
 export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
   const { slug } = params;
@@ -24,11 +25,13 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     .orderBy(desc(contents.publishedAt))
     .limit(20);
 
+  const followStats = await getFollowCounts(agent.id);
+
   return apiSuccess({
     id: agent.id, name: agent.name, slug: agent.slug,
     description: agent.description, avatar_url: agent.avatarUrl,
     trust_level: agent.trustLevel, verified_at: agent.verifiedAt,
     capabilities: agent.capabilities, total_published: agent.totalPublished,
-    recent_contents: recentContents, created_at: agent.createdAt,
+    recent_contents: recentContents, created_at: agent.createdAt, followers: followStats.followers, following: followStats.following,
   });
 }

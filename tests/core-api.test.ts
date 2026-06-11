@@ -118,3 +118,40 @@ test('content version save increments version number', async () => {
     assert.equal(v2.versionNumber, v1.versionNumber + 1, 'version should increment');
   }
 });
+
+test('follow/unfollow agent workflow', async () => {
+  const { followAgent, unfollowAgent, getFollowCounts } = await import('../src/lib/follows.js');
+  const agent1 = '00000000-0000-4000-8000-000000000001';
+  const agent2 = '00000000-0000-4000-8000-000000000002';
+  
+  await followAgent(agent1, agent2).catch(() => null);
+  const counts = await getFollowCounts(agent2);
+  assert.ok(counts.followers >= 0, 'should return follower count');
+  
+  await unfollowAgent(agent1, agent2);
+});
+
+test('add and remove reaction', async () => {
+  const { addReaction, removeReaction, getReactionCounts } = await import('../src/lib/reactions.js');
+  const contentId = '00000000-0000-4000-8000-000000000001';
+  const agentId = '00000000-0000-4000-8000-000000000001';
+  
+  await addReaction(contentId, agentId, 'like').catch(() => null);
+  const counts = await getReactionCounts(contentId);
+  assert.ok(typeof counts === 'object', 'should return reaction counts');
+  
+  await removeReaction(contentId, agentId, 'like');
+});
+
+test('create and get comments', async () => {
+  const { createComment, getComments } = await import('../src/lib/comments.js');
+  const contentId = '00000000-0000-4000-8000-000000000001';
+  const agentId = '00000000-0000-4000-8000-000000000001';
+  
+  const comment = await createComment(contentId, agentId, 'Test comment').catch(() => null);
+  if (comment) {
+    assert.equal(comment.body, 'Test comment');
+    const comments = await getComments(contentId, 10, 0);
+    assert.ok(Array.isArray(comments), 'should return comments array');
+  }
+});

@@ -18,7 +18,7 @@ import {
   index,
   uniqueIndex,
   pgEnum,
-} from 'drizzle-orm/pg-core';
+, AnyPgColumn} from 'drizzle-orm/pg-core';
 
 // ─── Enums ───────────────────────────────────────────
 
@@ -302,3 +302,75 @@ export const contentVersions = pgTable(
 
 export type Job = typeof jobs.$inferSelect;
 export type ContentVersion = typeof contentVersions.$inferSelect;
+
+// ─── Agent Follows ───────────────────────────────────
+
+export const agentFollows = pgTable(
+  'agent_follows',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    followerAgentId: uuid('follower_agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    followingAgentId: uuid('following_agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    uniqueFollow: uniqueIndex('agent_follows_follower_agent_id_following_agent_id_key').on(table.followerAgentId, table.followingAgentId),
+    followerIdx: index('idx_agent_follows_follower').on(table.followerAgentId, table.createdAt.desc()),
+    followingIdx: index('idx_agent_follows_following').on(table.followingAgentId, table.createdAt.desc()),
+  })
+);
+
+// ─── Content Reactions ───────────────────────────────
+
+export const contentReactions = pgTable(
+  'content_reactions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contentId: uuid('content_id')
+      .notNull()
+      .references(() => contents.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    reactionType: varchar('reaction_type', { length: 50 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    uniqueReaction: uniqueIndex('content_reactions_content_id_agent_id_reaction_type_key').on(table.contentId, table.agentId, table.reactionType),
+    contentIdx: index('idx_content_reactions_content').on(table.contentId, table.reactionType),
+    agentIdx: index('idx_content_reactions_agent').on(table.agentId, table.createdAt.desc()),
+  })
+);
+
+// ─── Comments ────────────────────────────────────────
+
+export const comments = pgTable(
+  'comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contentId: uuid('content_id')
+      .notNull()
+      .references(() => contents.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    parentId: uuid('parent_id').references((): AnyPgColumn => comments.id, { onDelete: 'cascade' }),
+    body: text('body').notNull(),
+    status: varchar('status', { length: 50 }).default('published'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    contentIdx: index('idx_comments_content').on(table.contentId, table.createdAt.desc()),
+    agentIdx: index('idx_comments_agent').on(table.agentId, table.createdAt.desc()),
+    parentIdx: index('idx_comments_parent').on(table.parentId, table.createdAt),
+  })
+);
+
+export type AgentFollow = typeof agentFollows.$inferSelect;
+export type ContentReaction = typeof contentReactions.$inferSelect;
+export type Comment = typeof comments.$inferSelect;
