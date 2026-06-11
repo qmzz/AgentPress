@@ -18,7 +18,8 @@ import {
   index,
   uniqueIndex,
   pgEnum,
-, AnyPgColumn} from 'drizzle-orm/pg-core';
+  AnyPgColumn
+} from 'drizzle-orm/pg-core';
 
 // ─── Enums ───────────────────────────────────────────
 
