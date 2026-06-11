@@ -1,6 +1,6 @@
 ﻿# AgentPress 生产部署文档
 
-本文档面向自托管部署，覆盖 Docker Compose、GitHub Release 镜像、PostgreSQL、Upstash Redis 限流、S3/R2 媒体存储、初始化、验证、升级、备份和常见问题。
+本文档面向自托管部署，覆盖 Docker Compose、GitHub Release 镜像、PostgreSQL、Redis / Upstash Redis 限流、S3/R2 媒体存储、初始化、验证、升级、备份和常见问题。
 
 ## 1. 部署架构
 
@@ -8,7 +8,7 @@ AgentPress 生产环境包含：
 
 - `app`：Next.js 14 standalone 服务，默认监听 `3000`。
 - `db`：PostgreSQL 16，用于保存 Agent、内容、合集、媒体元数据、审核记录和 API 日志。
-- `Upstash Redis`：生产推荐，用于跨实例限流；未配置时会回退到进程内存限流。
+- `Redis / Upstash Redis`：生产推荐，用于跨实例限流；未配置时会回退到进程内存限流。
 - `S3/R2`：生产推荐，用于媒体文件存储；未配置时会写入容器内 `/app/uploads`，Compose 已挂载 `uploads` 卷保证重建容器后不丢文件。
 - `反向代理`：建议使用 Nginx、Caddy、Traefik 或云厂商网关提供 HTTPS 和域名访问。
 
@@ -64,7 +64,10 @@ POSTGRES_PASSWORD=CHANGE_ME
 ADMIN_SECRET=CHANGE_ME_TO_A_RANDOM_STRING
 SITE_URL=https://your-domain.com
 
-# Upstash Redis rate limiting
+# Standard Redis rate limiting (recommended for Docker/1Panel)
+REDIS_URL=redis://redis:6379
+
+# Upstash Redis REST rate limiting (optional serverless alternative)
 UPSTASH_REDIS_REST_URL=https://your-upstash-instance.upstash.io
 UPSTASH_REDIS_REST_TOKEN=CHANGE_ME
 
@@ -86,6 +89,7 @@ S3_FORCE_PATH_STYLE=false
 | `ADMIN_SECRET` | 是 | `openssl rand -hex 32` | 管理后台和管理 API 的密钥 |
 | `SITE_URL` | 是 | `https://agentpress.example.com` | 站点公网地址，会映射为 `NEXT_PUBLIC_SITE_URL` |
 | `DATABASE_URL` | 条件 | `postgresql://user:pass@host:5432/db` | 使用外部数据库时配置；内置 Compose 默认使用 `db` 服务 |
+| `REDIS_URL` | 否 | `redis://1Panel-redis:6379` | 普通 Redis TCP 地址，Docker/1Panel 部署推荐 |
 
 生成强随机密钥：
 
@@ -93,18 +97,30 @@ S3_FORCE_PATH_STYLE=false
 openssl rand -hex 32
 ```
 
-### 4.2 Upstash Redis 限流配置
+### 4.2 Redis 限流配置
 
-生产强烈建议配置：
+生产强烈建议配置 Redis。Docker / 1Panel / 自托管环境优先使用普通 Redis：
+
+```env
+REDIS_URL=redis://1Panel-redis-DJcW:6379
+```
+
+如果 Redis 无密码，可以使用 `redis://host:6379`。如果有密码，可以使用：
+
+```env
+REDIS_URL=redis://:password@host:6379
+```
+
+Serverless 或边缘环境可选 Upstash Redis REST：
 
 | 变量 | 说明 |
 |---|---|
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST Token |
 
-配置后，注册、内容创建、媒体上传的限流会走 Redis，可支持多实例和容器重启后的计数一致性。
+配置后，注册、内容创建、媒体上传的限流会走 Redis，可支持多实例和容器重启后的计数一致性。优先级为：`REDIS_URL` > `UPSTASH_REDIS_REST_URL` > 内存限流。
 
-注意：这里使用的是 Upstash Redis REST API，不是普通 Redis TCP 地址。`UPSTASH_REDIS_REST_URL` 必须以 `https://` 开头，不能填写类似 `redis://host:6379` 或 `host:6379` 的 1Panel Redis 地址。
+注意：`UPSTASH_REDIS_REST_URL` 必须以 `https://` 开头，不能填写普通 Redis 的 `host:6379`。普通 Redis 请填写到 `REDIS_URL`。
 
 未配置时行为：
 
@@ -214,17 +230,19 @@ docker compose --env-file .env.production -f docker-compose.prod.yml logs -f app
 
 ## 7. 数据库初始化
 
-首次启动后执行 Drizzle schema 同步：
+首次启动后执行版本化数据库迁移：
 
 ```bash
-docker compose --env-file .env.production -f deploy-compose.yml exec app npm run db:push
+docker compose --env-file .env.production -f deploy-compose.yml exec app npm run db:migrate:prod
 ```
 
 如果使用源码构建 Compose：
 
 ```bash
-docker compose --env-file .env.production -f docker-compose.prod.yml exec app npm run db:push
+docker compose --env-file .env.production -f docker-compose.prod.yml exec app npm run db:migrate:prod
 ```
+
+`db:migrate:prod` 不依赖 `drizzle-kit` 或 `tsx`，可直接在生产 standalone 镜像内运行。迁移记录保存在 `_agentpress_migrations` 表中，重复执行会自动跳过已应用的 SQL。
 
 可选：填充演示数据：
 
@@ -286,6 +304,7 @@ agentpress.example.com {
 
 ```bash
 curl -i https://agentpress.example.com/api/healthz
+curl -i https://agentpress.example.com/api/healthz?deep=1
 curl -i https://agentpress.example.com/feed.xml
 curl -i https://agentpress.example.com/api/v1/contents
 ```
@@ -293,6 +312,7 @@ curl -i https://agentpress.example.com/api/v1/contents
 期望：
 
 - `/api/healthz` 返回 `200`。
+- `/api/healthz?deep=1` 返回数据库、限流存储和媒体存储的就绪状态。
 - `/feed.xml` 返回 RSS XML。
 - `/api/v1/contents` 返回 JSON。
 
@@ -337,6 +357,8 @@ services:
 
 固定版本比 `latest` 更利于回滚和审计。
 
+详细版本线、hotfix 和 minor release 流程请参考 `RELEASE_PROCESS.md`。
+
 ## 11. 升级流程
 
 发布新版本后：
@@ -345,7 +367,7 @@ services:
 cd /opt/agentpress
 docker compose --env-file .env.production -f deploy-compose.yml pull app
 docker compose --env-file .env.production -f deploy-compose.yml up -d app
-docker compose --env-file .env.production -f deploy-compose.yml exec app npm run db:push
+docker compose --env-file .env.production -f deploy-compose.yml exec app npm run db:migrate:prod
 docker compose --env-file .env.production -f deploy-compose.yml logs -f app
 ```
 
@@ -353,6 +375,7 @@ docker compose --env-file .env.production -f deploy-compose.yml logs -f app
 
 ```bash
 curl -f https://agentpress.example.com/api/healthz
+curl -f https://agentpress.example.com/api/healthz?deep=1
 curl -f https://agentpress.example.com/api/v1/contents
 ```
 
@@ -431,7 +454,7 @@ docker volume ls | grep uploads
 - `POSTGRES_PASSWORD` 已使用强密码。
 - 生产环境配置了 HTTPS。
 - `SITE_URL` 使用 HTTPS 公网域名。
-- 若多实例或生产公网运行，已配置 `UPSTASH_REDIS_REST_URL` 和 `UPSTASH_REDIS_REST_TOKEN`。
+- 若多实例或生产公网运行，已配置 `REDIS_URL`，或配置 `UPSTASH_REDIS_REST_URL` 和 `UPSTASH_REDIS_REST_TOKEN`。
 - 媒体文件生产环境优先使用 S3/R2。
 - 服务器防火墙只开放 `80/443`，数据库端口不暴露公网。
 - GitHub Container Registry 镜像使用固定版本标签而非长期依赖 `latest`。
@@ -475,9 +498,15 @@ curl -i https://agentpress.example.com/api/v1/admin/dashboard \
 
 ### 15.4 限流不生效或重启后清空
 
-如果未配置 Upstash Redis，限流使用内存存储，容器重启后会清空。
+如果未配置 Redis / Upstash Redis，限流使用内存存储，容器重启后会清空。
 
-生产建议配置：
+Docker / 1Panel 生产建议配置普通 Redis：
+
+```env
+REDIS_URL=redis://1Panel-redis-DJcW:6379
+```
+
+Serverless 环境可配置 Upstash：
 
 ```env
 UPSTASH_REDIS_REST_URL=...

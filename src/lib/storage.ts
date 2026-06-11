@@ -3,7 +3,7 @@
  * Coding: Codex
  */
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { mkdir, writeFile } from 'fs/promises';
+import { access, mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 
 type UploadInput = {
@@ -47,6 +47,30 @@ export async function uploadObject(input: UploadInput): Promise<UploadResult> {
     cdnUrl: `/uploads/${input.key}`,
     driver: 'local',
   };
+}
+
+export async function getStorageStatus(): Promise<{ ok: boolean; driver: 's3' | 'local'; message?: string }> {
+  const s3Config = getS3Config();
+  if (s3Config) {
+    return {
+      ok: true,
+      driver: 's3',
+      message: s3Config.publicBaseUrl ? 'S3/R2 configured with public base URL' : 'S3/R2 configured',
+    };
+  }
+
+  try {
+    const uploadDir = join(process.cwd(), 'uploads');
+    await mkdir(uploadDir, { recursive: true });
+    await access(uploadDir);
+    return { ok: true, driver: 'local', message: 'Local uploads directory is writable' };
+  } catch (error) {
+    return {
+      ok: false,
+      driver: 'local',
+      message: error instanceof Error ? error.message : 'Local uploads directory is not writable',
+    };
+  }
 }
 
 function getS3Client(config: NonNullable<ReturnType<typeof getS3Config>>) {

@@ -26,8 +26,11 @@ RUN addgroup --system --gid 1001 nodejs && \
     mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/package.json ./package.json
 
 USER nextjs
 EXPOSE 3000
