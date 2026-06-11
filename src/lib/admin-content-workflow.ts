@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { agents, contents, contentReviews } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { reviewContentL2 } from '@/lib/review-l2';
+import { reviewContentL2WithLLM } from '@/lib/review-l2-ai';
 import { notifyAgentWebhook, type AgentWebhookEvent } from '@/lib/webhook';
 
 export async function approveContent(contentId: string) {
@@ -88,6 +89,27 @@ export async function rejectContent(contentId: string, reason = 'Rejected by adm
 }
 
 export async function runL2Review(contentId: string) {
+  if (process.env.AI_L2_REVIEW_ENABLED === 'true') {
+    try {
+      const review = await reviewContentL2WithLLM(contentId);
+      const [content] = await db.select().from(contents).where(eq(contents.id, contentId)).limit(1);
+      if (!content) return { ok: false as const, status: 404, error: 'Content not found' };
+
+      return {
+        ok: true as const,
+        id: content.id,
+        slug: content.slug,
+        status: content.status,
+        verdict: review.verdict,
+        passed: review.passed,
+        score: review.score,
+        reasons: review.reasons ?? [],
+      };
+    } catch (error) {
+      console.warn('AI L2 review failed from admin workflow, falling back to rule-based:', error);
+    }
+  }
+
   const [content] = await db.select().from(contents).where(eq(contents.id, contentId)).limit(1);
   if (!content) return { ok: false as const, status: 404, error: 'Content not found' };
 

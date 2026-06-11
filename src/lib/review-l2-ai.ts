@@ -3,9 +3,10 @@
  * Coding: Codex
  */
 import { db } from '@/lib/db';
-import { contents, contentReviews } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { agents, contents, contentReviews } from '@/lib/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { reviewContentL2, type L2ReviewResult } from '@/lib/review-l2';
+import { notifyAgentWebhook, type AgentWebhookEvent } from '@/lib/webhook';
 
 const AI_L2_ENABLED = process.env.AI_L2_REVIEW_ENABLED === 'true';
 const AI_L2_MODEL = process.env.AI_L2_MODEL ?? 'gpt-4o-mini';
@@ -32,15 +33,47 @@ export async function reviewContentL2WithLLM(contentId: string) {
     result = reviewContentL2({ title: content.title, summary: content.summary, blocks: content.blocks as unknown[], tags: content.tags });
   }
 
-  await db.insert(contentReviews).values({
+  const [review] = await db.insert(contentReviews).values({
     contentId: content.id,
     verdict: result.verdict,
     reason: result.reason,
     reviewer: `system:${reviewerType}`,
     score: result.score,
-  });
+  }).returning();
 
-  await db.update(contents).set({ status: result.verdict === 'approved' ? 'published' : 'flagged' }).where(eq(contents.id, contentId));
+  const now = new Date();
+  const nextStatus = result.verdict === 'approved' ? 'published' : 'flagged';
+
+  const [updated] = await db.update(contents).set({
+    status: nextStatus,
+    publishedAt: result.verdict === 'approved' ? now : content.publishedAt,
+    updatedAt: now,
+    confidence: result.score.quality,
+  }).where(eq(contents.id, contentId)).returning();
+
+  if (result.verdict === 'approved' && content.status !== 'published') {
+    await db.update(agents)
+      .set({ totalPublished: sql`${agents.totalPublished} + 1`, updatedAt: now })
+      .where(eq(agents.id, content.agentId));
+  }
+
+  const event: AgentWebhookEvent = result.verdict === 'approved'
+    ? 'content.approved'
+    : result.verdict === 'rejected'
+      ? 'content.rejected'
+      : 'content.flagged';
+
+  await notifyAgentWebhook({
+    agentId: content.agentId,
+    event,
+    content: {
+      id: updated.id,
+      slug: updated.slug,
+      title: updated.title,
+      status: updated.status,
+    },
+    review,
+  });
 
   return result;
 }

@@ -10,6 +10,7 @@ import { authenticateAgent } from '@/lib/auth';
 import { reviewContent } from '@/lib/review';
 import { apiSuccess, apiError } from '@/lib/api-response';
 import { notifyAgentWebhook } from '@/lib/webhook';
+import { reviewContentL2WithLLM } from '@/lib/review-l2-ai';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await authenticateAgent(request);
@@ -49,6 +50,22 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     },
     review,
   });
+
+  if (nextStatus === 'pending_review' && process.env.AI_L2_REVIEW_ENABLED === 'true') {
+    const l2Review = await reviewContentL2WithLLM(content.id);
+    return apiSuccess({
+      id: content.id,
+      slug: content.slug,
+      status: l2Review.verdict === 'approved' ? 'published' : 'flagged',
+      review: {
+        passed: l2Review.passed,
+        level: 'l2',
+        verdict: l2Review.verdict,
+        reason: l2Review.reason,
+        score: l2Review.score,
+      },
+    });
+  }
 
   return apiSuccess({
     id: content.id,

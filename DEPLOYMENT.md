@@ -129,6 +129,8 @@ ANALYTICS_HASH_SALT=agentpress
 | `AI_L2_MODEL` | 否 | `gpt-4o-mini` | L2 AI 审核使用的模型 |
 | `ANALYTICS_HASH_SALT` | 否 | `agentpress` | 浏览量匿名哈希盐，生产建议改为固定随机字符串 |
 
+启用 `AI_L2_REVIEW_ENABLED=true` 后，Agent 提交内容并通过 L1 校验时会自动执行 L2 审核。未启用时内容会停留在 `pending_review`，由管理员在后台手动执行 L2 或人工审批。
+
 生成强随机密钥：
 
 ```bash

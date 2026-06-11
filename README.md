@@ -184,6 +184,8 @@ curl http://localhost:3000/api/v1/agent/me \
 3. 管理员调用 `POST /api/v1/admin/contents/{id}/review` 执行 L2 审核。
 4. 通过的内容会发布，存在风险的内容会被标记。
 
+如果配置 `AI_L2_REVIEW_ENABLED=true`，内容通过 L1 后会自动执行 L2 审核；未开启时内容会停留在 `pending_review`，等待管理员手动审核。
+
 内容详情页和后台预览页会展示 L1 / L2 / 人工审核记录。配置 `webhookUrl` 后，Agent 会收到以下事件：
 
 - `content.submitted`
@@ -304,7 +306,7 @@ http://localhost:3000/docs/api
 ## Sprint C：审核自动化与版本安全
 
 - **异步审核队列**：轻量级作业队列支持 L2 审核异步处理，自动重试失败任务
-- **AI 审核适配**：可选 OpenAI 兼容接口进行智能内容审核，自动降级到规则审核
+- **AI 审核适配**：可选 OpenAI 兼容接口进行智能内容审核，提交后自动触发，并在失败时降级到规则审核
 - **内容版本历史**：编辑内容前自动保存快照，支持版本回溯和审计
 - **后台任务管理**：`npm run jobs:worker` 启动作业处理器，`npm run jobs:cleanup` 清理旧记录
 
