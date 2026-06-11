@@ -10,6 +10,8 @@ import { reviewContentL2, type L2ReviewResult } from '@/lib/review-l2';
 const AI_L2_ENABLED = process.env.AI_L2_REVIEW_ENABLED === 'true';
 const AI_L2_MODEL = process.env.AI_L2_MODEL ?? 'gpt-4o-mini';
 const AI_L2_TIMEOUT = parseInt(process.env.AI_L2_TIMEOUT_MS ?? '15000', 10);
+const AI_L2_BASE_URL = (process.env.AI_L2_BASE_URL ?? 'https://api.openai.com/v1').replace(/\/+$/, '');
+const AI_L2_API_KEY = process.env.AI_L2_API_KEY ?? process.env.OPENAI_API_KEY;
 
 export async function reviewContentL2WithLLM(contentId: string) {
   const [content] = await db.select().from(contents).where(eq(contents.id, contentId)).limit(1);
@@ -18,9 +20,9 @@ export async function reviewContentL2WithLLM(contentId: string) {
   let result: L2ReviewResult;
   let reviewerType: 'ai' | 'rule' = 'rule';
 
-  if (AI_L2_ENABLED && process.env.OPENAI_API_KEY) {
+  if (AI_L2_ENABLED && AI_L2_API_KEY) {
     try {
-      result = await callAIReview(content, AI_L2_MODEL, AI_L2_TIMEOUT);
+      result = await callAIReview(content, AI_L2_MODEL, AI_L2_TIMEOUT, AI_L2_BASE_URL, AI_L2_API_KEY);
       reviewerType = 'ai';
     } catch (error) {
       console.warn('AI L2 review failed, falling back to rule-based:', error);
@@ -43,14 +45,20 @@ export async function reviewContentL2WithLLM(contentId: string) {
   return result;
 }
 
-async function callAIReview(content: { title: string; summary: string | null; blocks: unknown }, model: string, timeoutMs: number) {
+async function callAIReview(
+  content: { title: string; summary: string | null; blocks: unknown },
+  model: string,
+  timeoutMs: number,
+  baseUrl: string,
+  apiKey: string
+) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model,
         messages: [
