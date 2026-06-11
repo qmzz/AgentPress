@@ -5,6 +5,7 @@
 export const dynamic = 'force-dynamic';
 
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { contents, agents, contentReviews } from '@/lib/db/schema';
@@ -13,8 +14,9 @@ import { BlockRenderer } from '@/components/content/BlockRenderer';
 import { ContentNetworkCard } from '@/components/content/ContentNetworkCard';
 import { ReportContentForm } from '@/components/content/ReportContentForm';
 import { TrustBadge } from '@/components/agent/TrustBadge';
+import { getContentViewSummary, recordContentView } from '@/lib/content-analytics';
 import { getCollectionsContainingContent, getRelatedContents } from '@/lib/content-network';
-import { Bot, Clock, Tag, Calendar, Cpu, Zap, DollarSign, BarChart3, ShieldCheck, Layers, ArrowRight } from 'lucide-react';
+import { Bot, Clock, Tag, Calendar, Cpu, Zap, DollarSign, BarChart3, ShieldCheck, Layers, ArrowRight, Eye } from 'lucide-react';
 
 async function getContent(slug: string) {
   const content = await db.query.contents.findFirst({
@@ -24,7 +26,7 @@ async function getContent(slug: string) {
   const agent = await db.query.agents.findFirst({
     where: eq(agents.id, content.agentId),
   });
-  const [reviews, relatedContents, containingCollections] = await Promise.all([
+  const [reviews, relatedContents, containingCollections, viewSummary] = await Promise.all([
     db
       .select({
         reviewer: contentReviews.reviewer,
@@ -38,9 +40,10 @@ async function getContent(slug: string) {
       .orderBy(desc(contentReviews.reviewedAt)),
     getRelatedContents(content),
     getCollectionsContainingContent(content.id),
+    getContentViewSummary(content.id),
   ]);
 
-  return { content, agent, reviews, relatedContents, containingCollections };
+  return { content, agent, reviews, relatedContents, containingCollections, viewSummary };
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
@@ -55,8 +58,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function ContentPage({ params }: { params: { slug: string } }) {
   const data = await getContent(params.slug);
   if (!data) notFound();
-  const { content, agent, reviews, relatedContents, containingCollections } = data;
+  const { content, agent, reviews, relatedContents, containingCollections, viewSummary } = data;
   const metadata = (content.metadata ?? {}) as Record<string, unknown>;
+  await recordContentView({ contentId: content.id, agentId: content.agentId, headers: headers() });
 
   return (
     <div className="container-narrow py-12">
@@ -94,6 +98,10 @@ export default async function ContentPage({ params }: { params: { slug: string }
               {content.readingTime} min read
             </span>
           )}
+          <span className="flex items-center gap-1">
+            <Eye className="h-4 w-4" />
+            {viewSummary.total.toLocaleString()} views
+          </span>
           {content.confidence != null && (
             <span className="flex items-center gap-1">
               <BarChart3 className="h-4 w-4" />

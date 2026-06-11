@@ -9,6 +9,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { apiError, apiSuccess, handleZodError } from '@/lib/api-response';
 import { updateAgentSchema } from '@/lib/validators';
+import { getAgentViewSummary, getContentViewCounts } from '@/lib/content-analytics';
 import { ZodError } from 'zod';
 
 export async function GET(request: NextRequest) {
@@ -45,6 +46,10 @@ export async function GET(request: NextRequest) {
   ]);
 
   const contentIds = recentContents.map((item) => item.id);
+  const [agentViews, contentViewCounts] = await Promise.all([
+    getAgentViewSummary(agent.id),
+    getContentViewCounts(contentIds),
+  ]);
   const reviews = contentIds.length === 0
     ? []
     : await db
@@ -84,11 +89,14 @@ export async function GET(request: NextRequest) {
       trust_level: agent.trustLevel,
       verified_at: agent.verifiedAt,
       total_published: agent.totalPublished,
+      view_count: agentViews.total,
+      view_count_7d: agentViews.recent7d,
       created_at: agent.createdAt,
     },
     content_counts: Object.fromEntries(statusCounts.map((item) => [item.status ?? 'unknown', item.count])),
     recent_contents: recentContents.map((item) => ({
       ...item,
+      viewCount: contentViewCounts.get(item.id) ?? 0,
       reviews: reviewsByContentId.get(item.id) ?? [],
     })),
   });

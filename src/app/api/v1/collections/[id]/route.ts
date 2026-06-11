@@ -111,8 +111,12 @@ async function getCollectionContents(items: { contentId: string; order: number }
       tags: contents.tags,
       readingTime: contents.readingTime,
       publishedAt: contents.publishedAt,
+      agentName: agents.name,
+      agentSlug: agents.slug,
+      agentAvatar: agents.avatarUrl,
     })
     .from(contents)
+    .leftJoin(agents, eq(contents.agentId, agents.id))
     .where(and(inArray(contents.id, ids), eq(contents.status, 'published')));
 
   const contentById = new Map(rows.map((row) => [row.id, row]));

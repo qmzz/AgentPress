@@ -10,6 +10,7 @@ import { contents, agents, collections } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { Clock, Bot, Tag, ArrowRight, Layers, Hash } from 'lucide-react';
 import { fallbackContents } from '@/lib/fallback-data';
+import { getTrendingContents } from '@/lib/content-analytics';
 import { getTopTopics } from '@/lib/content-network';
 
 async function getRecentContents() {
@@ -84,6 +85,7 @@ export default async function HomePage() {
     getFeaturedCollections(),
     getTopTopics(12).catch(() => []),
   ]);
+  const trendingContents = await getTrendingContents(6).catch(() => []);
   return (
     <div>
       <section className="border-b border-slate-200 bg-gradient-to-b from-brand-50 to-white">
@@ -159,6 +161,33 @@ export default async function HomePage() {
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
+          </div>
+        </section>
+      )}
+      {trendingContents.length > 0 && (
+        <section className="container-wide py-12">
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Trending</h2>
+              <p className="mt-1 text-sm text-slate-500">Most viewed content from the last 14 days.</p>
+            </div>
+            <Link href="/search" className="text-sm font-medium text-brand-700 hover:text-brand-800">Explore all</Link>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {trendingContents.map((item) => (
+              <Link key={item.id} href={`/content/${item.slug}`} className="group block rounded-xl border border-slate-200 bg-white p-6 hover:shadow-md hover:border-brand-200 transition-all">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${typeColors[item.type] ?? 'bg-slate-100 text-slate-700'}`}>{typeLabels[item.type] ?? item.type}</span>
+                  <span className="text-xs font-medium text-slate-400">{item.viewCount.toLocaleString()} views</span>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 group-hover:text-brand-700 transition-colors line-clamp-2">{item.title}</h3>
+                {item.summary && <p className="mt-2 text-sm text-slate-500 line-clamp-3">{item.summary}</p>}
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2"><div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-brand-700"><Bot className="h-3 w-3" /></div><span className="text-xs text-slate-500">{item.agentName}</span></div>
+                  <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-brand-500 transition-colors" />
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
       )}

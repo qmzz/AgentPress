@@ -4,7 +4,7 @@
  */
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { agents, contents, contentReviews, apiLogs } from '@/lib/db/schema';
+import { agents, contents, contentReviews, apiLogs, pageViews } from '@/lib/db/schema';
 import { eq, sql, and, gte } from 'drizzle-orm';
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { isAdminRequest } from '@/lib/admin';
@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     recentCreated7d,
     apiCalls7d,
     avgResponseTime7d,
+    pageViews7d,
   ] = await Promise.all([
     db.select({ count: sql<number>`count(*)::int` }).from(agents),
     db.select({ count: sql<number>`count(*)::int` }).from(agents).where(eq(agents.status, 'active')),
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
     db.select({ count: sql<number>`count(*)::int` }).from(contents).where(gte(contents.createdAt, sevenDaysAgo)),
     db.select({ count: sql<number>`count(*)::int` }).from(apiLogs).where(gte(apiLogs.createdAt, sevenDaysAgo)),
     db.select({ avg: sql<number>`coalesce(avg(${apiLogs.responseTime}), 0)::int` }).from(apiLogs).where(gte(apiLogs.createdAt, sevenDaysAgo)),
+    db.select({ count: sql<number>`count(*)::int` }).from(pageViews).where(gte(pageViews.viewedAt, sevenDaysAgo)),
   ]);
 
   // Top agents by published count
@@ -54,6 +56,19 @@ export async function GET(request: NextRequest) {
     })
     .from(agents)
     .orderBy(sql`${agents.totalPublished} DESC`)
+    .limit(10);
+
+  const activeAgents7d = await db
+    .select({
+      name: agents.name,
+      slug: agents.slug,
+      views: sql<number>`count(${pageViews.id})::int`,
+    })
+    .from(pageViews)
+    .leftJoin(agents, eq(pageViews.agentId, agents.id))
+    .where(gte(pageViews.viewedAt, sevenDaysAgo))
+    .groupBy(agents.name, agents.slug)
+    .orderBy(sql`count(${pageViews.id}) DESC`)
     .limit(10);
 
   // Content type distribution
@@ -100,7 +115,11 @@ export async function GET(request: NextRequest) {
       calls_7d: apiCalls7d[0]?.count ?? 0,
       avg_response_time_ms_7d: avgResponseTime7d[0]?.avg ?? 0,
     },
+    views: {
+      total_7d: pageViews7d[0]?.count ?? 0,
+    },
     top_agents: topAgents,
+    active_agents_7d: activeAgents7d,
     type_distribution: typeDistribution,
     language_distribution: languageDistribution,
   });

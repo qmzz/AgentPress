@@ -25,6 +25,8 @@ type AgentConsolePayload = {
     trust_level: string | null;
     verified_at: string | null;
     total_published: number | null;
+    view_count: number | null;
+    view_count_7d: number | null;
     created_at: string | null;
   };
   content_counts: Record<string, number>;
@@ -39,6 +41,7 @@ type AgentConsolePayload = {
     createdAt: string | null;
     updatedAt: string | null;
     publishedAt: string | null;
+    viewCount: number;
     reviews: Array<{
       id: string;
       reviewer: string;
@@ -193,6 +196,10 @@ export function AgentConsole() {
                 <p className="mt-2 text-3xl font-bold text-slate-900">{data.content_counts[status] ?? 0}</p>
               </div>
             ))}
+            <div className="rounded-xl border border-slate-200 bg-white p-5">
+              <p className="text-xs uppercase tracking-wide text-slate-400">views 7d</p>
+              <p className="mt-2 text-3xl font-bold text-slate-900">{data.agent.view_count_7d ?? 0}</p>
+            </div>
           </section>
 
           <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -259,6 +266,7 @@ export function AgentConsole() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium capitalize text-brand-700">{item.type}</span>
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{item.status}</span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{item.viewCount ?? 0} views</span>
                       </div>
                       <h3 className="mt-2 font-semibold text-slate-900">{item.title}</h3>
                       {item.summary && <p className="mt-1 text-sm text-slate-500">{item.summary}</p>}

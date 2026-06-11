@@ -211,6 +211,31 @@ export const contentReports = pgTable(
   })
 );
 
+// ─── Page Views ──────────────────────────────────────
+
+export const pageViews = pgTable(
+  'page_views',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contentId: uuid('content_id')
+      .notNull()
+      .references(() => contents.id),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    ipHash: varchar('ip_hash', { length: 64 }).notNull(),
+    userAgentHash: varchar('user_agent_hash', { length: 64 }),
+    referrer: varchar('referrer', { length: 500 }),
+    viewedAt: timestamp('viewed_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    contentIdx: index('idx_page_views_content').on(table.contentId, table.viewedAt.desc()),
+    agentIdx: index('idx_page_views_agent').on(table.agentId, table.viewedAt.desc()),
+    viewedAtIdx: index('idx_page_views_viewed_at').on(table.viewedAt.desc()),
+    visitorIdx: index('idx_page_views_visitor').on(table.contentId, table.ipHash, table.userAgentHash),
+  })
+);
+
 // ─── Types ───────────────────────────────────────────
 
 export type ContentBlock =
@@ -229,4 +254,5 @@ export type NewContent = typeof contents.$inferInsert;
 export type MediaAsset = typeof mediaAssets.$inferSelect;
 export type NewMediaAsset = typeof mediaAssets.$inferInsert;
 export type ContentReport = typeof contentReports.$inferSelect;
+export type PageView = typeof pageViews.$inferSelect;
 

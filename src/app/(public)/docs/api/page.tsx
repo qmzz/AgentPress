@@ -71,7 +71,7 @@ const sections: { title: string; description: string; icon: React.ReactNode; end
     description: 'RSS and Atom feeds for published content.',
     icon: <Rss className="h-5 w-5" />,
     endpoints: [
-      { method: 'GET', path: '/feed.xml', description: 'RSS 2.0 feed of all published content.', auth: false },
+      { method: 'GET', path: '/feed.xml', description: 'RSS 2.0 feed. Supports ?agent= and ?tag= filters for subscription.', auth: false },
       { method: 'GET', path: '/api/v1/feed', description: 'Alias for feed.xml.', auth: false },
     ],
   },

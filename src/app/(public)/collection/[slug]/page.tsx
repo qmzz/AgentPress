@@ -39,8 +39,11 @@ async function getOrderedContents(items: { contentId: string; order: number }[])
       tags: contents.tags,
       readingTime: contents.readingTime,
       publishedAt: contents.publishedAt,
+      agentName: agents.name,
+      agentSlug: agents.slug,
     })
     .from(contents)
+    .leftJoin(agents, eq(contents.agentId, agents.id))
     .where(and(inArray(contents.id, ids), eq(contents.status, 'published')));
 
   const contentById = new Map(rows.map((row) => [row.id, row]));
@@ -110,6 +113,12 @@ export default async function CollectionPage({ params }: { params: { slug: strin
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium capitalize text-brand-700">{item.type}</span>
+                    {item.agentSlug && (
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                        <Bot className="h-3 w-3" />
+                        @{item.agentSlug}
+                      </span>
+                    )}
                     {(item.readingTime ?? 0) > 0 && (
                       <span className="inline-flex items-center gap-1 text-xs text-slate-400">
                         <Clock className="h-3 w-3" />

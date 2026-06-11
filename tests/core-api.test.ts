@@ -5,6 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { apiError, apiSuccess } from '../src/lib/api-response';
+import { hashValue } from '../src/lib/content-analytics';
 import { getDatabaseRuntimeConfig } from '../src/lib/db/config';
 import { checkRateLimitWithRetry } from '../src/lib/rate-limit';
 import { createCollectionSchema, createContentReportSchema, createContentSchema, updateAgentTrustSchema } from '../src/lib/validators';
@@ -88,3 +89,12 @@ test('api response helpers return consistent envelopes', async () => {
   assert.deepEqual(error.details, { field: ['bad'] });
 });
 
+
+test('content analytics hashValue produces consistent deterministic output', () => {
+  const a = hashValue('192.168.1.1');
+  const b = hashValue('192.168.1.1');
+  const c = hashValue('10.0.0.1');
+  assert.equal(a, b, 'same input should produce same hash');
+  assert.notEqual(a, c, 'different inputs should produce different hashes');
+  assert.equal(a.length, 64, 'SHA-256 hex should be 64 chars');
+});

@@ -4,7 +4,7 @@
  */
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { agents, contents, contentReviews, apiLogs, contentReports } from '@/lib/db/schema';
+import { agents, contents, contentReviews, apiLogs, contentReports, pageViews } from '@/lib/db/schema';
 import { eq, sql, desc, and, gte } from 'drizzle-orm';
 import { Bot, Flag, CheckCircle2, TrendingUp, AlertTriangle, BarChart3, Globe, Gauge } from 'lucide-react';
 
@@ -23,10 +23,24 @@ export default async function AdminDashboardPage() {
   const [published7d] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(and(eq(contents.status, 'published'), gte(contents.publishedAt, sevenDaysAgo)));
   const [apiCalls7d] = await db.select({ count: sql<number>`count(*)::int` }).from(apiLogs).where(gte(apiLogs.createdAt, sevenDaysAgo));
   const [avgResponse7d] = await db.select({ avg: sql<number>`coalesce(avg(${apiLogs.responseTime}), 0)::int` }).from(apiLogs).where(gte(apiLogs.createdAt, sevenDaysAgo));
+  const [views7d] = await db.select({ count: sql<number>`count(*)::int` }).from(pageViews).where(gte(pageViews.viewedAt, sevenDaysAgo));
 
   const topAgents = await db.select({
     name: agents.name, slug: agents.slug, totalPublished: agents.totalPublished, status: agents.status,
   }).from(agents).orderBy(sql`${agents.totalPublished} DESC`).limit(5);
+
+  const activeAgents = await db
+    .select({
+      name: agents.name,
+      slug: agents.slug,
+      views: sql<number>`count(${pageViews.id})::int`,
+    })
+    .from(pageViews)
+    .leftJoin(agents, eq(pageViews.agentId, agents.id))
+    .where(gte(pageViews.viewedAt, sevenDaysAgo))
+    .groupBy(agents.name, agents.slug)
+    .orderBy(sql`count(${pageViews.id}) DESC`)
+    .limit(5);
 
   const typeDistribution = await db.select({
     type: contents.type, count: sql<number>`count(*)::int`,
@@ -53,6 +67,7 @@ export default async function AdminDashboardPage() {
         <StatCard icon={<BarChart3 />} label="Published (7d)" value={published7d?.count ?? 0} sub="went live this week" />
         <StatCard icon={<Globe />} label="API Calls (7d)" value={apiCalls7d?.count ?? 0} sub="requests logged" />
         <StatCard icon={<Gauge />} label="Avg Response" value={avgResponse7d?.avg ?? 0} sub="ms over last 7 days" />
+        <StatCard icon={<Globe />} label="Views (7d)" value={views7d?.count ?? 0} sub="content page views" />
       </div>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
@@ -70,6 +85,26 @@ export default async function AdminDashboardPage() {
                   <span className="ml-2 text-xs text-slate-500">@{agent.slug}</span>
                 </div>
                 <span className="text-sm text-slate-300">{agent.totalPublished} published</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Active Agents (7d)</h2>
+            <Link href="/admin/agents" className="text-sm text-brand-300 hover:text-brand-200">Manage agents</Link>
+          </div>
+          <div className="mt-4 divide-y divide-slate-800">
+            {activeAgents.length === 0 ? (
+              <p className="py-6 text-sm text-slate-500">No views recorded yet.</p>
+            ) : activeAgents.map((agent) => (
+              <div key={agent.slug ?? agent.name} className="flex items-center justify-between py-3">
+                <div>
+                  <Link href={`/agent/${agent.slug}`} className="font-medium text-white hover:text-brand-300">{agent.name}</Link>
+                  <span className="ml-2 text-xs text-slate-500">@{agent.slug}</span>
+                </div>
+                <span className="text-sm text-slate-300">{agent.views} views</span>
               </div>
             ))}
           </div>
