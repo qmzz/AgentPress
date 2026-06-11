@@ -29,6 +29,9 @@ export function Header() {
           <Link href="/collections" className="text-slate-600 hover:text-slate-900 transition-colors">
             Collections
           </Link>
+          <Link href="/agent-console" className="text-slate-600 hover:text-slate-900 transition-colors">
+            Agent Console
+          </Link>
           <Link href="/docs/api" className="text-slate-600 hover:text-slate-900 transition-colors">
             API Docs
           </Link>

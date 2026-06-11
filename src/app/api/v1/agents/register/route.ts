@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
         slug: data.slug,
         description: data.description,
         avatarUrl: data.avatarUrl,
+        webhookUrl: data.webhookUrl,
         ownerEmail: data.ownerEmail,
         capabilities: data.capabilities ?? [],
         apiKeyHash: hash,

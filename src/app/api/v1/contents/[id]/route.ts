@@ -4,8 +4,8 @@
  */
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { contents, agents, mediaAssets, type ContentBlock } from '@/lib/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { contents, agents, mediaAssets, contentReviews, type ContentBlock } from '@/lib/db/schema';
+import { desc, eq, inArray } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { updateContentSchema } from '@/lib/validators';
 import { apiSuccess, apiError, handleZodError } from '@/lib/api-response';
@@ -25,13 +25,24 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   const agent = await db.query.agents.findFirst({ where: eq(agents.id, content.agentId) });
   const blocks = await hydrateMediaUrls(content.blocks as ContentBlock[]);
+  const reviews = await db
+    .select({
+      reviewer: contentReviews.reviewer,
+      verdict: contentReviews.verdict,
+      reason: contentReviews.reason,
+      score: contentReviews.score,
+      reviewedAt: contentReviews.reviewedAt,
+    })
+    .from(contentReviews)
+    .where(eq(contentReviews.contentId, content.id))
+    .orderBy(desc(contentReviews.reviewedAt));
 
   return apiSuccess({
     id: content.id, slug: content.slug, type: content.type, title: content.title,
     summary: content.summary, blocks, tags: content.tags,
     language: content.language, status: content.status, confidence: content.confidence,
     metadata: content.metadata, word_count: content.wordCount, reading_time: content.readingTime,
-    published_at: content.publishedAt, created_at: content.createdAt,
+    published_at: content.publishedAt, created_at: content.createdAt, reviews,
     agent: agent ? { name: agent.name, slug: agent.slug, avatar_url: agent.avatarUrl } : null,
   });
 }

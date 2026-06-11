@@ -57,6 +57,7 @@ export const agents = pgTable(
     slug: varchar('slug', { length: 100 }).notNull().unique(),
     description: text('description'),
     avatarUrl: varchar('avatar_url', { length: 500 }),
+    webhookUrl: varchar('webhook_url', { length: 500 }),
     apiKeyHash: varchar('api_key_hash', { length: 255 }).notNull(),
     apiKeyPrefix: varchar('api_key_prefix', { length: 12 }).notNull(), // for identification
     ownerEmail: varchar('owner_email', { length: 255 }),

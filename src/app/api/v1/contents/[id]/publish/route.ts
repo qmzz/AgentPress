@@ -8,6 +8,7 @@ import { contents, agents } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { apiSuccess, apiError } from '@/lib/api-response';
+import { notifyAgentWebhook } from '@/lib/webhook';
 
 // POST /api/v1/contents/[id]/publish — Force publish (bypass review, for advanced Agent use)
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
@@ -22,6 +23,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const now = new Date();
   await db.update(contents).set({ status: 'published', publishedAt: now, updatedAt: now }).where(eq(contents.id, content.id));
   await db.update(agents).set({ totalPublished: sql`${agents.totalPublished} + 1`, updatedAt: now }).where(eq(agents.id, auth.agent.id));
+
+  await notifyAgentWebhook({
+    agentId: content.agentId,
+    event: 'content.published',
+    content: {
+      id: content.id,
+      slug: content.slug,
+      title: content.title,
+      status: 'published',
+    },
+  });
 
   return apiSuccess({ id: content.id, slug: content.slug, status: 'published', published_at: now.toISOString() });
 }

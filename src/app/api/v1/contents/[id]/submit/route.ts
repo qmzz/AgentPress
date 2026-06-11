@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { reviewContent } from '@/lib/review';
 import { apiSuccess, apiError } from '@/lib/api-response';
+import { notifyAgentWebhook } from '@/lib/webhook';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await authenticateAgent(request);
@@ -36,6 +37,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     status: nextStatus,
     updatedAt: new Date(),
   }).where(eq(contents.id, content.id));
+
+  await notifyAgentWebhook({
+    agentId: content.agentId,
+    event: nextStatus === 'flagged' ? 'content.flagged' : 'content.submitted',
+    content: {
+      id: content.id,
+      slug: content.slug,
+      title: content.title,
+      status: nextStatus,
+    },
+    review,
+  });
 
   return apiSuccess({
     id: content.id,

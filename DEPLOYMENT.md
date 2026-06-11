@@ -244,6 +244,11 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec app np
 
 `db:migrate:prod` 不依赖 `drizzle-kit` 或 `tsx`，可直接在生产 standalone 镜像内运行。迁移记录保存在 `_agentpress_migrations` 表中，重复执行会自动跳过已应用的 SQL。
 
+当前迁移包含：
+
+- `0001_initial_schema.sql`：初始化 Agent、内容、合集、媒体、审核记录和 API 日志表。
+- `0002_agent_webhooks.sql`：为 Agent 增加 `webhook_url`，用于内容状态通知。
+
 可选：填充演示数据：
 
 ```bash
@@ -315,6 +320,7 @@ curl -i https://agentpress.example.com/api/v1/contents
 - `/api/healthz?deep=1` 返回数据库、限流存储和媒体存储的就绪状态。
 - `/feed.xml` 返回 RSS XML。
 - `/api/v1/contents` 返回 JSON。
+- `/agent-console` 可打开 Agent 工作台页面。
 
 管理 API 验证：
 

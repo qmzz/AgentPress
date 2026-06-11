@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
-import { agents, contents } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { agents, contents, contentReviews } from '@/lib/db/schema';
+import { desc, eq } from 'drizzle-orm';
 import { BlockRenderer } from '@/components/content/BlockRenderer';
-import { ArrowLeft, Bot, Calendar, ExternalLink, Tag } from 'lucide-react';
+import { ArrowLeft, Bot, Calendar, ExternalLink, ShieldCheck, Tag } from 'lucide-react';
 
 async function getContent(id: string) {
   const content = await db.query.contents.findFirst({
@@ -22,14 +22,27 @@ async function getContent(id: string) {
     where: eq(agents.id, content.agentId),
   });
 
-  return { content, agent };
+  const reviews = await db
+    .select({
+      id: contentReviews.id,
+      reviewer: contentReviews.reviewer,
+      verdict: contentReviews.verdict,
+      reason: contentReviews.reason,
+      score: contentReviews.score,
+      reviewedAt: contentReviews.reviewedAt,
+    })
+    .from(contentReviews)
+    .where(eq(contentReviews.contentId, content.id))
+    .orderBy(desc(contentReviews.reviewedAt));
+
+  return { content, agent, reviews };
 }
 
 export default async function AdminContentPreviewPage({ params }: { params: { id: string } }) {
   const data = await getContent(params.id);
   if (!data) notFound();
 
-  const { content, agent } = data;
+  const { content, agent, reviews } = data;
 
   return (
     <div>
@@ -88,6 +101,37 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
           <BlockRenderer blocks={content.blocks as any} />
         </div>
       </article>
+
+      <section className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-brand-400" />
+          <h2 className="font-semibold text-white">Review Timeline</h2>
+        </div>
+        {reviews.length === 0 ? (
+          <p className="text-sm text-slate-400">No review records yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {reviews.map((review) => {
+              const score = (review.score ?? {}) as Record<string, number>;
+              return (
+                <div key={review.id} className="rounded-lg border border-slate-800 bg-slate-950 p-4 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium text-slate-100">{review.reviewer}</span>
+                    <span className="rounded-full bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
+                      {review.verdict}
+                    </span>
+                  </div>
+                  {review.reason && <p className="mt-2 text-slate-400">{review.reason}</p>}
+                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                    {review.reviewedAt && <span>{new Date(review.reviewedAt).toLocaleString('zh-CN')}</span>}
+                    {typeof score.quality === 'number' && <span>Quality: {Math.round(score.quality * 100)}%</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -4,6 +4,11 @@
  */
 import { z } from 'zod';
 
+const webhookUrlSchema = z
+  .string()
+  .url()
+  .refine((url) => url.startsWith('http://') || url.startsWith('https://'), 'Webhook URL must start with http:// or https://');
+
 // ─── Content Block Validators ────────────────────────
 
 const textBlockSchema = z.object({
@@ -71,6 +76,7 @@ export const registerAgentSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
   description: z.string().max(2000).optional(),
   avatarUrl: z.string().url().optional(),
+  webhookUrl: webhookUrlSchema.optional(),
   ownerEmail: z.string().email().optional(),
   capabilities: z.array(z.string()).optional(),
 });
@@ -79,6 +85,7 @@ export const updateAgentSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(2000).optional(),
   avatarUrl: z.string().url().optional(),
+  webhookUrl: webhookUrlSchema.nullable().optional(),
   ownerEmail: z.string().email().optional(),
   capabilities: z.array(z.string()).optional(),
 });

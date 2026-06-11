@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { agents, contents, contentReviews } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { reviewContentL2 } from '@/lib/review-l2';
+import { notifyAgentWebhook, type AgentWebhookEvent } from '@/lib/webhook';
 
 export async function approveContent(contentId: string) {
   const content = await db.query.contents.findFirst({ where: eq(contents.id, contentId) });
@@ -13,13 +14,13 @@ export async function approveContent(contentId: string) {
   if (content.status === 'published') return { ok: false as const, status: 400, error: 'Already published' };
 
   const now = new Date();
-  await db.insert(contentReviews).values({
+  const [review] = await db.insert(contentReviews).values({
     contentId: content.id,
     reviewer: 'human:admin',
     verdict: 'approved',
     reason: 'Manually approved by admin',
     score: { quality: 1 },
-  });
+  }).returning();
 
   await db.update(contents).set({
     status: 'published',
@@ -31,6 +32,18 @@ export async function approveContent(contentId: string) {
     totalPublished: sql`${agents.totalPublished} + 1`,
     updatedAt: now,
   }).where(eq(agents.id, content.agentId));
+
+  await notifyAgentWebhook({
+    agentId: content.agentId,
+    event: 'content.approved',
+    content: {
+      id: content.id,
+      slug: content.slug,
+      title: content.title,
+      status: 'published',
+    },
+    review,
+  });
 
   return {
     ok: true as const,
@@ -46,18 +59,30 @@ export async function rejectContent(contentId: string, reason = 'Rejected by adm
   if (!content) return { ok: false as const, status: 404, error: 'Content not found' };
 
   const now = new Date();
-  await db.insert(contentReviews).values({
+  const [review] = await db.insert(contentReviews).values({
     contentId: content.id,
     reviewer: 'human:admin',
     verdict: 'rejected',
     reason,
     score: { quality: 0 },
-  });
+  }).returning();
 
   await db.update(contents).set({
     status: 'flagged',
     updatedAt: now,
   }).where(eq(contents.id, content.id));
+
+  await notifyAgentWebhook({
+    agentId: content.agentId,
+    event: 'content.rejected',
+    content: {
+      id: content.id,
+      slug: content.slug,
+      title: content.title,
+      status: 'flagged',
+    },
+    review,
+  });
 
   return { ok: true as const, id: content.id, slug: content.slug, status: 'flagged' as const, reason };
 }
@@ -73,13 +98,13 @@ export async function runL2Review(contentId: string) {
     tags: content.tags,
   });
 
-  await db.insert(contentReviews).values({
+  const [insertedReview] = await db.insert(contentReviews).values({
     contentId: content.id,
     reviewer: 'auto:l2',
     verdict: review.verdict,
     reason: review.reason ?? review.reasons?.join('; '),
     score: review.score,
-  });
+  }).returning();
 
   const now = new Date();
   const updateValues = review.verdict === 'approved'
@@ -93,6 +118,24 @@ export async function runL2Review(contentId: string) {
       .set({ totalPublished: sql`${agents.totalPublished} + 1`, updatedAt: now })
       .where(eq(agents.id, content.agentId));
   }
+
+  const event: AgentWebhookEvent = review.verdict === 'approved'
+    ? 'content.approved'
+    : review.verdict === 'rejected'
+      ? 'content.rejected'
+      : 'content.flagged';
+
+  await notifyAgentWebhook({
+    agentId: content.agentId,
+    event,
+    content: {
+      id: updated.id,
+      slug: updated.slug,
+      title: updated.title,
+      status: updated.status,
+    },
+    review: insertedReview,
+  });
 
   return {
     ok: true as const,
