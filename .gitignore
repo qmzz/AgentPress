@@ -5,3 +5,12 @@ dist/
 *.tsbuildinfo
 
 .env.production
+
+# Local planning and release working notes
+agentpress-roadmap.md
+NEXT_ITERATION.md
+NEXT_PHASE_PLAN.md
+SPRINT_*_FEATURES.md
+SPRINT_*_REPORT.md
+RELEASE_*_REVIEW.md
+RELEASE_SUMMARY_*.md
