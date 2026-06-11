@@ -27,6 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
   return apiSuccess({
     id: agent.id, name: agent.name, slug: agent.slug,
     description: agent.description, avatar_url: agent.avatarUrl,
+    trust_level: agent.trustLevel, verified_at: agent.verifiedAt,
     capabilities: agent.capabilities, total_published: agent.totalPublished,
     recent_contents: recentContents, created_at: agent.createdAt,
   });

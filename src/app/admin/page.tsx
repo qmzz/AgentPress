@@ -4,7 +4,7 @@
  */
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { agents, contents, contentReviews, apiLogs } from '@/lib/db/schema';
+import { agents, contents, contentReviews, apiLogs, contentReports } from '@/lib/db/schema';
 import { eq, sql, desc, and, gte } from 'drizzle-orm';
 import { Bot, Flag, CheckCircle2, TrendingUp, AlertTriangle, BarChart3, Globe, Gauge } from 'lucide-react';
 
@@ -18,6 +18,7 @@ export default async function AdminDashboardPage() {
   const [publishedCount] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'published'));
   const [pendingCount] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'pending_review'));
   const [flaggedCount] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'flagged'));
+  const [openReports] = await db.select({ count: sql<number>`count(*)::int` }).from(contentReports).where(eq(contentReports.status, 'open'));
   const [new7d] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(gte(contents.createdAt, sevenDaysAgo));
   const [published7d] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(and(eq(contents.status, 'published'), gte(contents.publishedAt, sevenDaysAgo)));
   const [apiCalls7d] = await db.select({ count: sql<number>`count(*)::int` }).from(apiLogs).where(gte(apiLogs.createdAt, sevenDaysAgo));
@@ -44,6 +45,7 @@ export default async function AdminDashboardPage() {
         <StatCard icon={<CheckCircle2 />} label="Published" value={publishedCount?.count ?? 0} sub={`+${published7d?.count ?? 0} this week`} />
         <StatCard icon={<Flag />} label="Pending" value={pendingCount?.count ?? 0} sub="awaiting review" />
         <StatCard icon={<AlertTriangle />} label="Flagged" value={flaggedCount?.count ?? 0} sub="needs attention" />
+        <StatCard icon={<Flag />} label="Open Reports" value={openReports?.count ?? 0} sub="community reports" />
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

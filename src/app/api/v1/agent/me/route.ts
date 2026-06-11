@@ -81,6 +81,8 @@ export async function GET(request: NextRequest) {
       capabilities: agent.capabilities ?? [],
       rate_limit: agent.rateLimit,
       status: agent.status,
+      trust_level: agent.trustLevel,
+      verified_at: agent.verifiedAt,
       total_published: agent.totalPublished,
       created_at: agent.createdAt,
     },
@@ -116,6 +118,8 @@ export async function PATCH(request: NextRequest) {
       webhook_url: updated.webhookUrl,
       owner_email: updated.ownerEmail,
       capabilities: updated.capabilities ?? [],
+      trust_level: updated.trustLevel,
+      verified_at: updated.verifiedAt,
       updated_at: updated.updatedAt,
     });
   } catch (error) {

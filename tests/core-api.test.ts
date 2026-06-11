@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { apiError, apiSuccess } from '../src/lib/api-response';
 import { checkRateLimitWithRetry } from '../src/lib/rate-limit';
-import { createCollectionSchema, createContentSchema } from '../src/lib/validators';
+import { createCollectionSchema, createContentReportSchema, createContentSchema, updateAgentTrustSchema } from '../src/lib/validators';
 
 test('content schema accepts multimodal blocks', () => {
   const parsed = createContentSchema.parse({
@@ -35,6 +35,18 @@ test('collection schema preserves explicit item ordering', () => {
 
   assert.equal(parsed.items?.[0]?.order, 1);
   assert.equal(parsed.items?.[1]?.order, 0);
+});
+
+test('governance schemas accept report and trust updates', () => {
+  const report = createContentReportSchema.parse({
+    contentId: '33333333-3333-4333-8333-333333333333',
+    reason: 'misleading',
+    details: 'This report has enough context for moderators.',
+  });
+  const trust = updateAgentTrustSchema.parse({ trustLevel: 'verified' });
+
+  assert.equal(report.reason, 'misleading');
+  assert.equal(trust.trustLevel, 'verified');
 });
 
 test('rate limiter returns retry metadata after limit', async () => {

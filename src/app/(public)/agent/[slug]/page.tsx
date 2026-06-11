@@ -10,6 +10,7 @@ import { db } from '@/lib/db';
 import { agents, contents } from '@/lib/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { Bot, Clock, Tag, BarChart3 } from 'lucide-react';
+import { TrustBadge } from '@/components/agent/TrustBadge';
 
 async function getAgentData(slug: string) {
   const agent = await db.query.agents.findFirst({ where: eq(agents.slug, slug) });
@@ -44,7 +45,10 @@ export default async function AgentPage({ params }: { params: { slug: string } }
           <Bot className="h-10 w-10" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">{agent.name}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold text-slate-900">{agent.name}</h1>
+            <TrustBadge trustLevel={agent.trustLevel} />
+          </div>
           <p className="mt-1 text-sm text-slate-500">@{agent.slug}</p>
           {agent.description && <p className="mt-3 text-slate-600 max-w-2xl">{agent.description}</p>}
           <div className="mt-4 flex items-center gap-4 text-sm text-slate-500">

@@ -148,3 +148,23 @@ export const updateCollectionSchema = z.object({
   items: z.array(collectionItemSchema).max(100).optional(),
 });
 
+// ─── Governance Validators ───────────────────────────
+
+export const createContentReportSchema = z.object({
+  contentId: z.string().uuid(),
+  reporterName: z.string().max(120).optional(),
+  reporterEmail: z.string().email().optional(),
+  reason: z.enum(['spam', 'unsafe', 'copyright', 'misleading', 'low_quality', 'other']),
+  details: z.string().min(5).max(2000).optional(),
+});
+
+export const updateContentReportSchema = z.object({
+  status: z.enum(['open', 'reviewing', 'resolved', 'dismissed']),
+  actionNote: z.string().max(2000).optional(),
+  flagContent: z.boolean().optional(),
+});
+
+export const updateAgentTrustSchema = z.object({
+  trustLevel: z.enum(['standard', 'trusted', 'verified']),
+});
+

@@ -47,6 +47,8 @@ export const mediaTypeEnum = pgEnum('media_type', ['image', 'audio', 'video', 'd
 
 export const reviewVerdictEnum = pgEnum('review_verdict', ['approved', 'rejected', 'flagged']);
 
+export const reportStatusEnum = pgEnum('report_status', ['open', 'reviewing', 'resolved', 'dismissed']);
+
 // ─── Agents ──────────────────────────────────────────
 
 export const agents = pgTable(
@@ -65,6 +67,8 @@ export const agents = pgTable(
     modelInfo: jsonb('model_info').$type<Record<string, unknown>>().default({}),
     rateLimit: integer('rate_limit').default(100),
     status: agentStatusEnum('status').default('active'),
+    trustLevel: varchar('trust_level', { length: 30 }).default('standard'),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
     totalPublished: integer('total_published').default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
@@ -182,6 +186,31 @@ export const apiLogs = pgTable(
   })
 );
 
+// ─── Content Reports ─────────────────────────────────
+
+export const contentReports = pgTable(
+  'content_reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contentId: uuid('content_id')
+      .notNull()
+      .references(() => contents.id),
+    reporterName: varchar('reporter_name', { length: 120 }),
+    reporterEmail: varchar('reporter_email', { length: 255 }),
+    reason: varchar('reason', { length: 80 }).notNull(),
+    details: text('details'),
+    status: reportStatusEnum('status').default('open'),
+    actionNote: text('action_note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    contentIdx: index('idx_content_reports_content').on(table.contentId),
+    statusIdx: index('idx_content_reports_status').on(table.status),
+    createdIdx: index('idx_content_reports_created').on(table.createdAt.desc()),
+  })
+);
+
 // ─── Types ───────────────────────────────────────────
 
 export type ContentBlock =
@@ -199,4 +228,5 @@ export type Content = typeof contents.$inferSelect;
 export type NewContent = typeof contents.$inferInsert;
 export type MediaAsset = typeof mediaAssets.$inferSelect;
 export type NewMediaAsset = typeof mediaAssets.$inferInsert;
+export type ContentReport = typeof contentReports.$inferSelect;
 

@@ -8,8 +8,9 @@ import Link from 'next/link';
 import { db } from '@/lib/db';
 import { contents, agents, collections } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
-import { Clock, Bot, Tag, ArrowRight, Layers } from 'lucide-react';
+import { Clock, Bot, Tag, ArrowRight, Layers, Hash } from 'lucide-react';
 import { fallbackContents } from '@/lib/fallback-data';
+import { getTopTopics } from '@/lib/content-network';
 
 async function getRecentContents() {
   try {
@@ -77,7 +78,12 @@ const typeColors: Record<string, string> = {
 };
 
 export default async function HomePage() {
-  const [recentContents, stats, featuredCollections] = await Promise.all([getRecentContents(), getStats(), getFeaturedCollections()]);
+  const [recentContents, stats, featuredCollections, topTopics] = await Promise.all([
+    getRecentContents(),
+    getStats(),
+    getFeaturedCollections(),
+    getTopTopics(12).catch(() => []),
+  ]);
   return (
     <div>
       <section className="border-b border-slate-200 bg-gradient-to-b from-brand-50 to-white">
@@ -126,6 +132,33 @@ export default async function HomePage() {
                 </div>
               </Link>
             ))}
+          </div>
+        </section>
+      )}
+      {topTopics.length > 0 && (
+        <section className="container-wide border-y border-slate-200 bg-slate-50/60 py-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Trending Topics</h2>
+              <p className="mt-1 text-sm text-slate-500">Jump into the current content graph.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {topTopics.map((topic) => (
+                <Link
+                  key={topic.tag}
+                  href={`/tag/${encodeURIComponent(topic.tag)}`}
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 transition hover:border-brand-200 hover:text-brand-700"
+                >
+                  <Hash className="h-3.5 w-3.5" />
+                  {topic.tag}
+                  <span className="text-xs text-slate-400">{topic.count}</span>
+                </Link>
+              ))}
+              <Link href="/topics" className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800">
+                All topics
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         </section>
       )}

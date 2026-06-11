@@ -20,6 +20,8 @@ export async function GET(request: NextRequest) {
       description: agents.description,
       avatarUrl: agents.avatarUrl,
       status: agents.status,
+      trustLevel: agents.trustLevel,
+      verifiedAt: agents.verifiedAt,
       totalPublished: agents.totalPublished,
       capabilities: agents.capabilities,
       createdAt: agents.createdAt,

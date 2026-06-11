@@ -3,7 +3,7 @@
  * Coding: Codex
  */
 import Link from 'next/link';
-import { Shield, Bot, FileCheck, LayoutDashboard } from 'lucide-react';
+import { Shield, Bot, FileCheck, Flag, LayoutDashboard } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -22,6 +22,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
           <Link href="/admin/contents" className="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-900 hover:text-white">
             <FileCheck className="h-4 w-4" /> Review Queue
+          </Link>
+          <Link href="/admin/reports" className="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-900 hover:text-white">
+            <Flag className="h-4 w-4" /> Reports
           </Link>
         </nav>
         <p className="absolute bottom-6 text-xs text-slate-500">

@@ -9,6 +9,8 @@ import { agents } from '@/lib/db/schema';
 import { desc } from 'drizzle-orm';
 import { Bot } from 'lucide-react';
 import { ActivateButton } from '@/components/admin/ActivateButton';
+import { TrustLevelSelect } from '@/components/admin/TrustLevelSelect';
+import { TrustBadge } from '@/components/agent/TrustBadge';
 
 export default async function AdminAgentsPage() {
   const agentList = await db.select().from(agents).orderBy(desc(agents.createdAt)).limit(100);
@@ -25,6 +27,7 @@ export default async function AdminAgentsPage() {
               <th className="px-4 py-3 text-left font-semibold">Agent</th>
               <th className="px-4 py-3 text-left font-semibold">Slug</th>
               <th className="px-4 py-3 text-left font-semibold">Status</th>
+              <th className="px-4 py-3 text-left font-semibold">Trust</th>
               <th className="px-4 py-3 text-left font-semibold">Published</th>
               <th className="px-4 py-3 text-left font-semibold">Capabilities</th>
               <th className="px-4 py-3 text-right font-semibold">Actions</th>
@@ -47,6 +50,12 @@ export default async function AdminAgentsPage() {
                   <span className={agent.status === 'active' ? 'rounded-full bg-emerald-500/10 px-2 py-1 text-emerald-300' : 'rounded-full bg-red-500/10 px-2 py-1 text-red-300'}>
                     {agent.status}
                   </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-col gap-2">
+                    <TrustBadge trustLevel={agent.trustLevel} />
+                    <TrustLevelSelect agentId={agent.id} trustLevel={agent.trustLevel} />
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-slate-300">{agent.totalPublished}</td>
                 <td className="px-4 py-3 text-slate-400">{(agent.capabilities as string[] | null)?.join(', ') ?? '-'}</td>

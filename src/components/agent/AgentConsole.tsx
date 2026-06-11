@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Bot, CheckCircle2, ExternalLink, FileText, RefreshCw, Send, Settings, Trash2 } from 'lucide-react';
+import { TrustBadge } from '@/components/agent/TrustBadge';
 
 type AgentConsolePayload = {
   agent: {
@@ -21,6 +22,8 @@ type AgentConsolePayload = {
     capabilities: string[];
     rate_limit: number | null;
     status: string | null;
+    trust_level: string | null;
+    verified_at: string | null;
     total_published: number | null;
     created_at: string | null;
   };
@@ -196,7 +199,10 @@ export function AgentConsole() {
             <div className="rounded-xl border border-slate-200 bg-white p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">{data.agent.name}</h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-semibold text-slate-900">{data.agent.name}</h2>
+                    <TrustBadge trustLevel={data.agent.trust_level} />
+                  </div>
                   <p className="text-sm text-slate-500">@{data.agent.slug} · API key prefix {data.agent.api_key_prefix}</p>
                 </div>
                 <Link href={`/agent/${data.agent.slug}`} className="inline-flex items-center gap-2 text-sm text-brand-700 hover:text-brand-800">

@@ -10,7 +10,11 @@ import { db } from '@/lib/db';
 import { contents, agents, contentReviews } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { BlockRenderer } from '@/components/content/BlockRenderer';
-import { Bot, Clock, Tag, Calendar, Cpu, Zap, DollarSign, BarChart3, ShieldCheck } from 'lucide-react';
+import { ContentNetworkCard } from '@/components/content/ContentNetworkCard';
+import { ReportContentForm } from '@/components/content/ReportContentForm';
+import { TrustBadge } from '@/components/agent/TrustBadge';
+import { getCollectionsContainingContent, getRelatedContents } from '@/lib/content-network';
+import { Bot, Clock, Tag, Calendar, Cpu, Zap, DollarSign, BarChart3, ShieldCheck, Layers, ArrowRight } from 'lucide-react';
 
 async function getContent(slug: string) {
   const content = await db.query.contents.findFirst({
@@ -20,19 +24,23 @@ async function getContent(slug: string) {
   const agent = await db.query.agents.findFirst({
     where: eq(agents.id, content.agentId),
   });
-  const reviews = await db
-    .select({
-      reviewer: contentReviews.reviewer,
-      verdict: contentReviews.verdict,
-      reason: contentReviews.reason,
-      score: contentReviews.score,
-      reviewedAt: contentReviews.reviewedAt,
-    })
-    .from(contentReviews)
-    .where(eq(contentReviews.contentId, content.id))
-    .orderBy(desc(contentReviews.reviewedAt));
+  const [reviews, relatedContents, containingCollections] = await Promise.all([
+    db
+      .select({
+        reviewer: contentReviews.reviewer,
+        verdict: contentReviews.verdict,
+        reason: contentReviews.reason,
+        score: contentReviews.score,
+        reviewedAt: contentReviews.reviewedAt,
+      })
+      .from(contentReviews)
+      .where(eq(contentReviews.contentId, content.id))
+      .orderBy(desc(contentReviews.reviewedAt)),
+    getRelatedContents(content),
+    getCollectionsContainingContent(content.id),
+  ]);
 
-  return { content, agent, reviews };
+  return { content, agent, reviews, relatedContents, containingCollections };
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
@@ -47,7 +55,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function ContentPage({ params }: { params: { slug: string } }) {
   const data = await getContent(params.slug);
   if (!data) notFound();
-  const { content, agent, reviews } = data;
+  const { content, agent, reviews, relatedContents, containingCollections } = data;
   const metadata = (content.metadata ?? {}) as Record<string, unknown>;
 
   return (
@@ -71,6 +79,7 @@ export default async function ContentPage({ params }: { params: { slug: string }
                 <Bot className="h-4 w-4" />
               </div>
               <span className="font-medium text-slate-700">{agent.name}</span>
+              <TrustBadge trustLevel={agent.trustLevel} />
             </Link>
           )}
           {content.publishedAt && (
@@ -106,6 +115,36 @@ export default async function ContentPage({ params }: { params: { slug: string }
       <article className="prose prose-slate max-w-none">
         <BlockRenderer blocks={content.blocks as any} />
       </article>
+      <ReportContentForm contentId={content.id} />
+      {containingCollections.length > 0 && (
+        <aside className="mt-12 rounded-xl border border-brand-100 bg-brand-50/60 p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Layers className="h-5 w-5 text-brand-600" />
+              <h3 className="text-sm font-semibold text-slate-900">Appears In Collections</h3>
+            </div>
+            <Link href="/collections" className="text-xs font-medium text-brand-700 hover:text-brand-800">View collections</Link>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {containingCollections.map((collection) => (
+              <Link
+                key={collection.id}
+                href={`/collection/${collection.slug}`}
+                className="group rounded-lg bg-white p-4 text-sm shadow-sm transition hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-slate-900 group-hover:text-brand-700">{collection.title}</p>
+                    {collection.description && <p className="mt-1 line-clamp-2 text-slate-500">{collection.description}</p>}
+                    <p className="mt-2 text-xs text-slate-400">{collection.items?.length ?? 0} items · {collection.agentName ?? 'Unknown Agent'}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-brand-500" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </aside>
+      )}
       {reviews.length > 0 && (
         <aside className="mt-12 rounded-xl border border-emerald-100 bg-emerald-50/60 p-6">
           <div className="mb-4 flex items-center gap-2">
@@ -133,6 +172,22 @@ export default async function ContentPage({ params }: { params: { slug: string }
             })}
           </div>
         </aside>
+      )}
+      {relatedContents.length > 0 && (
+        <section className="mt-12">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Related Content</h2>
+              <p className="mt-1 text-sm text-slate-500">More from shared tags, content type, or the same Agent.</p>
+            </div>
+            <Link href="/search" className="text-sm font-medium text-brand-700 hover:text-brand-800">Explore all</Link>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {relatedContents.map((item) => (
+              <ContentNetworkCard key={item.id} item={item} />
+            ))}
+          </div>
+        </section>
       )}
       {Object.keys(metadata).length > 0 && (
         <aside className="mt-12 rounded-xl border border-slate-200 bg-slate-50 p-6">
