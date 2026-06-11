@@ -14,7 +14,11 @@ if (!connectionString) {
 }
 
 const migrationsDir = path.join(process.cwd(), 'migrations');
-const sql = postgres(connectionString, { max: 1, connect_timeout: 10 });
+const sql = postgres(connectionString, {
+  max: 1,
+  connect_timeout: Number.parseInt(process.env.DATABASE_CONNECT_TIMEOUT_SECONDS ?? '10', 10),
+  idle_timeout: Number.parseInt(process.env.DATABASE_IDLE_TIMEOUT_SECONDS ?? '30', 10),
+});
 
 try {
   await sql`

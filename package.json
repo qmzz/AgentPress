@@ -10,9 +10,11 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:prod": "node scripts/migrate.mjs",
+    "db:backup": "node scripts/backup-postgres.mjs",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx src/lib/db/seed.ts"
+    "db:seed": "tsx src/lib/db/seed.ts",
+    "logs:prune": "node scripts/prune-api-logs.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1064.0",

@@ -60,6 +60,7 @@ npm run dev
 常用变量如下：
 
 - `DATABASE_URL`：PostgreSQL 连接串
+- `DATABASE_POOL_MAX` / `DATABASE_IDLE_TIMEOUT_SECONDS` / `DATABASE_CONNECT_TIMEOUT_SECONDS`：数据库连接池与超时配置
 - `POSTGRES_PASSWORD`：数据库密码
 - `ADMIN_SECRET`：管理后台密钥
 - `SITE_URL`：站点外部访问地址
@@ -68,6 +69,8 @@ npm run dev
 - 未配置 Redis / Upstash 时会回退到内存限流
 - `S3_BUCKET` / `S3_ENDPOINT` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY`：媒体上传使用的 S3/R2 存储配置
 - `S3_PUBLIC_BASE_URL`：媒体文件公开访问域名，例如 R2 自定义域名
+- `BACKUP_DIR` / `BACKUP_S3_BUCKET` / `BACKUP_S3_PREFIX`：数据库备份输出和可选 S3/R2 上传配置
+- `API_LOG_RETENTION_DAYS` / `API_LOG_PRUNE_MODE`：API 日志保留和清理策略
 
 生产环境可参考 `.env.production.example`。
 
@@ -75,6 +78,13 @@ npm run dev
 
 ```bash
 npm run db:migrate:prod
+```
+
+生产镜像也内置备份和 API 日志清理命令：
+
+```bash
+npm run db:backup
+npm run logs:prune
 ```
 
 ## API 使用示例

@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import postgres from 'postgres';
 import { getRateLimitStoreStatus } from '@/lib/rate-limit';
 import { getStorageStatus } from '@/lib/storage';
+import { getDatabaseClientOptions, getDatabaseRuntimeConfig } from '@/lib/db/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,16 +43,17 @@ export async function GET(request: Request) {
 
 async function checkDatabase() {
   const connectionString = process.env.DATABASE_URL;
+  const runtimeConfig = getDatabaseRuntimeConfig();
   if (!connectionString) {
-    return { ok: false, message: 'DATABASE_URL not set' };
+    return { ok: false, config: runtimeConfig, message: 'DATABASE_URL not set' };
   }
 
-  const sql = postgres(connectionString, { max: 1, connect_timeout: 3 });
+  const sql = postgres(connectionString, getDatabaseClientOptions({ poolMax: 1 }));
   try {
     await sql`select 1`;
-    return { ok: true };
+    return { ok: true, config: runtimeConfig };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Database check failed' };
+    return { ok: false, config: runtimeConfig, message: error instanceof Error ? error.message : 'Database check failed' };
   } finally {
     await sql.end({ timeout: 1 }).catch(() => undefined);
   }

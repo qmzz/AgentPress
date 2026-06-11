@@ -79,6 +79,24 @@ S3_ACCESS_KEY_ID=CHANGE_ME
 S3_SECRET_ACCESS_KEY=CHANGE_ME
 S3_PUBLIC_BASE_URL=https://media.your-domain.com
 S3_FORCE_PATH_STYLE=false
+
+# Database runtime safety
+DATABASE_POOL_MAX=10
+DATABASE_IDLE_TIMEOUT_SECONDS=30
+DATABASE_CONNECT_TIMEOUT_SECONDS=3
+
+# PostgreSQL backup and API log retention
+BACKUP_DIR=/app/uploads/backups
+BACKUP_LOCAL_RETENTION_DAYS=14
+BACKUP_S3_BUCKET=
+BACKUP_S3_PREFIX=database-backups
+BACKUP_S3_REGION=auto
+BACKUP_S3_ENDPOINT=
+BACKUP_S3_ACCESS_KEY_ID=
+BACKUP_S3_SECRET_ACCESS_KEY=
+BACKUP_S3_FORCE_PATH_STYLE=false
+API_LOG_RETENTION_DAYS=30
+API_LOG_PRUNE_MODE=delete
 ```
 
 ### 4.1 基础变量
@@ -90,6 +108,9 @@ S3_FORCE_PATH_STYLE=false
 | `SITE_URL` | 是 | `https://agentpress.example.com` | 站点公网地址，会映射为 `NEXT_PUBLIC_SITE_URL` |
 | `DATABASE_URL` | 条件 | `postgresql://user:pass@host:5432/db` | 使用外部数据库时配置；内置 Compose 默认使用 `db` 服务 |
 | `REDIS_URL` | 否 | `redis://1Panel-redis:6379` | 普通 Redis TCP 地址，Docker/1Panel 部署推荐 |
+| `DATABASE_POOL_MAX` | 否 | `10` | 应用数据库连接池最大连接数 |
+| `DATABASE_IDLE_TIMEOUT_SECONDS` | 否 | `30` | 空闲连接关闭时间 |
+| `DATABASE_CONNECT_TIMEOUT_SECONDS` | 否 | `3` | 数据库连接超时时间 |
 
 生成强随机密钥：
 
@@ -173,6 +194,39 @@ S3_FORCE_PATH_STYLE=true
 - 文件写入 `/app/uploads/{agentId}/{file}`。
 - `docker-compose.prod.yml` 和 `deploy-compose.yml` 已挂载 `uploads:/app/uploads`。
 - 适合测试或小规模单机部署；生产推荐迁移到 S3/R2。
+
+### 4.4 备份和日志保留配置
+
+生产镜像内置 PostgreSQL 客户端和维护脚本，可直接在 `app` 容器内执行：
+
+```bash
+npm run db:backup
+npm run logs:prune
+```
+
+推荐配置：
+
+```env
+BACKUP_DIR=/app/uploads/backups
+BACKUP_LOCAL_RETENTION_DAYS=14
+BACKUP_S3_BUCKET=agentpress-backups
+BACKUP_S3_PREFIX=database-backups
+BACKUP_S3_REGION=auto
+BACKUP_S3_ENDPOINT=https://ACCOUNT_ID.r2.cloudflarestorage.com
+BACKUP_S3_ACCESS_KEY_ID=你的R2AccessKey
+BACKUP_S3_SECRET_ACCESS_KEY=你的R2SecretKey
+BACKUP_S3_FORCE_PATH_STYLE=false
+
+API_LOG_RETENTION_DAYS=30
+API_LOG_PRUNE_MODE=delete
+```
+
+`API_LOG_PRUNE_MODE` 支持：
+
+- `delete`：直接删除超过保留期的 `api_logs`。
+- `archive`：先写入 `api_logs_archive`，再从热表删除。
+
+如果没有配置 `BACKUP_S3_BUCKET`，备份只会保存在本地 `BACKUP_DIR`。默认目录位于 `/app/uploads/backups`，在 Compose 中跟随 `uploads` volume 持久化。
 
 ## 5. 使用发布镜像部署
 
@@ -409,19 +463,69 @@ docker compose --env-file .env.production -f deploy-compose.yml up -d app
 
 ### 13.1 PostgreSQL 备份
 
+推荐使用应用容器内置脚本：
+
+```bash
+docker compose --env-file .env.production -f deploy-compose.yml exec app npm run db:backup
+```
+
+源码构建 Compose：
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml exec app npm run db:backup
+```
+
+脚本会生成 gzip 压缩 SQL 文件，默认路径：
+
+```text
+/app/uploads/backups/agentpress-YYYY-MM-DDTHH-MM-SS-sssZ.sql.gz
+```
+
+如果配置了 `BACKUP_S3_BUCKET`，会同步上传到 S3/R2。
+
+也可以直接在数据库容器里手工备份：
+
 ```bash
 docker compose --env-file .env.production -f deploy-compose.yml exec db \
   pg_dump -U agentpress agentpress > agentpress-$(date +%F).sql
 ```
 
-恢复：
+从脚本生成的 `.sql.gz` 恢复：
+
+```bash
+gunzip -c agentpress-YYYY-MM-DD.sql.gz | docker compose --env-file .env.production -f deploy-compose.yml exec -T db \
+  psql -U agentpress agentpress
+```
+
+从手工 SQL 文件恢复：
 
 ```bash
 cat agentpress-YYYY-MM-DD.sql | docker compose --env-file .env.production -f deploy-compose.yml exec -T db \
   psql -U agentpress agentpress
 ```
 
-### 13.2 本地上传文件备份
+### 13.2 API Logs 清理
+
+生产建议每天执行一次：
+
+```bash
+docker compose --env-file .env.production -f deploy-compose.yml exec app npm run logs:prune
+```
+
+1Panel 计划任务可配置：
+
+```bash
+cd /opt/agentpress && docker compose --env-file .env.production -f deploy-compose.yml exec -T app npm run db:backup
+cd /opt/agentpress && docker compose --env-file .env.production -f deploy-compose.yml exec -T app npm run logs:prune
+```
+
+建议频率：
+
+- `db:backup`：每天 1 次，业务高峰外执行。
+- `logs:prune`：每天 1 次。
+- 定期做恢复演练，确认备份文件可正常导入。
+
+### 13.3 本地上传文件备份
 
 如果未使用 S3/R2，需要备份 `uploads` volume：
 
@@ -447,7 +551,7 @@ docker run --rm \
 docker volume ls | grep uploads
 ```
 
-### 13.3 S3/R2 备份
+### 13.4 S3/R2 备份
 
 使用对象存储时，建议：
 
@@ -468,6 +572,8 @@ docker volume ls | grep uploads
 - 服务器防火墙只开放 `80/443`，数据库端口不暴露公网。
 - GitHub Container Registry 镜像使用固定版本标签而非长期依赖 `latest`。
 - 定期备份 PostgreSQL 和媒体文件。
+- 已配置 API 日志保留策略，避免 `api_logs` 无限增长。
+- 已根据服务器规格设置 `DATABASE_POOL_MAX`，避免数据库连接耗尽。
 
 ## 15. 常见问题
 

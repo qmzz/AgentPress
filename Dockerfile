@@ -23,6 +23,7 @@ ENV HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs && \
+    apk add --no-cache postgresql-client && \
     mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 
 COPY --from=builder /app/public ./public

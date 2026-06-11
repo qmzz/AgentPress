@@ -5,6 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { apiError, apiSuccess } from '../src/lib/api-response';
+import { getDatabaseRuntimeConfig } from '../src/lib/db/config';
 import { checkRateLimitWithRetry } from '../src/lib/rate-limit';
 import { createCollectionSchema, createContentReportSchema, createContentSchema, updateAgentTrustSchema } from '../src/lib/validators';
 
@@ -57,6 +58,24 @@ test('rate limiter returns retry metadata after limit', async () => {
   assert.equal(first.allowed, true);
   assert.equal(second.allowed, false);
   assert.equal(second.retryAfter >= 1, true);
+});
+
+test('database runtime config parses safe defaults and overrides', () => {
+  assert.deepEqual(getDatabaseRuntimeConfig({}), {
+    poolMax: 10,
+    idleTimeoutSeconds: 30,
+    connectTimeoutSeconds: 3,
+  });
+
+  assert.deepEqual(getDatabaseRuntimeConfig({
+    DATABASE_POOL_MAX: '20',
+    DATABASE_IDLE_TIMEOUT_SECONDS: '45',
+    DATABASE_CONNECT_TIMEOUT_SECONDS: '5',
+  }), {
+    poolMax: 20,
+    idleTimeoutSeconds: 45,
+    connectTimeoutSeconds: 5,
+  });
 });
 
 test('api response helpers return consistent envelopes', async () => {
