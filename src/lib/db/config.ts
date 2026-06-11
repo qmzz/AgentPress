@@ -8,7 +8,7 @@ export type DatabaseRuntimeConfig = {
   connectTimeoutSeconds: number;
 };
 
-export function getDatabaseRuntimeConfig(env: NodeJS.ProcessEnv = process.env): DatabaseRuntimeConfig {
+export function getDatabaseRuntimeConfig(env: Record<string, string | undefined> = process.env): DatabaseRuntimeConfig {
   return {
     poolMax: readPositiveInteger(env.DATABASE_POOL_MAX, 10),
     idleTimeoutSeconds: readPositiveInteger(env.DATABASE_IDLE_TIMEOUT_SECONDS, 30),

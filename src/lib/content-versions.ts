@@ -4,7 +4,7 @@
  */
 import { db } from '@/lib/db';
 import { contents, contentVersions } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 export async function saveContentVersion(contentId: string) {
   const [content] = await db.select().from(contents).where(eq(contents.id, contentId)).limit(1);
@@ -32,6 +32,10 @@ export async function getContentVersions(contentId: string) {
 }
 
 export async function getContentVersion(contentId: string, versionNumber: number) {
-  const [version] = await db.select().from(contentVersions).where(eq(contentVersions.contentId, contentId)).where(eq(contentVersions.versionNumber, versionNumber)).limit(1);
+  const [version] = await db
+    .select()
+    .from(contentVersions)
+    .where(and(eq(contentVersions.contentId, contentId), eq(contentVersions.versionNumber, versionNumber)))
+    .limit(1);
   return version ?? null;
 }

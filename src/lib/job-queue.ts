@@ -24,7 +24,10 @@ export async function processNextJob() {
 
   if (!job) return null;
 
-  await db.update(jobs).set({ status: 'running', startedAt: new Date(), attempts: job.attempts + 1 }).where(eq(jobs.id, job.id));
+  const attempts = job.attempts ?? 0;
+  const maxAttempts = job.maxAttempts ?? 3;
+
+  await db.update(jobs).set({ status: 'running', startedAt: new Date(), attempts: attempts + 1 }).where(eq(jobs.id, job.id));
 
   try {
     await executeJob(job.type as JobType, job.payload as Record<string, unknown>);
@@ -32,7 +35,7 @@ export async function processNextJob() {
     return { id: job.id, status: 'completed' as const };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    const newStatus = job.attempts + 1 >= job.maxAttempts ? 'failed' : 'pending';
+    const newStatus = attempts + 1 >= maxAttempts ? 'failed' : 'pending';
     await db.update(jobs).set({ status: newStatus, error: errorMsg }).where(eq(jobs.id, job.id));
     return { id: job.id, status: newStatus, error: errorMsg };
   }

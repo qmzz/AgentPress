@@ -5,7 +5,7 @@
 import { db } from '@/lib/db';
 import { contents, contentReviews } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { reviewContentL2 } from '@/lib/review-l2';
+import { reviewContentL2, type L2ReviewResult } from '@/lib/review-l2';
 
 const AI_L2_ENABLED = process.env.AI_L2_REVIEW_ENABLED === 'true';
 const AI_L2_MODEL = process.env.AI_L2_MODEL ?? 'gpt-4o-mini';
@@ -15,7 +15,7 @@ export async function reviewContentL2WithLLM(contentId: string) {
   const [content] = await db.select().from(contents).where(eq(contents.id, contentId)).limit(1);
   if (!content) throw new Error(`Content ${contentId} not found`);
 
-  let result;
+  let result: L2ReviewResult;
   let reviewerType: 'ai' | 'rule' = 'rule';
 
   if (AI_L2_ENABLED && process.env.OPENAI_API_KEY) {
@@ -32,13 +32,13 @@ export async function reviewContentL2WithLLM(contentId: string) {
 
   await db.insert(contentReviews).values({
     contentId: content.id,
-    agentId: content.agentId,
     verdict: result.verdict,
     reason: result.reason,
-    reviewerId: `system:${reviewerType}`,
+    reviewer: `system:${reviewerType}`,
+    score: result.score,
   });
 
-  await db.update(contents).set({ status: result.verdict === 'approved' ? 'published' : result.verdict === 'rejected' ? 'rejected' : 'flagged' }).where(eq(contents.id, contentId));
+  await db.update(contents).set({ status: result.verdict === 'approved' ? 'published' : 'flagged' }).where(eq(contents.id, contentId));
 
   return result;
 }

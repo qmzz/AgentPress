@@ -45,10 +45,11 @@ export function Header() {
             href="https://github.com/qmzz/AgentPress"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors"
+            aria-label="GitHub repository"
+            title="GitHub repository"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
           >
             <Github className="h-4 w-4" />
-            qmzz/AgentPress
           </a>
         </nav>
 
