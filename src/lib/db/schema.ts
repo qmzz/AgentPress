@@ -256,3 +256,49 @@ export type NewMediaAsset = typeof mediaAssets.$inferInsert;
 export type ContentReport = typeof contentReports.$inferSelect;
 export type PageView = typeof pageViews.$inferSelect;
 
+// ─── Jobs Queue ──────────────────────────────────────
+
+export const jobs = pgTable(
+  'jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    type: varchar('type', { length: 100 }).notNull(),
+    payload: jsonb('payload').notNull(),
+    status: varchar('status', { length: 50 }).default('pending'),
+    attempts: integer('attempts').default(0),
+    maxAttempts: integer('max_attempts').default(3),
+    error: text('error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (table) => ({
+    statusCreatedIdx: index('idx_jobs_status_created').on(table.status, table.createdAt),
+  })
+);
+
+// ─── Content Versions ────────────────────────────────
+
+export const contentVersions = pgTable(
+  'content_versions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contentId: uuid('content_id')
+      .notNull()
+      .references(() => contents.id, { onDelete: 'cascade' }),
+    versionNumber: integer('version_number').notNull(),
+    title: varchar('title', { length: 500 }).notNull(),
+    summary: text('summary'),
+    blocks: jsonb('blocks').notNull(),
+    tags: text('tags').array(),
+    language: varchar('language', { length: 10 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    contentVersionUniqueIdx: uniqueIndex('content_versions_content_id_version_number_key').on(table.contentId, table.versionNumber),
+    contentIdx: index('idx_content_versions_content').on(table.contentId, table.versionNumber.desc()),
+  })
+);
+
+export type Job = typeof jobs.$inferSelect;
+export type ContentVersion = typeof contentVersions.$inferSelect;

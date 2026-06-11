@@ -10,6 +10,7 @@ import { authenticateAgent } from '@/lib/auth';
 import { updateContentSchema } from '@/lib/validators';
 import { apiSuccess, apiError, handleZodError } from '@/lib/api-response';
 import { ZodError } from 'zod';
+import { saveContentVersion } from '@/lib/content-versions';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
@@ -60,6 +61,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (!content) return apiError('Content not found', 404);
     if (content.agentId !== auth.agent.id) return apiError('Forbidden', 403);
     if (content.status === 'published') return apiError('Cannot edit published content', 400);
+
+    await saveContentVersion(id);
 
     const body = await request.json();
     const data = updateContentSchema.parse(body);

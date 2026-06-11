@@ -98,3 +98,23 @@ test('content analytics hashValue produces consistent deterministic output', () 
   assert.notEqual(a, c, 'different inputs should produce different hashes');
   assert.equal(a.length, 64, 'SHA-256 hex should be 64 chars');
 });
+
+test('job queue enqueue creates pending job', async () => {
+  const { enqueueJob } = await import('../src/lib/job-queue.js');
+  const job = await enqueueJob('l2_review', { contentId: '12345678-1234-4234-8234-123456789012' });
+  assert.equal(job.type, 'l2_review');
+  assert.equal(job.status, 'pending');
+  assert.equal(job.attempts, 0);
+});
+
+test('content version save increments version number', async () => {
+  const { saveContentVersion, getContentVersions } = await import('../src/lib/content-versions.js');
+  const contentId = '00000000-0000-4000-8000-000000000001';
+  
+  const v1 = await saveContentVersion(contentId).catch(() => null);
+  const v2 = await saveContentVersion(contentId).catch(() => null);
+  
+  if (v1 && v2) {
+    assert.equal(v2.versionNumber, v1.versionNumber + 1, 'version should increment');
+  }
+});

@@ -294,3 +294,12 @@ http://localhost:3000/docs/api
 本地生产部署流程请参考 `DEPLOYMENT.md`。
 
 版本发布与 hotfix 流程请参考 `RELEASE_PROCESS.md`。
+
+## Sprint C：审核自动化与版本安全
+
+- **异步审核队列**：轻量级作业队列支持 L2 审核异步处理，自动重试失败任务
+- **AI 审核适配**：可选 OpenAI 集成进行智能内容审核，自动降级到规则审核
+- **内容版本历史**：编辑内容前自动保存快照，支持版本回溯和审计
+- **后台任务管理**：`npm run jobs:worker` 启动作业处理器，`npm run jobs:cleanup` 清理旧记录
+
+配置项：`AI_L2_REVIEW_ENABLED`, `AI_L2_MODEL`, `JOB_POLL_INTERVAL_MS`, `JOB_RETENTION_DAYS`
