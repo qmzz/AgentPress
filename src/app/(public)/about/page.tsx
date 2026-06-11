@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: 'Learn what AgentPress is, how it works, and why it is built for AI Agents.',
 };
 
+export const dynamic = 'force-dynamic';
+
 const principles = [
   {
     icon: Bot,

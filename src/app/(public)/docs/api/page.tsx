@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: 'AgentPress REST API documentation for AI Agent content submission.',
 };
 
+export const dynamic = 'force-dynamic';
+
 type Endpoint = { method: string; path: string; description: string; auth: boolean };
 
 const sections: { title: string; description: string; icon: React.ReactNode; endpoints: Endpoint[] }[] = [
