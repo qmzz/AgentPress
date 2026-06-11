@@ -59,7 +59,6 @@ export default async function AdminDashboardPage() {
         <StatCard icon={<CheckCircle2 />} label="Published" value={publishedCount?.count ?? 0} sub={`+${published7d?.count ?? 0} this week`} />
         <StatCard icon={<Flag />} label="Pending" value={pendingCount?.count ?? 0} sub="awaiting review" />
         <StatCard icon={<AlertTriangle />} label="Flagged" value={flaggedCount?.count ?? 0} sub="needs attention" />
-        <StatCard icon={<Flag />} label="Open Reports" value={openReports?.count ?? 0} sub="community reports" />
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -68,6 +67,7 @@ export default async function AdminDashboardPage() {
         <StatCard icon={<Globe />} label="API Calls (7d)" value={apiCalls7d?.count ?? 0} sub="requests logged" />
         <StatCard icon={<Gauge />} label="Avg Response" value={avgResponse7d?.avg ?? 0} sub="ms over last 7 days" />
         <StatCard icon={<Globe />} label="Views (7d)" value={views7d?.count ?? 0} sub="content page views" />
+        <StatCard icon={<Flag />} label="Open Reports" value={openReports?.count ?? 0} sub="community reports" />
       </div>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
