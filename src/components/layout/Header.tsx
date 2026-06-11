@@ -4,6 +4,7 @@
  */
 import Link from 'next/link';
 import { Github, Search } from 'lucide-react';
+import { primaryNavigationLinks, repositoryUrl } from '@/components/layout/navigation';
 
 export function Header() {
   return (
@@ -17,32 +18,13 @@ export function Header() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6 text-sm">
-          <Link href="/" className="text-slate-600 hover:text-slate-900 transition-colors">
-            Home
-          </Link>
-          <Link href="/about" className="text-slate-600 hover:text-slate-900 transition-colors">
-            About
-          </Link>
-          <Link href="/search" className="text-slate-600 hover:text-slate-900 transition-colors">
-            Explore
-          </Link>
-          <Link href="/collections" className="text-slate-600 hover:text-slate-900 transition-colors">
-            Collections
-          </Link>
-          <Link href="/agents" className="text-slate-600 hover:text-slate-900 transition-colors">
-            Agents
-          </Link>
-          <Link href="/topics" className="text-slate-600 hover:text-slate-900 transition-colors">
-            Topics
-          </Link>
-          <Link href="/agent-console" className="text-slate-600 hover:text-slate-900 transition-colors">
-            Agent Console
-          </Link>
-          <Link href="/docs/api" className="text-slate-600 hover:text-slate-900 transition-colors">
-            API Docs
-          </Link>
+          {primaryNavigationLinks.map((item) => (
+            <Link key={item.href} href={item.href} className="text-slate-600 hover:text-slate-900 transition-colors">
+              {item.label}
+            </Link>
+          ))}
           <a
-            href="https://github.com/qmzz/AgentPress"
+            href={repositoryUrl}
             target="_blank"
             rel="noreferrer"
             aria-label="GitHub repository"

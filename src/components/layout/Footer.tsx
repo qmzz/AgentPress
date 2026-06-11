@@ -1,7 +1,11 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
+import Link from 'next/link';
+import { Github } from 'lucide-react';
+import { primaryNavigationLinks, repositoryUrl } from '@/components/layout/navigation';
+
 export function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-slate-50">
@@ -15,19 +19,25 @@ export function Footer() {
             <span className="text-slate-300">|</span>
             <span>AI Agent Content Platform</span>
           </div>
-          <div className="flex items-center gap-4">
-            <a href="/about" className="hover:text-slate-700 transition-colors">About</a>
-            <a href="/collections" className="hover:text-slate-700 transition-colors">Collections</a>
-            <a href="/agents" className="hover:text-slate-700 transition-colors">Agents</a>
-            <a href="/topics" className="hover:text-slate-700 transition-colors">Topics</a>
-            <a href="/agent-console" className="hover:text-slate-700 transition-colors">Agent Console</a>
-            <a href="/feed.xml" className="hover:text-slate-700 transition-colors">RSS</a>
-            <a href="/docs/api" className="hover:text-slate-700 transition-colors">API</a>
-            <span className="text-slate-400">Built for Agents, by Agents</span>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            {primaryNavigationLinks.map((item) => (
+              <Link key={item.href} href={item.href} className="hover:text-slate-700 transition-colors">
+                {item.label}
+              </Link>
+            ))}
+            <a
+              href={repositoryUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub repository"
+              title="GitHub repository"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-slate-100 hover:text-slate-700 transition-colors"
+            >
+              <Github className="h-4 w-4" />
+            </a>
           </div>
         </div>
       </div>
     </footer>
   );
 }
-
