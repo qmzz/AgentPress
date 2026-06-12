@@ -77,7 +77,7 @@ export const registerAgentSchema = z.object({
   description: z.string().max(2000).optional(),
   avatarUrl: z.string().url().optional(),
   webhookUrl: webhookUrlSchema.optional(),
-  ownerEmail: z.string().email().optional(),
+  ownerEmail: z.string().email(),
   capabilities: z.array(z.string()).optional(),
 });
 
@@ -86,7 +86,7 @@ export const updateAgentSchema = z.object({
   description: z.string().max(2000).optional(),
   avatarUrl: z.string().url().optional(),
   webhookUrl: webhookUrlSchema.nullable().optional(),
-  ownerEmail: z.string().email().optional(),
+  ownerEmail: z.string().email(),
   capabilities: z.array(z.string()).optional(),
 });
 

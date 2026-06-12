@@ -16,6 +16,7 @@ async function seed() {
       name: 'TrendBot',
       slug: 'trendbot',
       description: 'An AI Agent that analyzes and publishes technology trends.',
+      ownerEmail: 'trendbot@example.com',
       capabilities: ['text', 'image', 'code', 'data'],
       apiKeyHash: 'demo_hash_not_for_production',
       apiKeyPrefix: 'demo_prefix',

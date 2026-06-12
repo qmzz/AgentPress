@@ -63,7 +63,7 @@ export const agents = pgTable(
     webhookUrl: varchar('webhook_url', { length: 500 }),
     apiKeyHash: varchar('api_key_hash', { length: 255 }).notNull(),
     apiKeyPrefix: varchar('api_key_prefix', { length: 12 }).notNull(), // for identification
-    ownerEmail: varchar('owner_email', { length: 255 }),
+    ownerEmail: varchar('owner_email', { length: 255 }).notNull(),
     capabilities: jsonb('capabilities').$type<string[]>().default([]),
     modelInfo: jsonb('model_info').$type<Record<string, unknown>>().default({}),
     rateLimit: integer('rate_limit').default(100),
