@@ -70,7 +70,9 @@ export function AgentConsole() {
   });
   const [registeredKey, setRegisteredKey] = useState<string | null>(null);
   const [showReset, setShowReset] = useState(false);
-  const [resetForm, setResetForm] = useState({ email: '', slug: '' });
+  const [resetStep, setResetStep] = useState<'email' | 'verify'>('email');
+  const [resetForm, setResetForm] = useState({ email: '', code: '', slug: '' });
+  const [codeSent, setCodeSent] = useState(false);
 
   const authHeaders = useMemo(() => ({
     Authorization: `Bearer ${apiKey}`,
@@ -189,25 +191,49 @@ export function AgentConsole() {
     }
   }
 
-  async function resetKey() {
+  async function requestResetCode() {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch('/api/v1/agent/reset-key', {
+      const response = await fetch('/api/v1/agent/request-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetForm.email.trim() }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? 'Request failed');
+      setCodeSent(true);
+      setResetStep('verify');
+      setMessage('Verification code sent to your email. Check your inbox.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Request failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function verifyResetCode() {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/v1/agent/verify-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: resetForm.email.trim(),
-          slug: resetForm.slug.trim(),
+          code: resetForm.code.trim(),
+          agentSlug: resetForm.slug.trim(),
         }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Reset failed');
-      setRegisteredKey(payload.data.api_key);
-      setMessage('Key reset successful! Save your new API key.');
+      if (!response.ok) throw new Error(payload.error ?? 'Verification failed');
+      setMessage('API key reset successfully! Check your email for the new key.');
       setShowReset(false);
+      setResetStep('email');
+      setResetForm({ email: '', code: '', slug: '' });
+      setCodeSent(false);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Reset failed');
+      setMessage(error instanceof Error ? error.message : 'Verification failed');
     } finally {
       setLoading(false);
     }
@@ -346,7 +372,13 @@ export function AgentConsole() {
         <section className="rounded-xl border border-slate-200 bg-white p-6">
           <button
             type="button"
-            onClick={() => setShowReset(!showReset)}
+            onClick={() => {
+              setShowReset(!showReset);
+              if (!showReset) {
+                setResetStep('email');
+                setCodeSent(false);
+              }
+            }}
             className="text-sm text-brand-700 hover:text-brand-800"
           >
             {showReset ? 'Hide key reset form' : 'Lost your API key? Reset it here'}
@@ -354,34 +386,75 @@ export function AgentConsole() {
           {showReset && (
             <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
               <h3 className="text-sm font-semibold text-slate-900">Reset API Key</h3>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Agent Slug</label>
-                <input
-                  type="text"
-                  value={resetForm.slug}
-                  onChange={(e) => setResetForm({ ...resetForm, slug: e.target.value })}
-                  placeholder="my-ai-agent"
-                  className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
-                <input
-                  type="email"
-                  value={resetForm.email}
-                  onChange={(e) => setResetForm({ ...resetForm, email: e.target.value })}
-                  placeholder="agent@example.com"
-                  className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={resetKey}
-                disabled={loading || !resetForm.slug || !resetForm.email}
-                className="h-10 w-full rounded-lg bg-slate-900 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-              >
-                {loading ? 'Resetting...' : 'Reset API Key'}
-              </button>
+              
+              {resetStep === 'email' && (
+                <>
+                  <p className="text-sm text-slate-600">Enter the email address associated with your agent.</p>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+                    <input
+                      type="email"
+                      value={resetForm.email}
+                      onChange={(e) => setResetForm({ ...resetForm, email: e.target.value })}
+                      placeholder="agent@example.com"
+                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={requestResetCode}
+                    disabled={loading || !resetForm.email}
+                    className="h-10 w-full rounded-lg bg-slate-900 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                  >
+                    {loading ? 'Sending...' : 'Send Verification Code'}
+                  </button>
+                </>
+              )}
+
+              {resetStep === 'verify' && (
+                <>
+                  <p className="text-sm text-slate-600">Enter the 6-digit code sent to {resetForm.email} and select your agent.</p>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Verification Code</label>
+                    <input
+                      type="text"
+                      value={resetForm.code}
+                      onChange={(e) => setResetForm({ ...resetForm, code: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                      placeholder="123456"
+                      maxLength={6}
+                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Agent Slug</label>
+                    <input
+                      type="text"
+                      value={resetForm.slug}
+                      onChange={(e) => setResetForm({ ...resetForm, slug: e.target.value })}
+                      placeholder="my-ai-agent"
+                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={verifyResetCode}
+                    disabled={loading || !resetForm.code || resetForm.code.length !== 6 || !resetForm.slug}
+                    className="h-10 w-full rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
+                  >
+                    {loading ? 'Verifying...' : 'Verify and Reset Key'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetStep('email');
+                      setCodeSent(false);
+                    }}
+                    className="text-sm text-slate-600 hover:text-slate-900"
+                  >
+                    ← Back to email
+                  </button>
+                </>
+              )}
             </div>
           )}
         </section>
