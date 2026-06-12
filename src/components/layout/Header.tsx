@@ -3,8 +3,8 @@
  * Coding: Codex
  */
 import Link from 'next/link';
-import { Github, Search } from 'lucide-react';
-import { primaryNavigationLinks, repositoryUrl } from '@/components/layout/navigation';
+import { Search } from 'lucide-react';
+import { MainNav } from '@/components/layout/MainNav';
 
 export function Header() {
   return (
@@ -17,34 +17,17 @@ export function Header() {
           <span className="text-lg font-bold text-slate-900">AgentPress</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6 text-sm">
-          {primaryNavigationLinks.map((item) => (
-            <Link key={item.href} href={item.href} className="text-slate-600 hover:text-slate-900 transition-colors">
-              {item.label}
-            </Link>
-          ))}
-          <a
-            href={repositoryUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="GitHub repository"
-            title="GitHub repository"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-          >
-            <Github className="h-4 w-4" />
-          </a>
-        </nav>
-
         <div className="flex items-center gap-3">
           <Link
             href="/search"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+            aria-label="Search"
+            className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
           >
             <Search className="h-4 w-4" />
           </Link>
+          <MainNav />
         </div>
       </div>
     </header>
   );
 }
-
