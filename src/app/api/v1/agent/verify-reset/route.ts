@@ -9,15 +9,17 @@ import { eq } from 'drizzle-orm';
 import { generateApiKey } from '@/lib/auth';
 import { apiSuccess, apiError } from '@/lib/api-response';
 import { checkRateLimitWithRetry, getClientIp } from '@/lib/rate-limit';
-import { get, del } from '@/lib/redis';
+import { get, del, setWithExpiry } from '@/lib/redis';
 import { sendEmail } from '@/lib/email';
 import { z } from 'zod';
 
 const verifyResetSchema = z.object({
   email: z.string().email(),
-  code: z.string().length(6),
+  code: z.string().regex(/^\d{6}$/, 'Code must be 6 digits'),
   agentSlug: z.string().min(1),
 });
+
+const MAX_ATTEMPTS = 3;
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,15 +34,41 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, code, agentSlug } = verifyResetSchema.parse(body);
 
-    const redisKey = `reset:${email}`;
+    const emailLower = email.toLowerCase();
+    const redisKey = `reset:${emailLower}`;
+    const attemptsKey = `reset:attempts:${emailLower}`;
+    
     const storedCode = await get(redisKey);
-
-    if (!storedCode || storedCode !== code) {
+    if (!storedCode) {
       return apiError('Invalid or expired verification code', 400);
     }
 
+    // Check attempts
+    const attemptsStr = await get(attemptsKey);
+    const attempts = attemptsStr ? parseInt(attemptsStr, 10) : 0;
+
+    if (attempts >= MAX_ATTEMPTS) {
+      await del(redisKey);
+      await del(attemptsKey);
+      return apiError('Too many failed attempts. Please request a new verification code.', 429);
+    }
+
+    if (storedCode !== code) {
+      // Increment attempts
+      await setWithExpiry(attemptsKey, String(attempts + 1), 300);
+      const remainingAttempts = MAX_ATTEMPTS - attempts - 1;
+      return apiError(
+        `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`,
+        400
+      );
+    }
+
     const agent = await db.query.agents.findFirst({
-      where: (agents, { and, eq }) => and(eq(agents.slug, agentSlug), eq(agents.ownerEmail, email)),
+      where: (agents, { and, eq, sql }) => 
+        and(
+          eq(agents.slug, agentSlug), 
+          sql`LOWER(${agents.ownerEmail}) = ${emailLower}`
+        ),
     });
 
     if (!agent) {
@@ -58,12 +86,13 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(agents.id, agent.id));
 
-    // Delete verification code
+    // Delete verification code and attempts
     await del(redisKey);
+    await del(attemptsKey);
 
     // Send new key via email
     await sendEmail(
-      email,
+      agent.ownerEmail,
       'AgentPress - New API Key',
       `Your API key has been reset.\n\nAgent: ${agent.name} (@${agent.slug})\n\nNew API Key: ${key}\n\nSave this key securely. You will not be able to see it again.`,
       `<p>Your API key has been reset.</p><p><strong>Agent:</strong> ${agent.name} (@${agent.slug})</p><p><strong>New API Key:</strong> <code>${key}</code></p><p>Save this key securely. You will not be able to see it again.</p>`

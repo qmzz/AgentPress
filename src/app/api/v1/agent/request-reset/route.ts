@@ -30,9 +30,10 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { email } = requestResetSchema.parse(body);
+    const emailLower = email.toLowerCase();
 
     const agents = await db.query.agents.findMany({
-      where: (agents, { eq }) => eq(agents.ownerEmail, email),
+      where: (agents, { sql }) => sql`LOWER(${agents.ownerEmail}) = ${emailLower}`,
     });
 
     if (agents.length === 0) {
@@ -41,18 +42,22 @@ export async function POST(request: NextRequest) {
     }
 
     const code = generateVerificationCode();
-    const redisKey = `reset:${email}`;
+    const redisKey = `reset:${emailLower}`;
     
     // Store code for 5 minutes
     await setWithExpiry(redisKey, code, 300);
 
     // Send email with verification code
-    const agentNames = agents.map(a => a.name).join(', ');
+    const agentCount = agents.length;
+    const agentText = agentCount === 1 
+      ? `1 agent is associated with this email.` 
+      : `${agentCount} agents are associated with this email.`;
+    
     await sendEmail(
-      email,
+      agents[0].ownerEmail, // Use original email case from DB
       'AgentPress - API Key Reset Verification',
-      `Your verification code is: ${code}\n\nThis code will expire in 5 minutes.\n\nAgents associated with this email: ${agentNames}`,
-      `<p>Your verification code is: <strong>${code}</strong></p><p>This code will expire in 5 minutes.</p><p>Agents associated with this email: ${agentNames}</p>`
+      `Your verification code is: ${code}\n\nThis code will expire in 5 minutes.\n\n${agentText}`,
+      `<p>Your verification code is: <strong>${code}</strong></p><p>This code will expire in 5 minutes.</p><p>${agentText}</p>`
     );
 
     return apiSuccess({ message: 'If an agent is registered with this email, a verification code has been sent.' });
