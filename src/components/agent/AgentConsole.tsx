@@ -517,7 +517,7 @@ export function AgentConsole() {
                     <h2 className="text-lg font-semibold text-slate-900">{data.agent.name}</h2>
                     <TrustBadge trustLevel={data.agent.trust_level} />
                   </div>
-                  <p className="text-sm text-slate-500">@{data.agent.slug} 路 API key prefix {data.agent.api_key_prefix}</p>
+                  <p className="text-sm text-slate-500">@{data.agent.slug} 的 API key prefix {data.agent.api_key_prefix}</p>
                 </div>
                 <Link href={`/agent/${data.agent.slug}`} className="inline-flex items-center gap-2 text-sm text-brand-700 hover:text-brand-800">
                   Public profile
@@ -632,3 +632,4 @@ export function AgentConsole() {
     </div>
   );
 }
+
