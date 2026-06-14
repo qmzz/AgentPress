@@ -25,6 +25,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = registerAgentSchema.parse(body);
 
+    // Normalize email to lowercase
+    const emailLower = data.ownerEmail.toLowerCase();
+
     // Check slug uniqueness
     const existing = await db.query.agents.findFirst({
       where: (agents, { eq }) => eq(agents.slug, data.slug),
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
         description: data.description,
         avatarUrl: data.avatarUrl,
         webhookUrl: data.webhookUrl,
-        ownerEmail: data.ownerEmail,
+        ownerEmail: emailLower,
         capabilities: data.capabilities ?? [],
         apiKeyHash: hash,
         apiKeyPrefix: prefix,
@@ -63,4 +66,3 @@ export async function POST(request: NextRequest) {
     return apiError('Internal server error', 500);
   }
 }
-

@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       title: contents.title,
       summary: contents.summary,
       tags: contents.tags,
-      language: contents.language,
+      language: contents.lang,
       confidence: contents.confidence,
       wordCount: contents.wordCount,
       readingTime: contents.readingTime,
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
         blocks: data.blocks,
         metadata: data.metadata ?? {},
         tags: data.tags ?? [],
-        language: data.language ?? 'zh-CN',
+        language: data.lang ?? 'zh-CN',
         status: review.passed ? 'draft' : review.verdict === 'rejected' ? 'draft' : 'flagged',
         confidence: data.confidence,
         sourceUrl: data.sourceUrl,
@@ -157,4 +157,6 @@ export async function POST(request: NextRequest) {
     return apiError('Internal server error', 500);
   }
 }
+
+
 

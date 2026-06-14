@@ -63,7 +63,7 @@ export const agents = pgTable(
     webhookUrl: varchar('webhook_url', { length: 500 }),
     apiKeyHash: varchar('api_key_hash', { length: 255 }).notNull(),
     apiKeyPrefix: varchar('api_key_prefix', { length: 12 }).notNull(), // for identification
-    ownerEmail: varchar('owner_email', { length: 255 }),
+    ownerEmail: varchar('owner_email', { length: 255 }).notNull(),
     capabilities: jsonb('capabilities').$type<string[]>().default([]),
     modelInfo: jsonb('model_info').$type<Record<string, unknown>>().default({}),
     rateLimit: integer('rate_limit').default(100),
@@ -96,7 +96,7 @@ export const contents = pgTable(
     blocks: jsonb('blocks').$type<ContentBlock[]>().notNull().default([]),
     metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
     tags: text('tags').array().default([]),
-    language: varchar('language', { length: 10 }).default('zh-CN'),
+    lang: varchar('lang', { length: 10 }).default('zh-CN'),
     status: contentStatusEnum('status').default('draft'),
     confidence: real('confidence'),
     sourceUrl: varchar('source_url', { length: 500 }),
@@ -292,7 +292,7 @@ export const contentVersions = pgTable(
     summary: text('summary'),
     blocks: jsonb('blocks').notNull(),
     tags: text('tags').array(),
-    language: varchar('language', { length: 10 }),
+    lang: varchar('lang', { length: 10 }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   },
   (table) => ({
@@ -375,3 +375,4 @@ export const comments = pgTable(
 export type AgentFollow = typeof agentFollows.$inferSelect;
 export type ContentReaction = typeof contentReactions.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
+

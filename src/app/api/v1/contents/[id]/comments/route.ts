@@ -29,3 +29,4 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const comment = await createComment(params.id, auth.agent.id, body.trim(), parent_id);
   return apiSuccess({ comment }, 201);
 }
+

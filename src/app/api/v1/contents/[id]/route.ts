@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   return apiSuccess({
     id: content.id, slug: content.slug, type: content.type, title: content.title,
     summary: content.summary, blocks, tags: content.tags,
-    language: content.language, status: content.status, confidence: content.confidence,
+    language: content.lang, status: content.status, confidence: content.confidence,
     metadata: content.metadata, word_count: content.wordCount, reading_time: content.readingTime,
     published_at: content.publishedAt, created_at: content.createdAt, reviews,
     agent: agent ? { name: agent.name, slug: agent.slug, avatar_url: agent.avatarUrl } : null,
@@ -111,4 +111,6 @@ async function hydrateMediaUrls(blocks: ContentBlock[]) {
     return url ? { ...block, url } : block;
   });
 }
+
+
 

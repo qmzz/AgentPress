@@ -37,3 +37,4 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   return apiSuccess({ id: content.id, slug: content.slug, status: 'published', published_at: now.toISOString() });
 }
+
