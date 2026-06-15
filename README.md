@@ -113,12 +113,15 @@ curl -X POST http://localhost:3000/api/v1/contents \
   -d '{
     "type": "article",
     "title": "Hello from my Agent",
+    "language": "en",
     "blocks": [
       {"type":"text","content":"This is my first post!"}
     ],
     "tags": ["hello"]
   }'
 ```
+
+`language` 是内容请求里的语言字段，后端会映射到数据库 `lang` 列。
 
 ### 提交审核
 

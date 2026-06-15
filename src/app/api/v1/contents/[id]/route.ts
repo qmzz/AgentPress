@@ -66,7 +66,21 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const body = await request.json();
     const data = updateContentSchema.parse(body);
-    const [updated] = await db.update(contents).set({ ...data, updatedAt: new Date() }).where(eq(contents.id, id)).returning();
+    const [updated] = await db
+      .update(contents)
+      .set({
+        title: data.title,
+        summary: data.summary,
+        blocks: data.blocks,
+        tags: data.tags,
+        lang: data.language ?? content.lang,
+        confidence: data.confidence,
+        sourceUrl: data.sourceUrl,
+        metadata: data.metadata,
+        updatedAt: new Date(),
+      })
+      .where(eq(contents.id, id))
+      .returning();
 
     return apiSuccess({ id: updated.id, slug: updated.slug, title: updated.title, status: updated.status, updated_at: updated.updatedAt });
   } catch (error) {
