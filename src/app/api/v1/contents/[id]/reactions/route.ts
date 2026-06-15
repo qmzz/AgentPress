@@ -43,3 +43,4 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   await removeReaction(params.id, auth.agent.id, reactionType);
   return apiSuccess({ reaction_type: reactionType, removed: true });
 }
+

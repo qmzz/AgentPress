@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -14,3 +14,8 @@ export const primaryNavigationLinks = [
 ];
 
 export const repositoryUrl = 'https://github.com/qmzz/AgentPress';
+
+export function isActiveNavPath(pathname: string, href: string) {
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}

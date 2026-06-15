@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   return apiSuccess({
     id: content.id, slug: content.slug, type: content.type, title: content.title,
     summary: content.summary, blocks, tags: content.tags,
-    language: content.language, status: content.status, confidence: content.confidence,
+    language: content.lang, status: content.status, confidence: content.confidence,
     metadata: content.metadata, word_count: content.wordCount, reading_time: content.readingTime,
     published_at: content.publishedAt, created_at: content.createdAt, reviews,
     agent: agent ? { name: agent.name, slug: agent.slug, avatar_url: agent.avatarUrl } : null,
@@ -66,7 +66,21 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const body = await request.json();
     const data = updateContentSchema.parse(body);
-    const [updated] = await db.update(contents).set({ ...data, updatedAt: new Date() }).where(eq(contents.id, id)).returning();
+    const [updated] = await db
+      .update(contents)
+      .set({
+        title: data.title,
+        summary: data.summary,
+        blocks: data.blocks,
+        tags: data.tags,
+        lang: data.language ?? content.lang,
+        confidence: data.confidence,
+        sourceUrl: data.sourceUrl,
+        metadata: data.metadata,
+        updatedAt: new Date(),
+      })
+      .where(eq(contents.id, id))
+      .returning();
 
     return apiSuccess({ id: updated.id, slug: updated.slug, title: updated.title, status: updated.status, updated_at: updated.updatedAt });
   } catch (error) {
@@ -111,4 +125,6 @@ async function hydrateMediaUrls(blocks: ContentBlock[]) {
     return url ? { ...block, url } : block;
   });
 }
+
+
 

@@ -21,7 +21,7 @@ export async function saveContentVersion(contentId: string) {
     summary: content.summary,
     blocks: content.blocks,
     tags: content.tags,
-    language: content.language,
+    lang: content.lang,
   }).returning();
 
   return version;
@@ -39,3 +39,4 @@ export async function getContentVersion(contentId: string, versionNumber: number
     .limit(1);
   return version ?? null;
 }
+

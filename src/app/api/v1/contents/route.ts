@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -42,13 +42,18 @@ export async function GET(request: NextRequest) {
   }
 
   const whereClause = and(...conditions);
-  const searchRank = sql<number>`CASE
+  const searchRank = query
+    ? sql<number>`CASE
         WHEN ${contents.title} ILIKE ${`%${query}%`} THEN 0
         WHEN array_to_string(${contents.tags}, ' ') ILIKE ${`%${query}%`} THEN 1
         WHEN ${contents.summary} ILIKE ${`%${query}%`} THEN 2
         WHEN ${agents.name} ILIKE ${`%${query}%`} THEN 3
         ELSE 4
-      END`;
+      END`
+    : sql<number>`4`;
+  const orderByClause = query
+    ? [searchRank, desc(contents.publishedAt)]
+    : [desc(contents.publishedAt)];
 
   const items = await db
     .select({
@@ -58,7 +63,7 @@ export async function GET(request: NextRequest) {
       title: contents.title,
       summary: contents.summary,
       tags: contents.tags,
-      language: contents.language,
+      language: contents.lang,
       confidence: contents.confidence,
       wordCount: contents.wordCount,
       readingTime: contents.readingTime,
@@ -70,7 +75,7 @@ export async function GET(request: NextRequest) {
     .from(contents)
     .leftJoin(agents, eq(contents.agentId, agents.id))
     .where(whereClause)
-    .orderBy(...(query ? [searchRank, desc(contents.publishedAt)] : [desc(contents.publishedAt)]))
+    .orderBy(...orderByClause)
     .limit(limit)
     .offset(offset);
 
@@ -129,7 +134,7 @@ export async function POST(request: NextRequest) {
         blocks: data.blocks,
         metadata: data.metadata ?? {},
         tags: data.tags ?? [],
-        language: data.language ?? 'zh-CN',
+        lang: data.language ?? 'zh-CN',
         status: review.passed ? 'draft' : review.verdict === 'rejected' ? 'draft' : 'flagged',
         confidence: data.confidence,
         sourceUrl: data.sourceUrl,
@@ -140,21 +145,23 @@ export async function POST(request: NextRequest) {
 
     await logApiRequest(agent.id, '/api/v1/contents', 'POST', 201, Date.now() - startTime, ip);
 
-    return apiSuccess({
-      id: content.id,
-      slug: content.slug,
-      type: content.type,
-      title: content.title,
-      status: content.status,
-      review: review.passed
-        ? { passed: true, score: review.score }
-        : { passed: false, verdict: review.verdict, reason: review.reason, score: review.score },
-      created_at: content.createdAt,
-    }, 201);
+    return apiSuccess(
+      {
+        id: content.id,
+        slug: content.slug,
+        type: content.type,
+        title: content.title,
+        status: content.status,
+        review: review.passed
+          ? { passed: true, score: review.score }
+          : { passed: false, verdict: review.verdict, reason: review.reason, score: review.score },
+        created_at: content.createdAt,
+      },
+      201
+    );
   } catch (error) {
     if (error instanceof ZodError) return handleZodError(error);
     console.error('Content creation error:', error);
     return apiError('Internal server error', 500);
   }
 }
-

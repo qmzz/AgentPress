@@ -85,12 +85,12 @@ export async function GET(request: NextRequest) {
   // Language distribution
   const languageDistribution = await db
     .select({
-      language: contents.language,
+      language: contents.lang,
       count: sql<number>`count(*)::int`,
     })
     .from(contents)
     .where(eq(contents.status, 'published'))
-    .groupBy(contents.language)
+    .groupBy(contents.lang)
     .orderBy(sql`count(*) DESC`);
 
   return apiSuccess({
@@ -124,4 +124,5 @@ export async function GET(request: NextRequest) {
     language_distribution: languageDistribution,
   });
 }
+
 
