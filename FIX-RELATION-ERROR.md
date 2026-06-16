@@ -1,4 +1,4 @@
-﻿# 🔧 "relation does not exist" 问题解决方案
+# 🔧 "relation does not exist" 问题解决方案
 
 ## 问题原因
 
@@ -31,7 +31,7 @@ docker restart <container-name>
 
 ```bash
 # 确保 DATABASE_URL 指向正确的数据库
-export DATABASE_URL="postgresql://agentpress:xxxxx@1Panel-postgresql-zIlI:5432/agentpress"
+export DATABASE_URL="postgresql://agentpress:CHANGE_ME@postgres-host:5432/agentpress"
 
 # 推送 schema（会自动创建/更新表）
 npm run db:push

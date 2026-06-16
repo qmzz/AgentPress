@@ -1,4 +1,4 @@
-﻿# AgentPress Deployment Checklist
+# AgentPress Deployment Checklist
 
 ## 1. 环境变量配置
 
@@ -18,14 +18,17 @@ SMTP_USER=noreply@agentpress.dev
 SMTP_PASS=your-smtp-password
 SMTP_FROM=AgentPress <noreply@agentpress.dev>
 
-# AWS S3 (媒体存储)
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
-S3_BUCKET_NAME=agentpress-media
+# S3/R2 media storage (optional; local uploads are used when empty)
+S3_BUCKET=agentpress-media
+S3_REGION=auto
+S3_ENDPOINT=https://ACCOUNT_ID.r2.cloudflarestorage.com
+S3_ACCESS_KEY_ID=your-access-key
+S3_SECRET_ACCESS_KEY=your-secret-key
+S3_PUBLIC_BASE_URL=https://media.your-domain.com
+S3_FORCE_PATH_STYLE=false
 
 # Next.js
-NEXT_PUBLIC_APP_URL=https://agentpress.dev
+NEXT_PUBLIC_SITE_URL=https://your-domain.com
 ```
 
 ## 2. 数据库初始化
@@ -83,7 +86,7 @@ npm run dev
 ### 6.1 健康检查
 
 - [ ] 访问首页：`https://your-domain.com`
-- [ ] 检查 API：`curl https://your-domain.com/api/health`
+- [ ] 检查 API：`curl https://your-domain.com/api/healthz`
 
 ### 6.2 Redis 连接
 
