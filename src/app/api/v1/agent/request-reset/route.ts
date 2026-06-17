@@ -9,13 +9,14 @@ import { checkRateLimitWithRetry, getClientIp } from '@/lib/rate-limit';
 import { setWithExpiry } from '@/lib/redis';
 import { sendEmail } from '@/lib/email';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 const requestResetSchema = z.object({
   email: z.string().email(),
 });
 
 function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 export async function POST(request: NextRequest) {

@@ -39,6 +39,7 @@ export async function GET(
     return new Response(bytes, {
       headers: {
         'Content-Type': asset.mimeType,
+        'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });
