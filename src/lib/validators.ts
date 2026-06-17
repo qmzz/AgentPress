@@ -4,16 +4,29 @@
  */
 import { z } from 'zod';
 
+const MAX_TEXT_BLOCK_LENGTH = 100_000;
+const MAX_CODE_BLOCK_LENGTH = 100_000;
+const MAX_BLOCKS_PER_CONTENT = 100;
+const MAX_TAG_LENGTH = 80;
+const MAX_METADATA_BYTES = 20_000;
+const MAX_CHART_DATA_BYTES = 50_000;
+
 const webhookUrlSchema = z
   .string()
   .url()
   .refine((url) => url.startsWith('http://') || url.startsWith('https://'), 'Webhook URL must start with http:// or https://');
 
+const boundedJsonRecord = (maxBytes: number, label: string) =>
+  z.record(z.unknown()).refine(
+    (value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= maxBytes,
+    `${label} is too large`
+  );
+
 // ─── Content Block Validators ────────────────────────
 
 const textBlockSchema = z.object({
   type: z.literal('text'),
-  content: z.string().min(1),
+  content: z.string().min(1).max(MAX_TEXT_BLOCK_LENGTH),
 });
 
 const imageBlockSchema = z.object({
@@ -25,16 +38,16 @@ const imageBlockSchema = z.object({
 
 const codeBlockSchema = z.object({
   type: z.literal('code'),
-  language: z.string().optional(),
-  filename: z.string().optional(),
-  content: z.string().min(1),
+  language: z.string().max(50).optional(),
+  filename: z.string().max(255).optional(),
+  content: z.string().min(1).max(MAX_CODE_BLOCK_LENGTH),
 });
 
 const chartBlockSchema = z.object({
   type: z.literal('chart'),
-  chartType: z.string(),
-  data: z.record(z.unknown()),
-  title: z.string().optional(),
+  chartType: z.string().max(50),
+  data: boundedJsonRecord(MAX_CHART_DATA_BYTES, 'Chart data'),
+  title: z.string().max(500).optional(),
 });
 
 const audioBlockSchema = z.object({
@@ -52,7 +65,7 @@ const videoBlockSchema = z.object({
 const embedBlockSchema = z.object({
   type: z.literal('embed'),
   url: z.string().url(),
-  title: z.string().optional(),
+  title: z.string().max(500).optional(),
 });
 
 export const contentBlockSchema = z.discriminatedUnion('type', [
@@ -96,23 +109,23 @@ export const createContentSchema = z.object({
   type: z.enum(['article', 'note', 'image', 'code', 'data', 'audio', 'video', 'collection']),
   title: z.string().min(1).max(500),
   summary: z.string().max(2000).optional(),
-  blocks: z.array(contentBlockSchema).min(1),
-  tags: z.array(z.string()).max(20).optional(),
+  blocks: z.array(contentBlockSchema).min(1).max(MAX_BLOCKS_PER_CONTENT),
+  tags: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(20).optional(),
   language: z.string().max(10).optional(),
   confidence: z.number().min(0).max(1).optional(),
   sourceUrl: z.string().url().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: boundedJsonRecord(MAX_METADATA_BYTES, 'Metadata').optional(),
 });
 
 export const updateContentSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   summary: z.string().max(2000).optional(),
-  blocks: z.array(contentBlockSchema).min(1).optional(),
-  tags: z.array(z.string()).max(20).optional(),
+  blocks: z.array(contentBlockSchema).min(1).max(MAX_BLOCKS_PER_CONTENT).optional(),
+  tags: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(20).optional(),
   language: z.string().max(10).optional(),
   confidence: z.number().min(0).max(1).optional(),
   sourceUrl: z.string().url().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: boundedJsonRecord(MAX_METADATA_BYTES, 'Metadata').optional(),
 });
 
 // ─── Collection Validators ───────────────────────────

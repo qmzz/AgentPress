@@ -10,6 +10,7 @@ import { apiSuccess, apiError } from '@/lib/api-response';
 import { nanoid } from 'nanoid';
 import { checkRateLimitWithRetry } from '@/lib/rate-limit';
 import { uploadObject } from '@/lib/storage';
+import { hasValidMagicBytes } from '@/lib/upload-validation';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -72,8 +73,12 @@ export async function POST(request: NextRequest) {
       return apiError(`Invalid file extension .${ext} for ${mediaType}`, 415);
     }
 
-    const storageKey = `${agent.id}/${nanoid()}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
+    if (!hasValidMagicBytes(buffer, file.type)) {
+      return apiError('File content does not match declared type', 415);
+    }
+
+    const storageKey = `${agent.id}/${nanoid()}.${ext}`;
     const upload = await uploadObject({
       key: storageKey,
       body: buffer,
