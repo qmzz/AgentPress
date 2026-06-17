@@ -4,6 +4,7 @@
  */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { ADMIN_SESSION_HEADER, createAdminSessionHeader } from '@/lib/admin';
 
 const SESSION_COOKIE = 'admin_session';
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
@@ -22,7 +23,7 @@ export async function middleware(request: NextRequest) {
     const headerSecret = request.headers.get('x-admin-secret');
     const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.delete('x-admin-session-valid');
+    requestHeaders.delete(ADMIN_SESSION_HEADER);
 
     const bearerValid = authHeader?.startsWith('Bearer ') && authHeader.slice(7) === secret;
     const headerValid = headerSecret === secret;
@@ -33,7 +34,7 @@ export async function middleware(request: NextRequest) {
       if (basicAuth?.startsWith('Basic ')) {
         const decoded = atob(basicAuth.slice(6));
         if (decoded === 'admin:' + secret) {
-          requestHeaders.set('x-admin-session-valid', '1');
+          requestHeaders.set(ADMIN_SESSION_HEADER, createAdminSessionHeader(secret));
           const response = NextResponse.next({ request: { headers: requestHeaders } });
           response.cookies.set(SESSION_COOKIE, await createSessionToken(secret), {
             httpOnly: true,
@@ -52,7 +53,7 @@ export async function middleware(request: NextRequest) {
       });
     }
 
-    requestHeaders.set('x-admin-session-valid', '1');
+    requestHeaders.set(ADMIN_SESSION_HEADER, createAdminSessionHeader(secret));
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
   return NextResponse.next();

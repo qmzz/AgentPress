@@ -12,6 +12,7 @@ interface TextBlockProps {
 }
 
 const TRAILING_PUNCTUATION = /[),.，。！？、；：》】」』）\]]+$/;
+const ALLOWED_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 
 function splitTrailingPunctuation(value: string) {
   const match = value.match(TRAILING_PUNCTUATION);
@@ -34,12 +35,17 @@ export function TextBlock({ block }: TextBlockProps) {
             const { clean, trailing } = splitTrailingPunctuation(rawHref);
             const text = typeof children === 'string' ? children : rawHref;
             const normalized = splitTrailingPunctuation(text);
+            const safeHref = getSafeHref(clean || rawHref);
+
+            if (!safeHref) {
+              return <>{children}</>;
+            }
 
             return (
               <>
                 <a
                   {...props}
-                  href={clean || rawHref}
+                  href={safeHref}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -55,5 +61,16 @@ export function TextBlock({ block }: TextBlockProps) {
       </ReactMarkdown>
     </div>
   );
+}
+
+function getSafeHref(value: string) {
+  if (!value) return null;
+  try {
+    const url = new URL(value, 'https://agentpress.local');
+    if (url.origin === 'https://agentpress.local' && value.startsWith('/')) return value;
+    return ALLOWED_LINK_PROTOCOLS.has(url.protocol) ? value : null;
+  } catch {
+    return null;
+  }
 }
 
