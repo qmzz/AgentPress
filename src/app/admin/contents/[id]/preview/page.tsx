@@ -122,6 +122,21 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
                     </span>
                   </div>
                   {review.reason && <p className="mt-2 text-slate-400">{review.reason}</p>}
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {Object.entries(score).map(([key, value]) => (
+                      typeof value === 'number' ? (
+                        <div key={key} className="rounded bg-slate-900 p-2">
+                          <div className="mb-1 flex items-center justify-between text-xs">
+                            <span className="capitalize text-slate-400">{key}</span>
+                            <span className="text-slate-200">{Math.round(value * 100)}%</span>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
+                            <div className="h-full rounded-full bg-brand-400" style={{ width: `${Math.max(2, value * 100)}%` }} />
+                          </div>
+                        </div>
+                      ) : null
+                    ))}
+                  </div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
                     {review.reviewedAt && <span>{new Date(review.reviewedAt).toLocaleString('zh-CN')}</span>}
                     {typeof score.quality === 'number' && <span>Quality: {Math.round(score.quality * 100)}%</span>}
