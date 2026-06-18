@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -86,18 +86,22 @@ async function findManagedKey(prefix: string, keyHash: string) {
     const [managedKey] = await db
       .select({
         keyId: agentApiKeys.id,
+        keyStatus: agentApiKeys.status,
         agent: agents,
       })
       .from(agentApiKeys)
       .innerJoin(agents, eq(agentApiKeys.agentId, agents.id))
       .where(and(
         eq(agentApiKeys.keyPrefix, prefix),
-        eq(agentApiKeys.keyHash, keyHash),
-        eq(agentApiKeys.status, 'active')
+        eq(agentApiKeys.keyHash, keyHash)
       ))
       .limit(1);
 
     if (!managedKey) return null;
+
+    if (managedKey.keyStatus !== 'active') {
+      return { error: 'Invalid API key', status: 401 as const };
+    }
 
     if (managedKey.agent.status === 'suspended') {
       return { error: 'Agent account suspended', status: 403 as const };

@@ -13,18 +13,19 @@ import { desc, gte, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
+const EMPTY_API_SUMMARY = { calls: 0, errors: 0, avg_response_ms: 0 };
+
 export default async function OperationsPage() {
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [database, rateLimit, storage, jobRows, apiSummary, recentErrors] = await Promise.all([
+  const [database, rateLimit, storage, jobStatus, apiSummary, recentErrors] = await Promise.all([
     checkDatabase(),
     getRateLimitStoreStatus(),
     getStorageStatus(),
-    db.select({ status: jobs.status, count: sql<number>`count(*)::int` }).from(jobs).groupBy(jobs.status),
+    getJobStatus(),
     getApiSummary(dayAgo),
     getRecentApiErrors(),
   ]);
 
-  const jobStatus = Object.fromEntries(jobRows.map((row) => [row.status ?? 'unknown', row.count]));
   const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
   const aiEnabled = process.env.AI_L2_REVIEW_ENABLED === 'true';
   const aiConfigured = Boolean(process.env.AI_L2_API_KEY || process.env.OPENAI_API_KEY);
@@ -136,34 +137,65 @@ async function checkDatabase() {
   }
 }
 
-async function getApiSummary(since: Date) {
-  const [summary] = await db
-    .select({
-      calls: sql<number>`count(*)::int`,
-      errors: sql<number>`count(*) filter (where ${apiLogs.statusCode} >= 500)::int`,
-      avgResponseMs: sql<number>`coalesce(avg(${apiLogs.responseTime}), 0)::int`,
-    })
-    .from(apiLogs)
-    .where(gte(apiLogs.createdAt, since));
+async function getJobStatus() {
+  try {
+    const rows = await db
+      .select({ status: jobs.status, count: sql<number>`count(*)::int` })
+      .from(jobs)
+      .groupBy(jobs.status);
 
-  return {
-    calls: summary?.calls ?? 0,
-    errors: summary?.errors ?? 0,
-    avg_response_ms: summary?.avgResponseMs ?? 0,
-  };
+    return Object.fromEntries(rows.map((row) => [row.status ?? 'unknown', row.count]));
+  } catch (error) {
+    if (isMissingRelation(error)) return {};
+    throw error;
+  }
+}
+
+async function getApiSummary(since: Date) {
+  try {
+    const [summary] = await db
+      .select({
+        calls: sql<number>`count(*)::int`,
+        errors: sql<number>`count(*) filter (where ${apiLogs.statusCode} >= 500)::int`,
+        avgResponseMs: sql<number>`coalesce(avg(${apiLogs.responseTime}), 0)::int`,
+      })
+      .from(apiLogs)
+      .where(gte(apiLogs.createdAt, since));
+
+    return {
+      calls: summary?.calls ?? 0,
+      errors: summary?.errors ?? 0,
+      avg_response_ms: summary?.avgResponseMs ?? 0,
+    };
+  } catch (error) {
+    if (isMissingRelation(error)) return EMPTY_API_SUMMARY;
+    throw error;
+  }
 }
 
 async function getRecentApiErrors() {
-  return db
-    .select({
-      endpoint: apiLogs.endpoint,
-      method: apiLogs.method,
-      statusCode: apiLogs.statusCode,
-      responseTime: apiLogs.responseTime,
-      createdAt: apiLogs.createdAt,
-    })
-    .from(apiLogs)
-    .where(sql`${apiLogs.statusCode} >= 400`)
-    .orderBy(desc(apiLogs.createdAt))
-    .limit(10);
+  try {
+    return await db
+      .select({
+        endpoint: apiLogs.endpoint,
+        method: apiLogs.method,
+        statusCode: apiLogs.statusCode,
+        responseTime: apiLogs.responseTime,
+        createdAt: apiLogs.createdAt,
+      })
+      .from(apiLogs)
+      .where(sql`${apiLogs.statusCode} >= 400`)
+      .orderBy(desc(apiLogs.createdAt))
+      .limit(10);
+  } catch (error) {
+    if (isMissingRelation(error)) return [];
+    throw error;
+  }
+}
+
+function isMissingRelation(error: unknown) {
+  return typeof error === 'object'
+    && error !== null
+    && 'code' in error
+    && (error as { code?: string }).code === '42P01';
 }
