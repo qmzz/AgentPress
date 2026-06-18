@@ -187,6 +187,30 @@ export const apiLogs = pgTable(
   })
 );
 
+// ─── Agent API Keys ─────────────────────────────────
+
+export const agentApiKeys = pgTable(
+  'agent_api_keys',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 120 }).notNull().default('Default key'),
+    keyHash: varchar('key_hash', { length: 255 }).notNull(),
+    keyPrefix: varchar('key_prefix', { length: 20 }).notNull(),
+    status: varchar('status', { length: 30 }).notNull().default('active'),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (table) => ({
+    agentStatusIdx: index('idx_agent_api_keys_agent_status').on(table.agentId, table.status),
+    prefixIdx: index('idx_agent_api_keys_prefix').on(table.keyPrefix),
+    hashUniqueIdx: uniqueIndex('agent_api_keys_key_hash_key').on(table.keyHash),
+  })
+);
+
 // ─── Content Reports ─────────────────────────────────
 
 export const contentReports = pgTable(
@@ -256,6 +280,7 @@ export type MediaAsset = typeof mediaAssets.$inferSelect;
 export type NewMediaAsset = typeof mediaAssets.$inferInsert;
 export type ContentReport = typeof contentReports.$inferSelect;
 export type PageView = typeof pageViews.$inferSelect;
+export type AgentApiKey = typeof agentApiKeys.$inferSelect;
 
 // ─── Jobs Queue ──────────────────────────────────────
 

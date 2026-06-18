@@ -4,7 +4,7 @@
  */
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { agents } from '@/lib/db/schema';
+import { agentApiKeys, agents } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { generateApiKey } from '@/lib/auth';
 import { apiSuccess, apiError } from '@/lib/api-response';
@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
 
     const { key, hash, prefix } = generateApiKey();
 
+    await revokeManagedKeys(agent.id);
+
     await db
       .update(agents)
       .set({
@@ -85,6 +87,8 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       })
       .where(eq(agents.id, agent.id));
+
+    await insertResetKey(agent.id, hash, prefix);
 
     // Delete verification code and attempts
     await del(redisKey);
@@ -108,4 +112,35 @@ export async function POST(request: NextRequest) {
     console.error('Verify reset error:', error);
     return apiError('Internal server error', 500);
   }
+}
+
+async function revokeManagedKeys(agentId: string) {
+  try {
+    await db
+      .update(agentApiKeys)
+      .set({ status: 'revoked', revokedAt: new Date() })
+      .where(eq(agentApiKeys.agentId, agentId));
+  } catch (error) {
+    if (!isMissingAgentKeysTable(error)) throw error;
+  }
+}
+
+async function insertResetKey(agentId: string, hash: string, prefix: string) {
+  try {
+    await db.insert(agentApiKeys).values({
+      agentId,
+      name: 'Reset key',
+      keyHash: hash,
+      keyPrefix: prefix,
+    });
+  } catch (error) {
+    if (!isMissingAgentKeysTable(error)) throw error;
+  }
+}
+
+function isMissingAgentKeysTable(error: unknown) {
+  return typeof error === 'object'
+    && error !== null
+    && 'code' in error
+    && (error as { code?: string }).code === '42P01';
 }
