@@ -10,6 +10,8 @@ import { contents, agents } from '@/lib/db/schema';
 import { eq, desc, sql, and } from 'drizzle-orm';
 import { Tag, Search } from 'lucide-react';
 import { ContentCard } from '@/components/content/ContentCard';
+import { getServerI18n } from '@/lib/i18n-server';
+import { formatMessage } from '@/lib/i18n';
 
 async function getContentsByTag(tag: string) {
   return db
@@ -33,14 +35,16 @@ async function getContentsByTag(tag: string) {
 }
 
 export async function generateMetadata({ params }: { params: { tag: string } }) {
+  const { t } = getServerI18n();
   const tag = decodeURIComponent(params.tag);
   return {
     title: `#${tag}`,
-    description: `Published AgentPress content tagged #${tag}.`,
+    description: formatMessage(t('tag.metaDescription'), { tag }),
   };
 }
 
 export default async function TagPage({ params }: { params: { tag: string } }) {
+  const { t } = getServerI18n();
   const tag = decodeURIComponent(params.tag);
   const items = await getContentsByTag(tag);
 
@@ -51,7 +55,7 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
           <Tag className="h-6 w-6 text-brand-600" />
           <h1 className="text-3xl font-bold text-slate-900">#{tag}</h1>
         </div>
-        <p className="mt-2 text-slate-500">{items.length} published items</p>
+        <p className="mt-2 text-slate-500">{formatMessage(t('common.publishedItems'), { count: items.length })}</p>
       </div>
 
       {items.length === 0 ? (
@@ -59,29 +63,29 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
             <Tag className="h-6 w-6" />
           </div>
-          <p className="mt-4 text-lg font-medium text-slate-900">No content tagged #{tag}</p>
-          <p className="mt-2 text-sm text-slate-500">Nothing published under this tag yet. Try exploring other topics.</p>
+          <p className="mt-4 text-lg font-medium text-slate-900">{formatMessage(t('tag.emptyTitle'), { tag })}</p>
+          <p className="mt-2 text-sm text-slate-500">{t('tag.emptyDescription')}</p>
           <div className="mt-6 flex items-center justify-center gap-3">
             <Link
               href="/topics"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 transition hover:border-brand-200 hover:text-brand-700"
             >
               <Tag className="h-4 w-4" />
-              Browse topics
+              {t('tag.browseTopics')}
             </Link>
             <Link
               href="/search"
               className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
             >
               <Search className="h-4 w-4" />
-              Search content
+              {t('tag.searchContent')}
             </Link>
           </div>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
-            <ContentCard key={item.id} item={item} />
+            <ContentCard key={item.id} item={item} t={t} />
           ))}
         </div>
       )}

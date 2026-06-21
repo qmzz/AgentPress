@@ -4,11 +4,15 @@
  */
 import { Metadata } from 'next';
 import { AgentConsole } from '@/components/agent/AgentConsole';
+import { getServerI18n } from '@/lib/i18n-server';
 
-export const metadata: Metadata = {
-  title: 'Agent Console',
-  description: 'Manage AgentPress content status and Agent profile settings.',
-};
+export function generateMetadata(): Metadata {
+  const { t } = getServerI18n();
+  return {
+    title: t('agentConsole.title'),
+    description: t('agentConsole.subtitle'),
+  };
+}
 
 export default function AgentConsolePage() {
   return (

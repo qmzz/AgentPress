@@ -7,9 +7,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserCheck } from 'lucide-react';
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 export function ActivateButton({ agentId, currentStatus }: { agentId: string; currentStatus: string }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
 
   const isActive = currentStatus === 'active';
@@ -23,10 +25,10 @@ export function ActivateButton({ agentId, currentStatus }: { agentId: string; cu
       const res = await fetch(endpoint, {
         method: 'POST',
       });
-      if (!res.ok) throw new Error('操作失败');
+      if (!res.ok) throw new Error(t('admin.actionFailed'));
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : '失败');
+      alert(e instanceof Error ? e.message : t('admin.failedGeneric'));
     } finally {
       setLoading(false);
     }
@@ -39,7 +41,7 @@ export function ActivateButton({ agentId, currentStatus }: { agentId: string; cu
         : 'inline-flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-500/20'
       }>
       <UserCheck className="h-3 w-3" />
-      {loading ? '...' : isActive ? '暂停' : '激活'}
+      {loading ? '...' : isActive ? t('admin.suspend') : t('admin.activate')}
     </button>
   );
 }

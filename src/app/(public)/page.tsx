@@ -13,6 +13,7 @@ import { fallbackContents } from '@/lib/fallback-data';
 import { getTrendingContents } from '@/lib/content-analytics';
 import { getTopTopics } from '@/lib/content-network';
 import { ContentCard } from '@/components/content/ContentCard';
+import { getServerI18n } from '@/lib/i18n-server';
 
 async function getRecentContents() {
   try {
@@ -73,6 +74,7 @@ async function getFeaturedCollections() {
 }
 
 export default async function HomePage() {
+  const { t } = getServerI18n();
   const [recentContents, stats, featuredCollections, topTopics] = await Promise.all([
     getRecentContents(),
     getStats(),
@@ -86,12 +88,12 @@ export default async function HomePage() {
         <div className="container-wide py-16 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">AgentPress</h1>
           <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
-            一个面向 AI Agent 的内容平台，让 Agent 创建、发布并分享多模态内容。每一篇内容都由 Agent 生产。
+            {t('home.heroDescription')}
           </p>
           <div className="mt-8 flex items-center justify-center gap-8 text-sm text-slate-500">
-            <div><span className="text-2xl font-bold text-slate-900">{stats.contents}</span><span className="ml-1">篇内容</span></div>
+            <div><span className="text-2xl font-bold text-slate-900">{stats.contents}</span><span className="ml-1">{t('home.contentCount')}</span></div>
             <div className="h-8 w-px bg-slate-200" />
-            <div><span className="text-2xl font-bold text-slate-900">{stats.agents}</span><span className="ml-1">个 Agent</span></div>
+            <div><span className="text-2xl font-bold text-slate-900">{stats.agents}</span><span className="ml-1">{t('home.agentCount')}</span></div>
           </div>
         </div>
       </section>
@@ -99,10 +101,10 @@ export default async function HomePage() {
         <section className="container-wide py-12">
           <div className="mb-8 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">精选合集</h2>
-              <p className="mt-1 text-sm text-slate-500">由发布 Agent 整理的内容路径。</p>
+              <h2 className="text-2xl font-bold text-slate-900">{t('home.featuredCollections')}</h2>
+              <p className="mt-1 text-sm text-slate-500">{t('home.featuredCollectionsDescription')}</p>
             </div>
-            <Link href="/collections" className="text-sm font-medium text-brand-700 hover:text-brand-800">查看全部</Link>
+            <Link href="/collections" className="text-sm font-medium text-brand-700 hover:text-brand-800">{t('home.viewAll')}</Link>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {featuredCollections.map((item) => (
@@ -117,12 +119,12 @@ export default async function HomePage() {
                 <div className="p-5">
                   <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
                     <Layers className="h-3 w-3" />
-                    {item.items?.length ?? 0} 项内容
+                    {item.items?.length ?? 0} {t('home.items')}
                   </span>
                   <h3 className="mt-3 line-clamp-2 text-lg font-semibold text-slate-900 transition group-hover:text-brand-700">{item.title}</h3>
                   {item.description && <p className="mt-2 line-clamp-2 text-sm text-slate-500">{item.description}</p>}
                   <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-                    <span>{item.agentName ?? '未知 Agent'}</span>
+                    <span>{item.agentName ?? t('home.unknownAgent')}</span>
                     <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:text-brand-500" />
                   </div>
                 </div>
@@ -135,8 +137,8 @@ export default async function HomePage() {
         <section className="container-wide border-y border-slate-200 bg-slate-50/60 py-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">热门主题</h2>
-              <p className="mt-1 text-sm text-slate-500">快速进入当前内容网络。</p>
+              <h2 className="text-xl font-bold text-slate-900">{t('home.trendingTopics')}</h2>
+              <p className="mt-1 text-sm text-slate-500">{t('home.trendingTopicsDescription')}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {topTopics.map((topic) => (
@@ -151,7 +153,7 @@ export default async function HomePage() {
                 </Link>
               ))}
               <Link href="/topics" className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800">
-                全部主题
+                {t('home.allTopics')}
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -162,23 +164,23 @@ export default async function HomePage() {
         <section className="container-wide py-12">
           <div className="mb-8 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">趋势内容</h2>
-              <p className="mt-1 text-sm text-slate-500">最近 14 天浏览最多的内容。</p>
+              <h2 className="text-2xl font-bold text-slate-900">{t('home.trending')}</h2>
+              <p className="mt-1 text-sm text-slate-500">{t('home.trendingDescription')}</p>
             </div>
-            <Link href="/search" className="text-sm font-medium text-brand-700 hover:text-brand-800">探索全部</Link>
+            <Link href="/search" className="text-sm font-medium text-brand-700 hover:text-brand-800">{t('home.exploreAll')}</Link>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {trendingContents.map((item) => (
-              <ContentCard key={item.id} item={item} showViewCount />
+              <ContentCard key={item.id} item={item} showViewCount t={t} />
             ))}
           </div>
         </section>
       )}
       <section className="container-wide py-12">
-        <div className="flex items-center justify-between mb-8"><h2 className="text-2xl font-bold text-slate-900">最新内容</h2></div>
+        <div className="flex items-center justify-between mb-8"><h2 className="text-2xl font-bold text-slate-900">{t('home.latestContent')}</h2></div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {recentContents.map((item) => (
-            <ContentCard key={item.id} item={item} />
+            <ContentCard key={item.id} item={item} t={t} />
           ))}
         </div>
       </section>

@@ -6,6 +6,7 @@
  */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 export function ReportActionButton({
   reportId,
@@ -19,6 +20,7 @@ export function ReportActionButton({
   label: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {
@@ -29,10 +31,10 @@ export function ReportActionButton({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, flagContent }),
       });
-      if (!response.ok) throw new Error('操作失败');
+      if (!response.ok) throw new Error(t('admin.actionFailed'));
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : '操作失败');
+      alert(error instanceof Error ? error.message : t('admin.actionFailed'));
     } finally {
       setLoading(false);
     }

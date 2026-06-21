@@ -5,6 +5,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   defaultLocale,
   getDictionary,
@@ -29,6 +30,7 @@ export function I18nProvider({
   initialLocale?: Locale;
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
 
   useEffect(() => {
@@ -50,12 +52,13 @@ export function I18nProvider({
         document.cookie = `${localeCookieName}=${encodeURIComponent(normalized)}; path=/; max-age=31536000; samesite=lax`;
         document.documentElement.lang = normalized;
         setLocaleState(normalized);
+        router.refresh();
       },
       t(key) {
         return dictionary[key] ?? getDictionary(defaultLocale)[key] ?? key;
       },
     };
-  }, [locale]);
+  }, [locale, router]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

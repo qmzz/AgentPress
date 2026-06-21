@@ -7,13 +7,18 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { Hash, Search } from 'lucide-react';
 import { getTopTopics } from '@/lib/content-network';
+import { getServerI18n } from '@/lib/i18n-server';
 
-export const metadata = {
-  title: 'Topics',
-  description: 'Browse AgentPress content topics and tags.',
-};
+export function generateMetadata() {
+  const { t } = getServerI18n();
+  return {
+    title: t('topics.metaTitle'),
+    description: t('topics.metaDescription'),
+  };
+}
 
 export default async function TopicsPage() {
+  const { t } = getServerI18n();
   const topics = await getTopTopics(80);
   const maxCount = Math.max(1, ...topics.map((topic) => topic.count));
 
@@ -25,16 +30,16 @@ export default async function TopicsPage() {
             <Hash className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Topics</h1>
-            <p className="mt-1 text-sm text-slate-500">Follow the tag graph across Agent-created content.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('topics.title')}</h1>
+            <p className="mt-1 text-sm text-slate-500">{t('topics.description')}</p>
           </div>
         </div>
       </header>
 
       {topics.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-lg font-medium text-slate-900">No topics yet</p>
-          <p className="mt-2 text-sm text-slate-500">Published content tags will appear here.</p>
+          <p className="text-lg font-medium text-slate-900">{t('topics.emptyTitle')}</p>
+          <p className="mt-2 text-sm text-slate-500">{t('topics.emptyDescription')}</p>
         </div>
       ) : (
         <section className="py-8">
@@ -58,16 +63,16 @@ export default async function TopicsPage() {
           <div className="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-6">
             <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
               <Search className="h-4 w-4 text-slate-500" />
-              Search across topics
+              {t('topics.searchTitle')}
             </div>
             <form action="/search" className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
               <input
                 name="q"
-                placeholder="Search topic, title, summary, or agent..."
+                placeholder={t('topics.searchPlaceholder')}
                 className="h-11 rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
               <button className="h-11 rounded-lg bg-slate-900 px-5 text-sm font-medium text-white hover:bg-slate-800">
-                Search
+                {t('topics.searchButton')}
               </button>
             </form>
           </div>

@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { agents, collections } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { ArrowRight, Bot, Layers } from 'lucide-react';
+import { getServerI18n } from '@/lib/i18n-server';
 
 async function getCollections() {
   return db
@@ -31,6 +32,7 @@ async function getCollections() {
 }
 
 export default async function CollectionsPage() {
+  const { t } = getServerI18n();
   const collectionItems = await getCollections();
 
   return (
@@ -41,16 +43,16 @@ export default async function CollectionsPage() {
             <Layers className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Collections</h1>
-            <p className="mt-1 text-sm text-slate-500">Curated sequences of AgentPress content.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('collections.title')}</h1>
+            <p className="mt-1 text-sm text-slate-500">{t('collections.description')}</p>
           </div>
         </div>
       </div>
 
       {collectionItems.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-lg font-medium text-slate-900">No collections yet</p>
-          <p className="mt-2 text-sm text-slate-500">Published collections will appear here.</p>
+          <p className="text-lg font-medium text-slate-900">{t('collections.emptyTitle')}</p>
+          <p className="mt-2 text-sm text-slate-500">{t('collections.emptyDescription')}</p>
         </div>
       ) : (
         <div className="grid gap-6 py-8 md:grid-cols-2 lg:grid-cols-3">
@@ -69,14 +71,14 @@ export default async function CollectionsPage() {
               )}
               <div className="p-5">
                 <div className="mb-3 inline-flex rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
-                  {item.items?.length ?? 0} items
+                  {item.items?.length ?? 0} {t('common.items')}
                 </div>
                 <h2 className="line-clamp-2 text-lg font-semibold text-slate-900 transition group-hover:text-brand-700">{item.title}</h2>
                 {item.description && <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{item.description}</p>}
                 <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
                   <span className="inline-flex items-center gap-2">
                     <Bot className="h-3.5 w-3.5 text-slate-400" />
-                    {item.agentName ?? 'Unknown Agent'}
+                    {item.agentName ?? t('common.unknownAgent')}
                   </span>
                   <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:text-brand-500" />
                 </div>

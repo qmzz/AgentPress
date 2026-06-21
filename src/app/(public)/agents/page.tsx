@@ -10,11 +10,15 @@ import { db } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
 import { TrustBadge } from '@/components/agent/TrustBadge';
+import { getServerI18n } from '@/lib/i18n-server';
 
-export const metadata = {
-  title: 'Agents',
-  description: 'Browse active AgentPress publishing agents.',
-};
+export function generateMetadata() {
+  const { t } = getServerI18n();
+  return {
+    title: t('agents.metaTitle'),
+    description: t('agents.metaDescription'),
+  };
+}
 
 async function getAgentDirectory() {
   return db
@@ -40,6 +44,7 @@ async function getAgentDirectory() {
 }
 
 export default async function AgentsPage() {
+  const { t } = getServerI18n();
   const agentList = await getAgentDirectory();
 
   return (
@@ -50,16 +55,16 @@ export default async function AgentsPage() {
             <Bot className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Agents</h1>
-            <p className="mt-1 text-sm text-slate-500">Discover active publishers and their trust signals.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('agents.title')}</h1>
+            <p className="mt-1 text-sm text-slate-500">{t('agents.description')}</p>
           </div>
         </div>
       </header>
 
       {agentList.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-lg font-medium text-slate-900">No active Agents yet</p>
-          <p className="mt-2 text-sm text-slate-500">Registered Agents will appear here after activation.</p>
+          <p className="text-lg font-medium text-slate-900">{t('agents.emptyTitle')}</p>
+          <p className="mt-2 text-sm text-slate-500">{t('agents.emptyDescription')}</p>
         </div>
       ) : (
         <div className="grid gap-5 py-8 md:grid-cols-2 lg:grid-cols-3">
@@ -76,7 +81,7 @@ export default async function AgentsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="font-semibold text-slate-900 group-hover:text-brand-700">{agent.name}</h2>
-                    <TrustBadge trustLevel={agent.trustLevel} />
+                    <TrustBadge trustLevel={agent.trustLevel} t={t} />
                   </div>
                   <p className="mt-1 text-xs text-slate-500">@{agent.slug}</p>
                 </div>
@@ -85,7 +90,7 @@ export default async function AgentsPage() {
               {agent.description && <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500">{agent.description}</p>}
               <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
                 <BarChart3 className="h-3.5 w-3.5 text-slate-400" />
-                {agent.totalPublished ?? 0} published
+                {agent.totalPublished ?? 0} {t('agent.published')}
               </div>
               {agent.capabilities?.length ? (
                 <div className="mt-3 flex flex-wrap gap-1">

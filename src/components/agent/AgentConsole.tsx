@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { Bot, CheckCircle2, ExternalLink, FileText, RefreshCw, Send, Settings, Trash2 } from 'lucide-react';
 import { TrustBadge } from '@/components/agent/TrustBadge';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { formatMessage, type TranslationKey } from '@/lib/i18n';
 
 type AgentConsolePayload = {
   agent: {
@@ -65,7 +66,7 @@ type AgentKey = {
 };
 
 export function AgentConsole() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [apiKey, setApiKey] = useState('');
   const [data, setData] = useState<AgentConsolePayload | null>(null);
   const [webhookUrl, setWebhookUrl] = useState('');
@@ -86,7 +87,7 @@ export function AgentConsole() {
   const [resetForm, setResetForm] = useState({ email: '', code: '', slug: '' });
   const [codeSent, setCodeSent] = useState(false);
   const [keys, setKeys] = useState<AgentKey[]>([]);
-  const [newKeyName, setNewKeyName] = useState('Agent key');
+  const [newKeyName, setNewKeyName] = useState(t('agentConsole.defaultKeyName'));
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
 
   const authHeaders = useMemo(() => ({
@@ -106,7 +107,7 @@ export function AgentConsole() {
 
   async function loadConsole(key = apiKey) {
     if (!key.trim()) {
-      setMessage('Paste an Agent API key first.');
+      setMessage(t('agentConsole.pasteKeyFirst'));
       return;
     }
 
@@ -117,14 +118,14 @@ export function AgentConsole() {
         headers: { Authorization: `Bearer ${key.trim()}` },
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Failed to load console');
+      if (!response.ok) throw new Error(payload.error ?? t('agentConsole.loadFailed'));
       window.localStorage.setItem('agentpress_api_key', key.trim());
       setApiKey(key.trim());
       setData(payload.data);
       await loadKeys(key.trim()).catch(() => setKeys([]));
-      setMessage('Console loaded.');
+      setMessage(t('agentConsole.consoleLoaded'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to load console');
+      setMessage(error instanceof Error ? error.message : t('agentConsole.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -136,7 +137,7 @@ export function AgentConsole() {
       headers: { Authorization: `Bearer ${key.trim()}` },
     });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error ?? 'Failed to load API keys');
+    if (!response.ok) throw new Error(payload.error ?? t('agentConsole.loadKeysFailed'));
     setKeys(payload.data.keys ?? []);
   }
 
@@ -151,23 +152,23 @@ export function AgentConsole() {
           ...authHeaders,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: newKeyName.trim() || 'Agent key' }),
+        body: JSON.stringify({ name: newKeyName.trim() || t('agentConsole.defaultKeyName') }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Failed to create API key');
+      if (!response.ok) throw new Error(payload.error ?? t('agentConsole.createKeyFailed'));
       setNewApiKey(payload.data.api_key);
-      setNewKeyName('Agent key');
-      setMessage('New API key created. Save it now.');
+      setNewKeyName(t('agentConsole.defaultKeyName'));
+      setMessage(t('agentConsole.newKeyCreated'));
       await loadKeys();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to create API key');
+      setMessage(error instanceof Error ? error.message : t('agentConsole.createKeyFailed'));
     } finally {
       setLoading(false);
     }
   }
 
   async function revokeKey(id: string) {
-    if (!window.confirm('Revoke this API key? Agents using it will lose access.')) return;
+    if (!window.confirm(t('agentConsole.revokeKeyConfirm'))) return;
     setLoading(true);
     setMessage(null);
     try {
@@ -176,11 +177,11 @@ export function AgentConsole() {
         headers: authHeaders,
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Failed to revoke API key');
-      setMessage('API key revoked.');
+      if (!response.ok) throw new Error(payload.error ?? t('agentConsole.revokeKeyFailed'));
+      setMessage(t('agentConsole.keyRevoked'));
       await loadKeys();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to revoke API key');
+      setMessage(error instanceof Error ? error.message : t('agentConsole.revokeKeyFailed'));
     } finally {
       setLoading(false);
     }
@@ -199,23 +200,23 @@ export function AgentConsole() {
         body: JSON.stringify({ webhookUrl: webhookUrl.trim() || null }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Failed to update webhook');
-      setMessage('Webhook updated.');
+      if (!response.ok) throw new Error(payload.error ?? t('agentConsole.webhookUpdateFailed'));
+      setMessage(t('agentConsole.webhookUpdated'));
       await loadConsole();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to update webhook');
+      setMessage(error instanceof Error ? error.message : t('agentConsole.webhookUpdateFailed'));
     } finally {
       setLoading(false);
     }
   }
 
   async function submitContent(id: string) {
-    await runContentAction(`/api/v1/contents/${id}/submit`, 'POST', 'Submitted for review.');
+    await runContentAction(`/api/v1/contents/${id}/submit`, 'POST', t('agentConsole.submittedForReview'));
   }
 
   async function archiveContent(id: string) {
-    if (!window.confirm('Archive this content?')) return;
-    await runContentAction(`/api/v1/contents/${id}`, 'DELETE', 'Content archived.');
+    if (!window.confirm(t('agentConsole.archiveConfirm'))) return;
+    await runContentAction(`/api/v1/contents/${id}`, 'DELETE', t('agentConsole.contentArchived'));
   }
 
   async function runContentAction(url: string, method: string, successMessage: string) {
@@ -227,11 +228,11 @@ export function AgentConsole() {
         headers: authHeaders,
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Action failed');
+      if (!response.ok) throw new Error(payload.error ?? t('agentConsole.actionFailed'));
       setMessage(successMessage);
       await loadConsole();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Action failed');
+      setMessage(error instanceof Error ? error.message : t('agentConsole.actionFailed'));
     } finally {
       setLoading(false);
     }
@@ -253,11 +254,11 @@ export function AgentConsole() {
         }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Registration failed');
+      if (!response.ok) throw new Error(payload.error ?? t('agentConsole.registrationFailed'));
       setRegisteredKey(payload.data.api_key);
-      setMessage('Agent registered successfully! Save your API key now.');
+      setMessage(t('agentConsole.registrationSuccessMessage'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Registration failed');
+      setMessage(error instanceof Error ? error.message : t('agentConsole.registrationFailed'));
     } finally {
       setLoading(false);
     }
@@ -273,12 +274,12 @@ export function AgentConsole() {
         body: JSON.stringify({ email: resetForm.email.trim() }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Request failed');
+      if (!response.ok) throw new Error(payload.error ?? t('agentConsole.requestFailed'));
       setCodeSent(true);
       setResetStep('verify');
-      setMessage('Verification code sent to your email. Check your inbox.');
+      setMessage(t('agentConsole.codeSent'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Request failed');
+      setMessage(error instanceof Error ? error.message : t('agentConsole.requestFailed'));
     } finally {
       setLoading(false);
     }
@@ -298,14 +299,14 @@ export function AgentConsole() {
         }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Verification failed');
-      setMessage('API key reset successfully! Check your email for the new key.');
+      if (!response.ok) throw new Error(payload.error ?? t('agentConsole.verificationFailed'));
+      setMessage(t('agentConsole.resetSuccess'));
       setShowReset(false);
       setResetStep('email');
       setResetForm({ email: '', code: '', slug: '' });
       setCodeSent(false);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Verification failed');
+      setMessage(error instanceof Error ? error.message : t('agentConsole.verificationFailed'));
     } finally {
       setLoading(false);
     }
@@ -341,7 +342,7 @@ export function AgentConsole() {
             className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
           >
             <RefreshCw className="h-4 w-4" />
-            {loading ? 'Loading...' : 'Load Console'}
+            {loading ? t('agentConsole.loading') : t('agentConsole.loadConsole')}
           </button>
         </div>
         {message && <p className="mt-3 text-sm text-slate-500">{message}</p>}
@@ -362,7 +363,7 @@ export function AgentConsole() {
           <div className="space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                Name <span className="text-red-500">*</span>
+                {t('agentConsole.name')} <span className="text-red-500">{t('agentConsole.required')}</span>
               </label>
               <input
                 type="text"
@@ -374,7 +375,7 @@ export function AgentConsole() {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                Slug <span className="text-red-500">*</span>
+                {t('agentConsole.slug')} <span className="text-red-500">{t('agentConsole.required')}</span>
               </label>
               <input
                 type="text"
@@ -383,11 +384,11 @@ export function AgentConsole() {
                 placeholder="my-ai-agent"
                 className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
-              <p className="mt-1 text-xs text-slate-500">Lowercase letters, numbers, and hyphens only</p>
+              <p className="mt-1 text-xs text-slate-500">{t('agentConsole.slugHint')}</p>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                Email <span className="text-red-500">*</span>
+                {t('agentConsole.email')} <span className="text-red-500">{t('agentConsole.required')}</span>
               </label>
               <input
                 type="email"
@@ -396,20 +397,20 @@ export function AgentConsole() {
                 placeholder="agent@example.com"
                 className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
-              <p className="mt-1 text-xs text-slate-500">Required for key recovery</p>
+              <p className="mt-1 text-xs text-slate-500">{t('agentConsole.emailHint')}</p>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Description</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.description')}</label>
               <textarea
                 value={registerForm.description}
                 onChange={(e) => setRegisterForm({ ...registerForm, description: e.target.value })}
-                placeholder="Describe your agent's purpose and capabilities..."
+                placeholder={t('agentConsole.descriptionPlaceholder')}
                 rows={3}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Avatar URL</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.avatarUrl')}</label>
               <input
                 type="url"
                 value={registerForm.avatarUrl}
@@ -419,7 +420,7 @@ export function AgentConsole() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Webhook URL</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.webhookUrl')}</label>
               <input
                 type="url"
                 value={registerForm.webhookUrl}
@@ -461,9 +462,9 @@ export function AgentConsole() {
               
               {resetStep === 'email' && (
                 <>
-                  <p className="text-sm text-slate-600">Enter the email address associated with your agent.</p>
+                  <p className="text-sm text-slate-600">{t('agentConsole.resetEmailInstruction')}</p>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.email')}</label>
                     <input
                       type="email"
                       value={resetForm.email}
@@ -478,16 +479,18 @@ export function AgentConsole() {
                     disabled={loading || !resetForm.email}
                     className="h-10 w-full rounded-lg bg-slate-900 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
                   >
-                    {loading ? 'Sending...' : 'Send Verification Code'}
+                    {loading ? t('agentConsole.sending') : t('agentConsole.sendVerificationCode')}
                   </button>
                 </>
               )}
 
               {resetStep === 'verify' && (
                 <>
-                  <p className="text-sm text-slate-600">Enter the 6-digit code sent to {resetForm.email} and select your agent.</p>
+                  <p className="text-sm text-slate-600">
+                    {formatMessage(t('agentConsole.verifyInstruction'), { email: resetForm.email })}
+                  </p>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Verification Code</label>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.verificationCode')}</label>
                     <input
                       type="text"
                       value={resetForm.code}
@@ -498,7 +501,7 @@ export function AgentConsole() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Agent Slug</label>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.slug')}</label>
                     <input
                       type="text"
                       value={resetForm.slug}
@@ -523,7 +526,7 @@ export function AgentConsole() {
                     }}
                     className="text-sm text-slate-600 hover:text-slate-900"
                   >
-                    ← Back to email
+                    ← {t('agentConsole.backToEmail')}
                   </button>
                 </>
               )}
@@ -534,7 +537,7 @@ export function AgentConsole() {
 
       {registeredKey && (
         <section className="rounded-xl border border-green-200 bg-green-50 p-6">
-          <h2 className="mb-3 text-lg font-semibold text-green-900">Registration Successful!</h2>
+          <h2 className="mb-3 text-lg font-semibold text-green-900">{t('agentConsole.registrationSuccessful')}</h2>
           <p className="mb-4 text-sm text-green-800">
             {t('agentConsole.keyReminder')}
           </p>
@@ -545,11 +548,11 @@ export function AgentConsole() {
             type="button"
             onClick={() => {
               navigator.clipboard.writeText(registeredKey);
-              setMessage('API key copied to clipboard!');
+              setMessage(t('agentConsole.copied'));
             }}
             className="mt-3 inline-flex h-10 items-center justify-center rounded-lg bg-green-600 px-4 text-sm font-medium text-white hover:bg-green-500"
           >
-            Copy to clipboard
+            {t('agentConsole.copyToClipboard')}
           </button>
           <button
             type="button"
@@ -561,7 +564,7 @@ export function AgentConsole() {
             }}
             className="ml-3 mt-3 inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
           >
-            Load Console
+            {t('agentConsole.loadConsole')}
           </button>
         </section>
       )}
@@ -571,12 +574,12 @@ export function AgentConsole() {
           <section className="grid gap-4 md:grid-cols-4">
             {['draft', 'pending_review', 'published', 'flagged'].map((status) => (
               <div key={status} className="rounded-xl border border-slate-200 bg-white p-5">
-                <p className="text-xs uppercase tracking-wide text-slate-400">{status}</p>
+                <p className="text-xs uppercase tracking-wide text-slate-400">{t(`status.${status}` as TranslationKey)}</p>
                 <p className="mt-2 text-3xl font-bold text-slate-900">{data.content_counts[status] ?? 0}</p>
               </div>
             ))}
             <div className="rounded-xl border border-slate-200 bg-white p-5">
-              <p className="text-xs uppercase tracking-wide text-slate-400">views 7d</p>
+              <p className="text-xs uppercase tracking-wide text-slate-400">{t('agentConsole.views7d')}</p>
               <p className="mt-2 text-3xl font-bold text-slate-900">{data.agent.view_count_7d ?? 0}</p>
             </div>
           </section>
@@ -587,16 +590,18 @@ export function AgentConsole() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold text-slate-900">{data.agent.name}</h2>
-                    <TrustBadge trustLevel={data.agent.trust_level} />
+                    <TrustBadge trustLevel={data.agent.trust_level} t={t} />
                   </div>
-                  <p className="text-sm text-slate-500">@{data.agent.slug} 的 API key prefix {data.agent.api_key_prefix}</p>
+                  <p className="text-sm text-slate-500">
+                    {formatMessage(t('agentConsole.apiKeyPrefix'), { slug: data.agent.slug, prefix: data.agent.api_key_prefix })}
+                  </p>
                 </div>
                 <Link href={`/agent/${data.agent.slug}`} className="inline-flex items-center gap-2 text-sm text-brand-700 hover:text-brand-800">
-                  Public profile
+                  {t('agentConsole.publicProfile')}
                   <ExternalLink className="h-4 w-4" />
                 </Link>
               </div>
-              <p className="text-sm leading-6 text-slate-600">{data.agent.description ?? 'No description yet.'}</p>
+              <p className="text-sm leading-6 text-slate-600">{data.agent.description ?? t('agentConsole.noDescriptionYet')}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {data.agent.capabilities?.map((capability) => (
                   <span key={capability} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
@@ -609,9 +614,9 @@ export function AgentConsole() {
             <div className="rounded-xl border border-slate-200 bg-white p-6">
               <div className="mb-3 flex items-center gap-2">
                 <Settings className="h-4 w-4 text-slate-400" />
-                <h2 className="font-semibold text-slate-900">Webhook</h2>
+                <h2 className="font-semibold text-slate-900">{t('agentConsole.webhook')}</h2>
               </div>
-              <p className="mb-3 text-sm text-slate-500">Receive review status events when content is approved, rejected, or flagged.</p>
+              <p className="mb-3 text-sm text-slate-500">{t('agentConsole.webhookDescription')}</p>
               <input
                 type="url"
                 value={webhookUrl}
@@ -625,7 +630,7 @@ export function AgentConsole() {
                 disabled={loading}
                 className="mt-3 inline-flex h-10 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
               >
-                Save webhook
+                {t('agentConsole.saveWebhook')}
               </button>
             </div>
           </section>
@@ -634,7 +639,7 @@ export function AgentConsole() {
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">{t('agentConsole.apiKeys')}</h2>
-                <p className="text-sm text-slate-500">Create, rotate, and revoke Agent keys without changing the Agent identity.</p>
+                <p className="text-sm text-slate-500">{t('agentConsole.apiKeysDescription')}</p>
               </div>
               <button
                 type="button"
@@ -642,13 +647,13 @@ export function AgentConsole() {
                 disabled={loading}
                 className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700 disabled:opacity-60"
               >
-                Refresh keys
+                {t('agentConsole.refreshKeys')}
               </button>
             </div>
 
             {newApiKey && (
               <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-                <p className="text-sm font-medium text-amber-900">New key shown once. Copy it now.</p>
+                <p className="text-sm font-medium text-amber-900">{t('agentConsole.newKeyShownOnce')}</p>
                 <code className="mt-2 block break-all rounded bg-white p-3 text-xs text-amber-900">{newApiKey}</code>
               </div>
             )}
@@ -667,13 +672,13 @@ export function AgentConsole() {
                 disabled={loading || !newKeyName.trim()}
                 className="inline-flex h-10 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
               >
-                Create key
+                {t('agentConsole.createKey')}
               </button>
             </div>
 
             <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
               {keys.length === 0 ? (
-                <p className="p-4 text-sm text-slate-500">No keys loaded yet.</p>
+                <p className="p-4 text-sm text-slate-500">{t('agentConsole.noKeysLoaded')}</p>
               ) : keys.map((key) => (
                 <div key={key.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -684,7 +689,11 @@ export function AgentConsole() {
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-slate-500">
-                      prefix {key.prefix} · created {formatDate(key.createdAt)} · last used {formatDate(key.lastUsedAt)}
+                      {formatMessage(t('agentConsole.keyMeta'), {
+                        prefix: key.prefix,
+                        created: formatDate(key.createdAt, locale, t('agentConsole.never')),
+                        lastUsed: formatDate(key.lastUsedAt, locale, t('agentConsole.never')),
+                      })}
                     </p>
                   </div>
                   {key.status === 'active' && (
@@ -694,7 +703,7 @@ export function AgentConsole() {
                       disabled={loading}
                       className="inline-flex h-9 items-center justify-center rounded-lg border border-red-200 px-3 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
                     >
-                      Revoke
+                      {t('agentConsole.revoke')}
                     </button>
                   )}
                 </div>
@@ -715,9 +724,11 @@ export function AgentConsole() {
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium capitalize text-brand-700">{item.type}</span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{item.status}</span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{item.viewCount ?? 0} views</span>
+                        <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium capitalize text-brand-700">{t(`type.${item.type}` as TranslationKey)}</span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{item.status ? t(`status.${item.status}` as TranslationKey) : ''}</span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
+                          {item.viewCount ?? 0} {t('agentConsole.views')}
+                        </span>
                       </div>
                       <h3 className="mt-2 font-semibold text-slate-900">{item.title}</h3>
                       {item.summary && <p className="mt-1 text-sm text-slate-500">{item.summary}</p>}
@@ -728,7 +739,7 @@ export function AgentConsole() {
                       </Link>
                       {item.status === 'published' && (
                         <Link href={`/content/${item.slug}`} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700">
-                          View
+                          {t('agentConsole.view')}
                         </Link>
                       )}
                       {item.status !== 'published' && item.status !== 'archived' && (
@@ -747,9 +758,9 @@ export function AgentConsole() {
                   </div>
 
                   <div className="mt-4 border-t border-slate-100 pt-3">
-                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Review history</h4>
+                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t('agentConsole.reviewHistory')}</h4>
                     {item.reviews.length === 0 ? (
-                      <p className="text-xs text-slate-400">No reviews yet.</p>
+                      <p className="text-xs text-slate-400">{t('agentConsole.noReviewsYet')}</p>
                     ) : (
                       <div className="space-y-2">
                         {item.reviews.map((review) => (
@@ -758,7 +769,7 @@ export function AgentConsole() {
                               <span className="font-medium text-slate-700">{review.reviewer}</span>
                               <span className="inline-flex items-center gap-1 text-slate-500">
                                 <CheckCircle2 className="h-3.5 w-3.5" />
-                                {review.verdict}
+                                {review.verdict ? t(`status.${review.verdict}` as TranslationKey) : ''}
                               </span>
                             </div>
                             {review.reason && <p className="mt-1 text-slate-500">{review.reason}</p>}
@@ -777,7 +788,7 @@ export function AgentConsole() {
   );
 }
 
-function formatDate(value: string | null) {
-  if (!value) return 'never';
-  return new Date(value).toLocaleString();
+function formatDate(value: string | null, locale: string, fallback: string) {
+  if (!value) return fallback;
+  return new Date(value).toLocaleString(locale);
 }

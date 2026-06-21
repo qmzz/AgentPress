@@ -7,10 +7,12 @@ import { db } from '@/lib/db';
 import { agents, contents, contentReviews, apiLogs, contentReports, pageViews } from '@/lib/db/schema';
 import { eq, sql, desc, and, gte } from 'drizzle-orm';
 import { Bot, Flag, CheckCircle2, TrendingUp, AlertTriangle, BarChart3, Globe, Gauge } from 'lucide-react';
+import { getServerI18n } from '@/lib/i18n-server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboardPage() {
+  const { t } = getServerI18n();
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [agentCount] = await db.select({ count: sql<number>`count(*)::int` }).from(agents);
@@ -50,32 +52,32 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold">仪表盘</h1>
-      <p className="mt-2 text-slate-400">AgentPress 平台运行总览。</p>
+      <h1 className="text-3xl font-bold">{t('admin.dashboardTitle')}</h1>
+      <p className="mt-2 text-slate-400">{t('admin.dashboardDescription')}</p>
 
       {/* KPI Cards */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={<Bot />} label="Agent" value={agentCount?.count ?? 0} sub={`${activeCount?.count ?? 0} 个活跃`} />
-        <StatCard icon={<CheckCircle2 />} label="已发布" value={publishedCount?.count ?? 0} sub={`本周 +${published7d?.count ?? 0}`} />
-        <StatCard icon={<Flag />} label="待审核" value={pendingCount?.count ?? 0} sub="等待处理" />
-        <StatCard icon={<AlertTriangle />} label="已标记" value={flaggedCount?.count ?? 0} sub="需要关注" />
+        <StatCard icon={<Bot />} label={t('admin.statAgents')} value={agentCount?.count ?? 0} sub={`${activeCount?.count ?? 0} ${t('admin.statActive')}`} />
+        <StatCard icon={<CheckCircle2 />} label={t('admin.statPublished')} value={publishedCount?.count ?? 0} sub={`${t('admin.statThisWeek')} +${published7d?.count ?? 0}`} />
+        <StatCard icon={<Flag />} label={t('admin.statPending')} value={pendingCount?.count ?? 0} sub={t('admin.statAwaitingReview')} />
+        <StatCard icon={<AlertTriangle />} label={t('admin.statFlagged')} value={flaggedCount?.count ?? 0} sub={t('admin.statNeedsAttention')} />
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={<TrendingUp />} label="新增内容（7天）" value={new7d?.count ?? 0} sub="本周创建" />
-        <StatCard icon={<BarChart3 />} label="发布内容（7天）" value={published7d?.count ?? 0} sub="本周上线" />
-        <StatCard icon={<Globe />} label="API 调用（7天）" value={apiCalls7d?.count ?? 0} sub="已记录请求" />
-        <StatCard icon={<Gauge />} label="平均响应" value={avgResponse7d?.avg ?? 0} sub="最近 7 天，单位 ms" />
-        <StatCard icon={<Globe />} label="浏览量（7天）" value={views7d?.count ?? 0} sub="内容页浏览" />
-        <StatCard icon={<Flag />} label="未处理举报" value={openReports?.count ?? 0} sub="社区举报" />
+        <StatCard icon={<TrendingUp />} label={t('admin.statNewContent7d')} value={new7d?.count ?? 0} sub={t('admin.statCreatedThisWeek')} />
+        <StatCard icon={<BarChart3 />} label={t('admin.statPublished7d')} value={published7d?.count ?? 0} sub={t('admin.statWentLiveThisWeek')} />
+        <StatCard icon={<Globe />} label={t('admin.statApiCalls7d')} value={apiCalls7d?.count ?? 0} sub={t('admin.statRequestsLogged')} />
+        <StatCard icon={<Gauge />} label={t('admin.statAvgResponse')} value={avgResponse7d?.avg ?? 0} sub={t('admin.statAvgResponseSub')} />
+        <StatCard icon={<Globe />} label={t('admin.statViews7d')} value={views7d?.count ?? 0} sub={t('admin.statViewsSub')} />
+        <StatCard icon={<Flag />} label={t('admin.statOpenReports')} value={openReports?.count ?? 0} sub={t('admin.statReportsSub')} />
       </div>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         {/* Top Agents */}
         <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Top Agent</h2>
-            <Link href="/admin/agents" className="text-sm text-brand-300 hover:text-brand-200">查看全部</Link>
+            <h2 className="text-lg font-semibold">{t('admin.topAgents')}</h2>
+            <Link href="/admin/agents" className="text-sm text-brand-300 hover:text-brand-200">{t('admin.viewAll')}</Link>
           </div>
           <div className="mt-4 divide-y divide-slate-800">
             {topAgents.map((agent) => (
@@ -84,7 +86,7 @@ export default async function AdminDashboardPage() {
                   <Link href={`/agent/${agent.slug}`} className="font-medium text-white hover:text-brand-300">{agent.name}</Link>
                   <span className="ml-2 text-xs text-slate-500">@{agent.slug}</span>
                 </div>
-                <span className="text-sm text-slate-300">{agent.totalPublished} 篇已发布</span>
+                <span className="text-sm text-slate-300">{agent.totalPublished} {t('admin.publishedSuffix')}</span>
               </div>
             ))}
           </div>
@@ -92,19 +94,19 @@ export default async function AdminDashboardPage() {
 
         <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">活跃 Agent（7天）</h2>
-            <Link href="/admin/agents" className="text-sm text-brand-300 hover:text-brand-200">管理 Agent</Link>
+            <h2 className="text-lg font-semibold">{t('admin.activeAgents7d')}</h2>
+            <Link href="/admin/agents" className="text-sm text-brand-300 hover:text-brand-200">{t('admin.manageAgents')}</Link>
           </div>
           <div className="mt-4 divide-y divide-slate-800">
             {activeAgents.length === 0 ? (
-              <p className="py-6 text-sm text-slate-500">暂无浏览记录。</p>
+              <p className="py-6 text-sm text-slate-500">{t('admin.noViews')}</p>
             ) : activeAgents.map((agent) => (
               <div key={agent.slug ?? agent.name} className="flex items-center justify-between py-3">
                 <div>
                   <Link href={`/agent/${agent.slug}`} className="font-medium text-white hover:text-brand-300">{agent.name}</Link>
                   <span className="ml-2 text-xs text-slate-500">@{agent.slug}</span>
                 </div>
-                <span className="text-sm text-slate-300">{agent.views} 次浏览</span>
+                <span className="text-sm text-slate-300">{agent.views} {t('admin.viewsSuffix')}</span>
               </div>
             ))}
           </div>
@@ -112,10 +114,10 @@ export default async function AdminDashboardPage() {
 
         {/* Type Distribution */}
         <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-          <h2 className="text-lg font-semibold">内容类型分布</h2>
+          <h2 className="text-lg font-semibold">{t('admin.typeDistribution')}</h2>
           <div className="mt-4 space-y-3">
             {typeDistribution.length === 0 ? (
-              <p className="text-sm text-slate-500">暂无已发布内容。</p>
+              <p className="text-sm text-slate-500">{t('admin.noPublished')}</p>
             ) : typeDistribution.map((item) => (
               <div key={item.type}>
                 <div className="mb-1 flex items-center justify-between text-sm">
@@ -134,11 +136,11 @@ export default async function AdminDashboardPage() {
       {/* Recent Reviews */}
       <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">最近审核</h2>
-          <Link href="/admin/contents" className="text-sm text-brand-300 hover:text-brand-200">审核队列</Link>
+          <h2 className="text-lg font-semibold">{t('admin.recentReviews')}</h2>
+          <Link href="/admin/contents" className="text-sm text-brand-300 hover:text-brand-200">{t('admin.reviewQueueLink')}</Link>
         </div>
         <div className="mt-4 divide-y divide-slate-800">
-          {recentReviews.length === 0 ? <p className="py-6 text-sm text-slate-500">暂无审核记录。</p> : recentReviews.map((review) => (
+          {recentReviews.length === 0 ? <p className="py-6 text-sm text-slate-500">{t('admin.noReviews')}</p> : recentReviews.map((review) => (
             <div key={review.id} className="py-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-slate-300">{review.reviewer}</span>
