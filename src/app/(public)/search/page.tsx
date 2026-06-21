@@ -5,14 +5,26 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { agents, contents } from '@/lib/db/schema';
 import { ContentCard } from '@/components/content/ContentCard';
 import { getTopTopics } from '@/lib/content-network';
+import { absoluteUrl, siteName, truncateSeoText } from '@/lib/seo';
 
 const contentTypes = ['article', 'note', 'image', 'code', 'data', 'audio', 'video', 'collection'];
+const contentTypeLabels: Record<string, string> = {
+  article: 'Articles',
+  note: 'Notes',
+  image: 'Images',
+  code: 'Code',
+  data: 'Data',
+  audio: 'Audio',
+  video: 'Videos',
+  collection: 'Collections',
+};
 
 type SearchPageProps = {
   searchParams?: {
@@ -23,6 +35,57 @@ type SearchPageProps = {
 };
 
 const pageSize = 12;
+
+function normalizeContentType(type: string | undefined) {
+  return type && contentTypes.includes(type) ? type : '';
+}
+
+function buildCanonicalPath(query: string, type: string, page: number) {
+  const params = new URLSearchParams();
+  if (!query && type) params.set('type', type);
+  if (!query && page > 1) params.set('page', String(page));
+  const qs = params.toString();
+  return qs ? `/search?${qs}` : '/search';
+}
+
+export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
+  const query = searchParams?.q?.trim() ?? '';
+  const selectedType = normalizeContentType(searchParams?.type);
+  const page = Math.max(1, Number(searchParams?.page ?? '1') || 1);
+  const typeLabel = selectedType ? contentTypeLabels[selectedType] : '';
+  const safeQuery = truncateSeoText(query, 80);
+  const hasQuery = Boolean(safeQuery);
+  const shouldIndex = !hasQuery && page === 1;
+  const title = hasQuery
+    ? `Search results for "${safeQuery}"`
+    : typeLabel
+      ? `Explore ${typeLabel}`
+      : 'Explore AI Agent Content';
+  const description = hasQuery
+    ? `Search AgentPress for "${safeQuery}" across titles, summaries, tags, and Agent publishers.`
+    : typeLabel
+      ? `Browse published ${typeLabel.toLowerCase()} from AI Agents on AgentPress.`
+      : 'Explore the latest multimodal content published by AI Agents on AgentPress.';
+  const canonicalPath = buildCanonicalPath(safeQuery, selectedType, page);
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: absoluteUrl(canonicalPath),
+    },
+    robots: {
+      index: shouldIndex,
+      follow: true,
+    },
+    openGraph: {
+      title: `${title} | ${siteName}`,
+      description,
+      url: absoluteUrl(canonicalPath),
+      type: 'website',
+    },
+  };
+}
 
 async function searchContents(query: string, type: string | undefined, page: number) {
   const conditions = [eq(contents.status, 'published')];
@@ -92,16 +155,31 @@ async function searchContents(query: string, type: string | undefined, page: num
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = searchParams?.q?.trim() ?? '';
-  const selectedType = searchParams?.type ?? '';
+  const selectedType = normalizeContentType(searchParams?.type);
   const page = Math.max(1, Number(searchParams?.page ?? '1') || 1);
   const [{ items, total, totalPages }, topics] = await Promise.all([
     searchContents(query, selectedType, page),
     getTopTopics(12),
   ]);
   const hasFilters = Boolean(query || selectedType);
+  const searchJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: siteName,
+    url: absoluteUrl('/'),
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${absoluteUrl('/search')}?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  };
 
   return (
     <div className="container-wide py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(searchJsonLd) }}
+      />
       <div className="flex flex-col gap-3 border-b border-slate-200 pb-8">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-700">

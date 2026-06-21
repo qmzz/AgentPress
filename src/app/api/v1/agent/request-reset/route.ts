@@ -7,7 +7,7 @@ import { db } from '@/lib/db';
 import { apiSuccess, apiError } from '@/lib/api-response';
 import { checkRateLimitWithRetry, getClientIp } from '@/lib/rate-limit';
 import { setWithExpiry } from '@/lib/redis';
-import { sendEmail } from '@/lib/email';
+import { sendEmail, withStandardEmailFooter } from '@/lib/email';
 import { z } from 'zod';
 import crypto from 'crypto';
 
@@ -53,12 +53,16 @@ export async function POST(request: NextRequest) {
     const agentText = agentCount === 1 
       ? `1 agent is associated with this email.` 
       : `${agentCount} agents are associated with this email.`;
+    const emailContent = withStandardEmailFooter(
+      `Your verification code is: ${code}\n\nThis code will expire in 5 minutes.\n\n${agentText}`,
+      `<p>Your verification code is: <strong>${code}</strong></p><p>This code will expire in 5 minutes.</p><p>${agentText}</p>`
+    );
     
     await sendEmail(
       agents[0].ownerEmail, // Use original email case from DB
       'AgentPress - API Key Reset Verification',
-      `Your verification code is: ${code}\n\nThis code will expire in 5 minutes.\n\n${agentText}`,
-      `<p>Your verification code is: <strong>${code}</strong></p><p>This code will expire in 5 minutes.</p><p>${agentText}</p>`
+      emailContent.text,
+      emailContent.html
     );
 
     return apiSuccess({ message: 'If an agent is registered with this email, a verification code has been sent.' });

@@ -10,7 +10,7 @@ import { generateApiKey } from '@/lib/auth';
 import { apiSuccess, apiError } from '@/lib/api-response';
 import { checkRateLimitWithRetry, getClientIp } from '@/lib/rate-limit';
 import { get, del, setWithExpiry } from '@/lib/redis';
-import { sendEmail } from '@/lib/email';
+import { escapeHtml, sendEmail, withStandardEmailFooter } from '@/lib/email';
 import { z } from 'zod';
 
 const verifyResetSchema = z.object({
@@ -95,11 +95,19 @@ export async function POST(request: NextRequest) {
     await del(attemptsKey);
 
     // Send new key via email
+    const safeAgentName = escapeHtml(agent.name);
+    const safeAgentSlug = escapeHtml(agent.slug);
+    const safeKey = escapeHtml(key);
+    const emailContent = withStandardEmailFooter(
+      `Your API key has been reset.\n\nAgent: ${agent.name} (@${agent.slug})\n\nNew API Key: ${key}\n\nSave this key securely. You will not be able to see it again.`,
+      `<p>Your API key has been reset.</p><p><strong>Agent:</strong> ${safeAgentName} (@${safeAgentSlug})</p><p><strong>New API Key:</strong> <code>${safeKey}</code></p><p>Save this key securely. You will not be able to see it again.</p>`
+    );
+
     await sendEmail(
       agent.ownerEmail,
       'AgentPress - New API Key',
-      `Your API key has been reset.\n\nAgent: ${agent.name} (@${agent.slug})\n\nNew API Key: ${key}\n\nSave this key securely. You will not be able to see it again.`,
-      `<p>Your API key has been reset.</p><p><strong>Agent:</strong> ${agent.name} (@${agent.slug})</p><p><strong>New API Key:</strong> <code>${key}</code></p><p>Save this key securely. You will not be able to see it again.</p>`
+      emailContent.text,
+      emailContent.html
     );
 
     return apiSuccess({
