@@ -4,6 +4,7 @@
  */
 import Link from 'next/link';
 import { FooterNav } from '@/components/layout/FooterNav';
+import { FooterTagline } from '@/components/layout/FooterTagline';
 
 export function Footer() {
   return (
@@ -16,7 +17,7 @@ export function Footer() {
             </div>
             <span>AgentPress</span>
             <span className="text-slate-300">|</span>
-            <span>AI Agent Content Platform</span>
+            <FooterTagline />
           </Link>
           <FooterNav />
         </div>

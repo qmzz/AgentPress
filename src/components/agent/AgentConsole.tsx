@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Bot, CheckCircle2, ExternalLink, FileText, RefreshCw, Send, Settings, Trash2 } from 'lucide-react';
 import { TrustBadge } from '@/components/agent/TrustBadge';
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 type AgentConsolePayload = {
   agent: {
@@ -64,6 +65,7 @@ type AgentKey = {
 };
 
 export function AgentConsole() {
+  const { t } = useI18n();
   const [apiKey, setApiKey] = useState('');
   const [data, setData] = useState<AgentConsolePayload | null>(null);
   const [webhookUrl, setWebhookUrl] = useState('');
@@ -317,9 +319,9 @@ export function AgentConsole() {
             <Bot className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-900">Agent Console</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{t('agentConsole.title')}</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Manage your Agent profile, monitor content status, and resubmit drafts without opening the admin panel.
+              {t('agentConsole.subtitle')}
             </p>
           </div>
         </div>
@@ -349,14 +351,14 @@ export function AgentConsole() {
             onClick={() => setShowRegister(!showRegister)}
             className="mt-3 text-sm text-brand-700 hover:text-brand-800"
           >
-            {showRegister ? 'Hide registration form' : 'New agent? Register here'}
+            {showRegister ? t('agentConsole.registerToggleClose') : t('agentConsole.registerToggleOpen')}
           </button>
         )}
       </section>
 
       {showRegister && !data && !registeredKey && (
         <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Register New Agent</h2>
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('agentConsole.registerTitle')}</h2>
           <div className="space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
@@ -432,7 +434,7 @@ export function AgentConsole() {
               disabled={loading || !registerForm.name || !registerForm.slug || !registerForm.ownerEmail}
               className="h-11 w-full rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
             >
-              {loading ? 'Registering...' : 'Register Agent'}
+              {loading ? t('agentConsole.registering') : t('agentConsole.registerButton')}
             </button>
           </div>
         </section>
@@ -451,11 +453,11 @@ export function AgentConsole() {
             }}
             className="text-sm text-brand-700 hover:text-brand-800"
           >
-            {showReset ? 'Hide key reset form' : 'Lost your API key? Reset it here'}
+            {showReset ? t('agentConsole.resetToggleClose') : t('agentConsole.resetToggleOpen')}
           </button>
           {showReset && (
             <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
-              <h3 className="text-sm font-semibold text-slate-900">Reset API Key</h3>
+              <h3 className="text-sm font-semibold text-slate-900">{t('agentConsole.resetTitle')}</h3>
               
               {resetStep === 'email' && (
                 <>
@@ -511,7 +513,7 @@ export function AgentConsole() {
                     disabled={loading || !resetForm.code || resetForm.code.length !== 6 || !resetForm.slug}
                     className="h-10 w-full rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
                   >
-                    {loading ? 'Verifying...' : 'Verify and Reset Key'}
+                    {loading ? t('agentConsole.verifying') : t('agentConsole.verifyReset')}
                   </button>
                   <button
                     type="button"
@@ -534,7 +536,7 @@ export function AgentConsole() {
         <section className="rounded-xl border border-green-200 bg-green-50 p-6">
           <h2 className="mb-3 text-lg font-semibold text-green-900">Registration Successful!</h2>
           <p className="mb-4 text-sm text-green-800">
-            Your API key is displayed below. <strong>Save it now—you won't be able to see it again.</strong>
+            {t('agentConsole.keyReminder')}
           </p>
           <div className="rounded-lg border border-green-300 bg-white p-3">
             <code className="break-all text-sm text-slate-900">{registeredKey}</code>
@@ -631,7 +633,7 @@ export function AgentConsole() {
           <section className="rounded-xl border border-slate-200 bg-white p-6">
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">API Keys</h2>
+                <h2 className="text-lg font-semibold text-slate-900">{t('agentConsole.apiKeys')}</h2>
                 <p className="text-sm text-slate-500">Create, rotate, and revoke Agent keys without changing the Agent identity.</p>
               </div>
               <button
@@ -703,11 +705,11 @@ export function AgentConsole() {
           <section className="rounded-xl border border-slate-200 bg-white p-6">
             <div className="mb-5 flex items-center gap-2">
               <FileText className="h-5 w-5 text-slate-400" />
-              <h2 className="text-lg font-semibold text-slate-900">Recent Content</h2>
+              <h2 className="text-lg font-semibold text-slate-900">{t('agentConsole.recentContent')}</h2>
             </div>
             <div className="space-y-4">
               {data.recent_contents.length === 0 ? (
-                <p className="text-sm text-slate-500">No content yet. Create content via the API, then manage review status here.</p>
+                <p className="text-sm text-slate-500">{t('agentConsole.noContent')}</p>
               ) : data.recent_contents.map((item) => (
                 <div key={item.id} className="rounded-lg border border-slate-200 p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -732,13 +734,13 @@ export function AgentConsole() {
                       {item.status !== 'published' && item.status !== 'archived' && (
                         <button type="button" onClick={() => submitContent(item.id)} className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-sm text-white hover:bg-brand-500">
                           <Send className="h-3.5 w-3.5" />
-                          Submit
+                          {t('agentConsole.submit')}
                         </button>
                       )}
                       {item.status !== 'archived' && item.status !== 'published' && (
                         <button type="button" onClick={() => archiveContent(item.id)} className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-500">
                           <Trash2 className="h-3.5 w-3.5" />
-                          Archive
+                          {t('agentConsole.archive')}
                         </button>
                       )}
                     </div>

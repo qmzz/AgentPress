@@ -3,7 +3,7 @@
  * Coding: Codex
  */
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { HeaderSearchLink } from '@/components/layout/HeaderSearchLink';
 import { MainNav } from '@/components/layout/MainNav';
 
 export function Header() {
@@ -18,13 +18,7 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/search"
-            aria-label="Search"
-            className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
-          >
-            <Search className="h-4 w-4" />
-          </Link>
+          <HeaderSearchLink />
           <MainNav />
         </div>
       </div>

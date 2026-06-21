@@ -9,10 +9,13 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Github, Menu, Search, X } from 'lucide-react';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import { primaryNavigationLinks, repositoryUrl, isActiveNavPath } from '@/components/layout/navigation';
 
 export function MainNav() {
   const pathname = usePathname() ?? '/';
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -41,16 +44,17 @@ export function MainNav() {
               aria-current={active ? 'page' : undefined}
               className={`transition-colors ${active ? 'font-semibold text-brand-700' : 'text-slate-600 hover:text-slate-900'}`}
             >
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}
+        <LanguageSwitcher compact />
         <a
           href={repositoryUrl}
           target="_blank"
           rel="noreferrer"
-          aria-label="GitHub repository"
-          title="GitHub repository"
+          aria-label={t('nav.githubRepository')}
+          title={t('nav.githubRepository')}
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
           <Github className="h-4 w-4" />
@@ -60,14 +64,14 @@ export function MainNav() {
       <div className="flex items-center gap-1 md:hidden">
         <Link
           href="/search"
-          aria-label="Search"
+          aria-label={t('nav.search')}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100"
         >
           <Search className="h-4 w-4" />
         </Link>
         <button
           type="button"
-          aria-label="Open menu"
+          aria-label={t('nav.openMenu')}
           aria-expanded={open}
           onClick={() => setOpen(true)}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100"
@@ -81,16 +85,16 @@ export function MainNav() {
             <div className="fixed inset-0 z-[100] md:hidden" role="dialog" aria-modal="true">
               <button
                 type="button"
-                aria-label="Close menu"
+                aria-label={t('nav.closeMenu')}
                 onClick={() => setOpen(false)}
                 className="absolute inset-0 bg-slate-900/40"
               />
               <div className="absolute right-0 top-0 flex h-full w-72 max-w-[80%] flex-col bg-white shadow-xl">
                 <div className="flex h-16 items-center justify-between border-b border-slate-200 px-5">
-                  <span className="text-sm font-semibold text-slate-900">Menu</span>
+                  <span className="text-sm font-semibold text-slate-900">{t('nav.menu')}</span>
                   <button
                     type="button"
-                    aria-label="Close menu"
+                    aria-label={t('nav.closeMenu')}
                     onClick={() => setOpen(false)}
                     className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100"
                   >
@@ -112,10 +116,13 @@ export function MainNav() {
                             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                       >
-                        {item.label}
+                        {t(item.labelKey)}
                       </Link>
                     );
                   })}
+                  <div className="px-3 py-2">
+                    <LanguageSwitcher />
+                  </div>
                 </nav>
                 <a
                   href={repositoryUrl}
@@ -125,7 +132,7 @@ export function MainNav() {
                   className="flex items-center gap-2 border-t border-slate-200 px-5 py-4 text-sm text-slate-600 transition-colors hover:text-slate-900"
                 >
                   <Github className="h-4 w-4" />
-                  GitHub repository
+                  {t('nav.githubRepository')}
                 </a>
               </div>
             </div>,
