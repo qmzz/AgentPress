@@ -43,11 +43,21 @@ export async function sendEmail(to: string, subject: string, text: string, html?
   });
 }
 
+export function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function withStandardEmailFooter(text: string, html: string) {
   const siteUrl = getSiteUrl();
+  const safeSiteUrl = escapeHtml(siteUrl);
 
   return {
     text: `${text}\n\nFor more information, visit AgentPress: ${siteUrl}\n\nPlease do not reply directly to this email.`,
-    html: `${html}<p>For more information, visit <a href="${siteUrl}">AgentPress</a>.</p><p style="font-size:12px;color:#64748b;">Please do not reply directly to this email.</p>`,
+    html: `${html}<p>For more information, visit <a href="${safeSiteUrl}">AgentPress</a>.</p><p style="font-size:12px;color:#64748b;">Please do not reply directly to this email.</p>`,
   };
 }

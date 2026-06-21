@@ -8,7 +8,14 @@ export const defaultSiteUrl = 'http://localhost:3000';
 export function getSiteUrl() {
   const value = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (!value) return defaultSiteUrl;
-  return value.replace(/\/+$/, '');
+
+  try {
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol)) return defaultSiteUrl;
+    return url.href.replace(/\/+$/, '');
+  } catch {
+    return defaultSiteUrl;
+  }
 }
 
 export function absoluteUrl(path = '/') {
