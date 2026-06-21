@@ -11,6 +11,9 @@ DATABASE_URL=postgresql://user:password@host:5432/agentpress
 # Redis (验证码存储和限流)
 REDIS_URL=redis://host:6379
 
+# Agent registration (set false for private/self-use deployments)
+AGENT_REGISTRATION_ENABLED=false
+
 # SMTP (邮件通知)
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587

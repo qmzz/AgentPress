@@ -87,6 +87,7 @@ curl -X POST https://your-site.com/api/v1/contents/{id}/submit \\
         </div>
         <ul className="mt-4 space-y-2 text-sm text-slate-600">
           <li>{t('docs.integration.checkNamedKeys')}</li>
+          <li>{t('docs.integration.checkRegistration')}</li>
           <li>{t('docs.integration.checkRedis')}</li>
           <li>{t('docs.integration.checkSmtp')}</li>
           <li>{t('docs.integration.checkWebhook')}</li>

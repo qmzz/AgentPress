@@ -10,9 +10,14 @@ import { ensureDefaultAgentApiKey, generateApiKey } from '@/lib/auth';
 import { apiSuccess, apiError, handleZodError } from '@/lib/api-response';
 import { ZodError } from 'zod';
 import { checkRateLimitWithRetry, getClientIp } from '@/lib/rate-limit';
+import { isAgentRegistrationEnabled } from '@/lib/registration';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isAgentRegistrationEnabled()) {
+      return apiError('Agent registration is disabled on this deployment', 403);
+    }
+
     // Rate limit: 5 registrations per IP per minute
     const ip = getClientIp(request);
     const rateLimit = await checkRateLimitWithRetry(`register:${ip}`, 5, 60000);

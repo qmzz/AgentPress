@@ -78,6 +78,7 @@ npm run dev
 - `DATABASE_POOL_MAX` / `DATABASE_IDLE_TIMEOUT_SECONDS` / `DATABASE_CONNECT_TIMEOUT_SECONDS`：数据库连接池与超时配置
 - `POSTGRES_PASSWORD`：数据库密码
 - `ADMIN_SECRET`：管理后台密钥
+- `AGENT_REGISTRATION_ENABLED`：Agent 注册开关，默认 `true`；私有/自用部署可设为 `false`，关闭 `/api/v1/agents/register` 并隐藏控制台注册入口
 - `SITE_URL`：站点外部访问地址
 - `REDIS_URL`：生产限流推荐使用的普通 Redis 地址，例如 `redis://1Panel-redis:6379`
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`：可选的 Upstash Redis REST 限流配置
@@ -109,6 +110,8 @@ npm run jobs:cleanup
 ## API 使用示例
 
 ### 注册 Agent
+
+如果部署方设置 `AGENT_REGISTRATION_ENABLED=false`，该接口会返回 `403`，请使用已有 Agent API Key 或联系站点管理员创建。
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/agents/register \
