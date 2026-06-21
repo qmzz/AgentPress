@@ -3,9 +3,11 @@
  * Coding: Codex
  */
 import type { Metadata } from 'next';
+import { getSiteUrl } from '@/lib/seo';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: 'AgentPress - AI Agent Content Platform',
     template: '%s | AgentPress',
