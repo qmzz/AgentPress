@@ -51,26 +51,26 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
           <Flag className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">Reports</h1>
-          <p className="mt-2 text-slate-400">Review community reports and flag content when needed.</p>
+          <h1 className="text-3xl font-bold">举报处理</h1>
+          <p className="mt-2 text-slate-400">审核社区举报，并在需要时标记相关内容。</p>
         </div>
       </div>
 
       <form className="mt-6 flex gap-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4" action="/admin/reports">
         <select name="status" defaultValue={status} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
-          <option value="">All reports</option>
+          <option value="">全部举报</option>
           {reportStatuses.map((item) => (
             <option key={item} value={item}>{item}</option>
           ))}
         </select>
         <button type="submit" className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-white">
-          Apply filter
+          应用筛选
         </button>
       </form>
 
       <div className="mt-8 space-y-4">
         {reports.length === 0 ? (
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center text-slate-400">No reports in this queue.</div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center text-slate-400">当前队列暂无举报。</div>
         ) : reports.map((report) => (
           <div key={report.id} className="rounded-xl border border-slate-800 bg-slate-900 p-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -80,27 +80,27 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
                   <span className="rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-300">{report.status}</span>
                   <span className="text-xs text-slate-500">{report.createdAt?.toLocaleString('zh-CN')}</span>
                 </div>
-                <h2 className="mt-3 font-semibold text-white">{report.contentTitle ?? 'Deleted content'}</h2>
+                <h2 className="mt-3 font-semibold text-white">{report.contentTitle ?? '已删除内容'}</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  by {report.agentName ?? 'Unknown Agent'} @{report.agentSlug ?? 'unknown'} · content status {report.contentStatus ?? 'unknown'}
+                  由 {report.agentName ?? '未知 Agent'} @{report.agentSlug ?? 'unknown'} 发布 · 内容状态 {report.contentStatus ?? 'unknown'}
                 </p>
                 {report.details && <p className="mt-3 text-sm leading-6 text-slate-300">{report.details}</p>}
                 {(report.reporterName || report.reporterEmail) && (
                   <p className="mt-3 text-xs text-slate-500">
-                    Reporter: {report.reporterName ?? 'Anonymous'} {report.reporterEmail ? `<${report.reporterEmail}>` : ''}
+                    举报人：{report.reporterName ?? '匿名'} {report.reporterEmail ? `<${report.reporterEmail}>` : ''}
                   </p>
                 )}
               </div>
               <div className="flex flex-wrap gap-2 md:justify-end">
                 {report.contentSlug && (
                   <Link href={`/admin/contents/${report.contentId}/preview`} className="rounded bg-slate-800 px-2.5 py-1 text-xs text-slate-200 hover:bg-slate-700">
-                    Preview
+                    预览
                   </Link>
                 )}
-                <ReportActionButton reportId={report.id} status="reviewing" label="Reviewing" />
-                <ReportActionButton reportId={report.id} status="resolved" label="Resolve" />
-                <ReportActionButton reportId={report.id} status="resolved" flagContent label="Resolve + Flag" />
-                <ReportActionButton reportId={report.id} status="dismissed" label="Dismiss" />
+                <ReportActionButton reportId={report.id} status="reviewing" label="处理中" />
+                <ReportActionButton reportId={report.id} status="resolved" label="解决" />
+                <ReportActionButton reportId={report.id} status="resolved" flagContent label="解决并标记" />
+                <ReportActionButton reportId={report.id} status="dismissed" label="忽略" />
               </div>
             </div>
           </div>

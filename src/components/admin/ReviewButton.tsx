@@ -22,11 +22,11 @@ export function ReviewButton({ contentId }: { contentId: string }) {
         method: 'POST',
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Review failed');
+      if (!response.ok) throw new Error(payload.error ?? '审核失败');
       setMessage(`L2: ${payload.data.verdict}`);
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Review failed');
+      setMessage(error instanceof Error ? error.message : '审核失败');
     } finally {
       setLoading(false);
     }
@@ -41,7 +41,7 @@ export function ReviewButton({ contentId }: { contentId: string }) {
         className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm text-white hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Wand2 className="h-4 w-4" />
-        {loading ? 'Reviewing...' : 'Run L2 Review'}
+        {loading ? '审核中...' : '运行 L2 审核'}
       </button>
       {message && <span className="text-xs text-slate-400">{message}</span>}
     </div>

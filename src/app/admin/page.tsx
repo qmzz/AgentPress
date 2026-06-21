@@ -50,32 +50,32 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      <p className="mt-2 text-slate-400">Operational overview for AgentPress.</p>
+      <h1 className="text-3xl font-bold">仪表盘</h1>
+      <p className="mt-2 text-slate-400">AgentPress 平台运行总览。</p>
 
       {/* KPI Cards */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={<Bot />} label="Agents" value={agentCount?.count ?? 0} sub={`${activeCount?.count ?? 0} active`} />
-        <StatCard icon={<CheckCircle2 />} label="Published" value={publishedCount?.count ?? 0} sub={`+${published7d?.count ?? 0} this week`} />
-        <StatCard icon={<Flag />} label="Pending" value={pendingCount?.count ?? 0} sub="awaiting review" />
-        <StatCard icon={<AlertTriangle />} label="Flagged" value={flaggedCount?.count ?? 0} sub="needs attention" />
+        <StatCard icon={<Bot />} label="Agent" value={agentCount?.count ?? 0} sub={`${activeCount?.count ?? 0} 个活跃`} />
+        <StatCard icon={<CheckCircle2 />} label="已发布" value={publishedCount?.count ?? 0} sub={`本周 +${published7d?.count ?? 0}`} />
+        <StatCard icon={<Flag />} label="待审核" value={pendingCount?.count ?? 0} sub="等待处理" />
+        <StatCard icon={<AlertTriangle />} label="已标记" value={flaggedCount?.count ?? 0} sub="需要关注" />
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={<TrendingUp />} label="New Content (7d)" value={new7d?.count ?? 0} sub="created this week" />
-        <StatCard icon={<BarChart3 />} label="Published (7d)" value={published7d?.count ?? 0} sub="went live this week" />
-        <StatCard icon={<Globe />} label="API Calls (7d)" value={apiCalls7d?.count ?? 0} sub="requests logged" />
-        <StatCard icon={<Gauge />} label="Avg Response" value={avgResponse7d?.avg ?? 0} sub="ms over last 7 days" />
-        <StatCard icon={<Globe />} label="Views (7d)" value={views7d?.count ?? 0} sub="content page views" />
-        <StatCard icon={<Flag />} label="Open Reports" value={openReports?.count ?? 0} sub="community reports" />
+        <StatCard icon={<TrendingUp />} label="新增内容（7天）" value={new7d?.count ?? 0} sub="本周创建" />
+        <StatCard icon={<BarChart3 />} label="发布内容（7天）" value={published7d?.count ?? 0} sub="本周上线" />
+        <StatCard icon={<Globe />} label="API 调用（7天）" value={apiCalls7d?.count ?? 0} sub="已记录请求" />
+        <StatCard icon={<Gauge />} label="平均响应" value={avgResponse7d?.avg ?? 0} sub="最近 7 天，单位 ms" />
+        <StatCard icon={<Globe />} label="浏览量（7天）" value={views7d?.count ?? 0} sub="内容页浏览" />
+        <StatCard icon={<Flag />} label="未处理举报" value={openReports?.count ?? 0} sub="社区举报" />
       </div>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         {/* Top Agents */}
         <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Top Agents</h2>
-            <Link href="/admin/agents" className="text-sm text-brand-300 hover:text-brand-200">View all</Link>
+            <h2 className="text-lg font-semibold">Top Agent</h2>
+            <Link href="/admin/agents" className="text-sm text-brand-300 hover:text-brand-200">查看全部</Link>
           </div>
           <div className="mt-4 divide-y divide-slate-800">
             {topAgents.map((agent) => (
@@ -84,7 +84,7 @@ export default async function AdminDashboardPage() {
                   <Link href={`/agent/${agent.slug}`} className="font-medium text-white hover:text-brand-300">{agent.name}</Link>
                   <span className="ml-2 text-xs text-slate-500">@{agent.slug}</span>
                 </div>
-                <span className="text-sm text-slate-300">{agent.totalPublished} published</span>
+                <span className="text-sm text-slate-300">{agent.totalPublished} 篇已发布</span>
               </div>
             ))}
           </div>
@@ -92,19 +92,19 @@ export default async function AdminDashboardPage() {
 
         <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Active Agents (7d)</h2>
-            <Link href="/admin/agents" className="text-sm text-brand-300 hover:text-brand-200">Manage agents</Link>
+            <h2 className="text-lg font-semibold">活跃 Agent（7天）</h2>
+            <Link href="/admin/agents" className="text-sm text-brand-300 hover:text-brand-200">管理 Agent</Link>
           </div>
           <div className="mt-4 divide-y divide-slate-800">
             {activeAgents.length === 0 ? (
-              <p className="py-6 text-sm text-slate-500">No views recorded yet.</p>
+              <p className="py-6 text-sm text-slate-500">暂无浏览记录。</p>
             ) : activeAgents.map((agent) => (
               <div key={agent.slug ?? agent.name} className="flex items-center justify-between py-3">
                 <div>
                   <Link href={`/agent/${agent.slug}`} className="font-medium text-white hover:text-brand-300">{agent.name}</Link>
                   <span className="ml-2 text-xs text-slate-500">@{agent.slug}</span>
                 </div>
-                <span className="text-sm text-slate-300">{agent.views} views</span>
+                <span className="text-sm text-slate-300">{agent.views} 次浏览</span>
               </div>
             ))}
           </div>
@@ -112,10 +112,10 @@ export default async function AdminDashboardPage() {
 
         {/* Type Distribution */}
         <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-          <h2 className="text-lg font-semibold">Content Type Distribution</h2>
+          <h2 className="text-lg font-semibold">内容类型分布</h2>
           <div className="mt-4 space-y-3">
             {typeDistribution.length === 0 ? (
-              <p className="text-sm text-slate-500">No published content yet.</p>
+              <p className="text-sm text-slate-500">暂无已发布内容。</p>
             ) : typeDistribution.map((item) => (
               <div key={item.type}>
                 <div className="mb-1 flex items-center justify-between text-sm">
@@ -134,11 +134,11 @@ export default async function AdminDashboardPage() {
       {/* Recent Reviews */}
       <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Recent Reviews</h2>
-          <Link href="/admin/contents" className="text-sm text-brand-300 hover:text-brand-200">Review queue</Link>
+          <h2 className="text-lg font-semibold">最近审核</h2>
+          <Link href="/admin/contents" className="text-sm text-brand-300 hover:text-brand-200">审核队列</Link>
         </div>
         <div className="mt-4 divide-y divide-slate-800">
-          {recentReviews.length === 0 ? <p className="py-6 text-sm text-slate-500">No reviews yet.</p> : recentReviews.map((review) => (
+          {recentReviews.length === 0 ? <p className="py-6 text-sm text-slate-500">暂无审核记录。</p> : recentReviews.map((review) => (
             <div key={review.id} className="py-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-slate-300">{review.reviewer}</span>

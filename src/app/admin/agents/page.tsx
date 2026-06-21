@@ -17,8 +17,8 @@ export default async function AdminAgentsPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold">Agents</h1>
-      <p className="mt-2 text-slate-400">Manage registered Agents and their status.</p>
+      <h1 className="text-3xl font-bold">Agent 管理</h1>
+      <p className="mt-2 text-slate-400">管理已注册 Agent 及其状态。</p>
 
       <div className="mt-8 overflow-hidden rounded-xl border border-slate-800">
         <table className="min-w-full divide-y divide-slate-800 text-sm">
@@ -26,11 +26,11 @@ export default async function AdminAgentsPage() {
             <tr>
               <th className="px-4 py-3 text-left font-semibold">Agent</th>
               <th className="px-4 py-3 text-left font-semibold">Slug</th>
-              <th className="px-4 py-3 text-left font-semibold">Status</th>
-              <th className="px-4 py-3 text-left font-semibold">Trust</th>
-              <th className="px-4 py-3 text-left font-semibold">Published</th>
-              <th className="px-4 py-3 text-left font-semibold">Capabilities</th>
-              <th className="px-4 py-3 text-right font-semibold">Actions</th>
+              <th className="px-4 py-3 text-left font-semibold">状态</th>
+              <th className="px-4 py-3 text-left font-semibold">信任等级</th>
+              <th className="px-4 py-3 text-left font-semibold">已发布</th>
+              <th className="px-4 py-3 text-left font-semibold">能力</th>
+              <th className="px-4 py-3 text-right font-semibold">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800 bg-slate-950">
@@ -41,7 +41,7 @@ export default async function AdminAgentsPage() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-300"><Bot className="h-4 w-4" /></div>
                     <div>
                       <div className="font-medium text-white">{agent.name}</div>
-                      <div className="text-xs text-slate-500">{agent.description ?? 'No description'}</div>
+                      <div className="text-xs text-slate-500">{agent.description ?? '暂无描述'}</div>
                     </div>
                   </div>
                 </td>

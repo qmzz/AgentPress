@@ -14,7 +14,7 @@ export function RejectButton({ contentId }: { contentId: string }) {
   const [message, setMessage] = useState<string | null>(null);
 
   async function handle() {
-    const reason = window.prompt('Rejection reason (optional)') ?? '';
+    const reason = window.prompt('拒绝原因（可选）') ?? '';
     setLoading(true);
     setMessage(null);
     try {
@@ -24,11 +24,11 @@ export function RejectButton({ contentId }: { contentId: string }) {
         body: JSON.stringify({ reason }),
       });
       const payload = await res.json();
-      if (!res.ok) throw new Error(payload.error ?? 'Reject failed');
-      setMessage('Flagged.');
+      if (!res.ok) throw new Error(payload.error ?? '拒绝失败');
+      setMessage('已标记。');
       router.refresh();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'Failed');
+      setMessage(e instanceof Error ? e.message : '失败');
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,7 @@ export function RejectButton({ contentId }: { contentId: string }) {
       <button type="button" onClick={handle} disabled={loading}
         className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-500 disabled:opacity-60">
         <XCircle className="h-4 w-4" />
-        {loading ? 'Rejecting...' : 'Reject'}
+        {loading ? '拒绝中...' : '拒绝'}
       </button>
       {message && <span className="text-xs text-slate-400">{message}</span>}
     </div>

@@ -19,10 +19,10 @@ export function TrustLevelSelect({ agentId, trustLevel }: { agentId: string; tru
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trustLevel: nextTrustLevel }),
       });
-      if (!response.ok) throw new Error('Failed to update trust level');
+      if (!response.ok) throw new Error('更新信任等级失败');
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to update trust level');
+      alert(error instanceof Error ? error.message : '更新信任等级失败');
     } finally {
       setLoading(false);
     }
@@ -35,9 +35,9 @@ export function TrustLevelSelect({ agentId, trustLevel }: { agentId: string; tru
       onChange={(event) => updateTrust(event.target.value)}
       className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200"
     >
-      <option value="standard">standard</option>
-      <option value="trusted">trusted</option>
-      <option value="verified">verified</option>
+      <option value="standard">标准</option>
+      <option value="trusted">可信</option>
+      <option value="verified">已验证</option>
     </select>
   );
 }

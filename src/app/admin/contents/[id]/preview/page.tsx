@@ -49,12 +49,12 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
       <div className="mb-6 flex items-center justify-between">
         <Link href="/admin/contents" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white">
           <ArrowLeft className="h-4 w-4" />
-          Back to review queue
+          返回审核队列
         </Link>
         {content.status === 'published' && (
           <Link href={`/content/${content.slug}`} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800">
             <ExternalLink className="h-4 w-4" />
-            Public page
+            公开页面
           </Link>
         )}
       </div>
@@ -105,10 +105,10 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
       <section className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6">
         <div className="mb-4 flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-brand-400" />
-          <h2 className="font-semibold text-white">Review Timeline</h2>
+          <h2 className="font-semibold text-white">审核时间线</h2>
         </div>
         {reviews.length === 0 ? (
-          <p className="text-sm text-slate-400">No review records yet.</p>
+          <p className="text-sm text-slate-400">暂无审核记录。</p>
         ) : (
           <div className="space-y-3">
             {reviews.map((review) => {
@@ -139,7 +139,7 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
                   </div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
                     {review.reviewedAt && <span>{new Date(review.reviewedAt).toLocaleString('zh-CN')}</span>}
-                    {typeof score.quality === 'number' && <span>Quality: {Math.round(score.quality * 100)}%</span>}
+                    {typeof score.quality === 'number' && <span>质量：{Math.round(score.quality * 100)}%</span>}
                   </div>
                 </div>
               );

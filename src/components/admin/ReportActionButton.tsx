@@ -29,10 +29,10 @@ export function ReportActionButton({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, flagContent }),
       });
-      if (!response.ok) throw new Error('Action failed');
+      if (!response.ok) throw new Error('操作失败');
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Action failed');
+      alert(error instanceof Error ? error.message : '操作失败');
     } finally {
       setLoading(false);
     }

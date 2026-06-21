@@ -34,31 +34,31 @@ export default async function OperationsPage() {
     <div>
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Operations</h1>
-          <p className="mt-2 text-slate-400">Runtime health, dependency status, queue pressure, and recent API errors.</p>
+          <h1 className="text-3xl font-bold">运维监控</h1>
+          <p className="mt-2 text-slate-400">查看运行健康状态、依赖服务、队列压力和近期 API 错误。</p>
         </div>
-        <p className="text-xs text-slate-500">Generated {new Date().toLocaleString()}</p>
+        <p className="text-xs text-slate-500">生成时间 {new Date().toLocaleString('zh-CN')}</p>
       </div>
 
       <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <ServiceCard icon={<Database />} title="Database" ok={database.ok} detail={database.ok ? `${database.latency_ms}ms latency` : database.message} />
-        <ServiceCard icon={<Activity />} title="Rate Limit" ok={rateLimit.ok} detail={`${rateLimit.store}${rateLimit.message ? ` · ${rateLimit.message}` : ''}`} />
-        <ServiceCard icon={<HardDrive />} title="Storage" ok={storage.ok} detail={`${storage.driver}${storage.message ? ` · ${storage.message}` : ''}`} />
-        <ServiceCard icon={<Mail />} title="SMTP" ok={smtpConfigured} detail={smtpConfigured ? 'Configured' : 'Not configured'} />
-        <ServiceCard icon={<Sparkles />} title="AI L2 Review" ok={!aiEnabled || aiConfigured} detail={aiEnabled ? `Enabled · ${process.env.AI_L2_MODEL ?? 'gpt-4o-mini'}` : 'Disabled'} />
-        <ServiceCard icon={<Server />} title="Runtime" ok detail={`Node ${process.version}`} />
+        <ServiceCard icon={<Database />} title="数据库" ok={database.ok} detail={database.ok ? `${database.latency_ms}ms 延迟` : database.message} />
+        <ServiceCard icon={<Activity />} title="限流" ok={rateLimit.ok} detail={`${rateLimit.store}${rateLimit.message ? ` · ${rateLimit.message}` : ''}`} />
+        <ServiceCard icon={<HardDrive />} title="存储" ok={storage.ok} detail={`${storage.driver}${storage.message ? ` · ${storage.message}` : ''}`} />
+        <ServiceCard icon={<Mail />} title="SMTP" ok={smtpConfigured} detail={smtpConfigured ? '已配置' : '未配置'} />
+        <ServiceCard icon={<Sparkles />} title="AI L2 审核" ok={!aiEnabled || aiConfigured} detail={aiEnabled ? `已启用 · ${process.env.AI_L2_MODEL ?? 'gpt-4o-mini'}` : '未启用'} />
+        <ServiceCard icon={<Server />} title="运行时" ok detail={`Node ${process.version}`} />
       </section>
 
       <section className="mt-8 grid gap-4 md:grid-cols-3">
-        <MetricCard label="API Calls (24h)" value={apiSummary.calls} sub={`${apiSummary.avg_response_ms}ms avg response`} />
-        <MetricCard label="API Errors (24h)" value={apiSummary.errors} sub="HTTP 5xx responses" />
-        <MetricCard label="Pending Jobs" value={jobStatus.pending ?? 0} sub={`${jobStatus.running ?? 0} running · ${jobStatus.failed ?? 0} failed`} />
+        <MetricCard label="API 调用（24h）" value={apiSummary.calls} sub={`平均响应 ${apiSummary.avg_response_ms}ms`} />
+        <MetricCard label="API 错误（24h）" value={apiSummary.errors} sub="HTTP 5xx 响应" />
+        <MetricCard label="待处理任务" value={jobStatus.pending ?? 0} sub={`${jobStatus.running ?? 0} 运行中 · ${jobStatus.failed ?? 0} 失败`} />
       </section>
 
       <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
         <div className="mb-4 flex items-center gap-2">
           <Clock className="h-5 w-5 text-slate-400" />
-          <h2 className="text-lg font-semibold">Job Queue</h2>
+          <h2 className="text-lg font-semibold">任务队列</h2>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {['pending', 'running', 'completed', 'failed', 'cancelled'].map((status) => (
@@ -73,17 +73,17 @@ export default async function OperationsPage() {
       <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
         <div className="mb-4 flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-amber-300" />
-          <h2 className="text-lg font-semibold">Recent API Errors</h2>
+          <h2 className="text-lg font-semibold">近期 API 错误</h2>
         </div>
         {recentErrors.length === 0 ? (
-          <p className="text-sm text-slate-500">No recent API errors logged.</p>
+          <p className="text-sm text-slate-500">暂无近期 API 错误日志。</p>
         ) : (
           <div className="divide-y divide-slate-800">
             {recentErrors.map((error, index) => (
               <div key={`${error.endpoint}-${error.createdAt}-${index}`} className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="font-mono text-sm text-slate-200">{error.method} {error.endpoint}</p>
-                  <p className="text-xs text-slate-500">{error.createdAt ? new Date(error.createdAt).toLocaleString() : 'unknown time'}</p>
+                  <p className="text-xs text-slate-500">{error.createdAt ? new Date(error.createdAt).toLocaleString('zh-CN') : '未知时间'}</p>
                 </div>
                 <span className="text-sm text-slate-400">{error.statusCode} · {error.responseTime ?? 0}ms</span>
               </div>
@@ -123,7 +123,7 @@ function MetricCard({ label, value, sub }: { label: string; value: number; sub: 
 async function checkDatabase() {
   const connectionString = process.env.DATABASE_URL;
   const runtimeConfig = getDatabaseRuntimeConfig();
-  if (!connectionString) return { ok: false, config: runtimeConfig, message: 'Database is not configured' };
+  if (!connectionString) return { ok: false, config: runtimeConfig, message: '数据库未配置' };
 
   const client = postgres(connectionString, getDatabaseClientOptions({ poolMax: 1 }));
   try {
@@ -131,7 +131,7 @@ async function checkDatabase() {
     await client`select 1`;
     return { ok: true, config: runtimeConfig, latency_ms: Date.now() - startedAt };
   } catch {
-    return { ok: false, config: runtimeConfig, message: 'Database check failed' };
+    return { ok: false, config: runtimeConfig, message: '数据库检查失败' };
   } finally {
     await client.end({ timeout: 1 }).catch(() => undefined);
   }

@@ -23,10 +23,10 @@ export function ActivateButton({ agentId, currentStatus }: { agentId: string; cu
       const res = await fetch(endpoint, {
         method: 'POST',
       });
-      if (!res.ok) throw new Error('Action failed');
+      if (!res.ok) throw new Error('操作失败');
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed');
+      alert(e instanceof Error ? e.message : '失败');
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,7 @@ export function ActivateButton({ agentId, currentStatus }: { agentId: string; cu
         : 'inline-flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-500/20'
       }>
       <UserCheck className="h-3 w-3" />
-      {loading ? '...' : isActive ? 'Suspend' : 'Activate'}
+      {loading ? '...' : isActive ? '暂停' : '激活'}
     </button>
   );
 }
