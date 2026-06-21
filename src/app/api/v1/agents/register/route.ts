@@ -6,7 +6,7 @@ import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
 import { registerAgentSchema } from '@/lib/validators';
-import { generateApiKey } from '@/lib/auth';
+import { ensureDefaultAgentApiKey, generateApiKey } from '@/lib/auth';
 import { apiSuccess, apiError, handleZodError } from '@/lib/api-response';
 import { ZodError } from 'zod';
 import { checkRateLimitWithRetry, getClientIp } from '@/lib/rate-limit';
@@ -52,6 +52,8 @@ export async function POST(request: NextRequest) {
         apiKeyPrefix: prefix,
       })
       .returning();
+
+    await ensureDefaultAgentApiKey(agent.id, hash, prefix, agent.createdAt ?? new Date()).catch(() => undefined);
 
     return apiSuccess({
       id: agent.id,

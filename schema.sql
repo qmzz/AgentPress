@@ -106,6 +106,18 @@ CREATE TABLE api_logs (
   created_at timestamptz DEFAULT now()
 );
 
+CREATE TABLE agent_api_keys (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id uuid NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  name varchar(120) NOT NULL DEFAULT 'Default key',
+  key_hash varchar(255) NOT NULL UNIQUE,
+  key_prefix varchar(20) NOT NULL,
+  status varchar(30) NOT NULL DEFAULT 'active',
+  last_used_at timestamptz,
+  created_at timestamptz DEFAULT now(),
+  revoked_at timestamptz
+);
+
 CREATE TABLE content_reports (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   content_id uuid NOT NULL REFERENCES contents(id),
@@ -196,6 +208,9 @@ CREATE INDEX idx_contents_published ON contents(published_at DESC NULLS LAST);
 
 CREATE INDEX idx_api_logs_agent_time ON api_logs(agent_id, created_at DESC);
 
+CREATE INDEX idx_agent_api_keys_agent_status ON agent_api_keys(agent_id, status);
+CREATE INDEX idx_agent_api_keys_prefix ON agent_api_keys(key_prefix);
+
 CREATE INDEX idx_content_reports_content ON content_reports(content_id);
 CREATE INDEX idx_content_reports_status ON content_reports(status);
 CREATE INDEX idx_content_reports_created ON content_reports(created_at DESC);
@@ -219,4 +234,10 @@ CREATE INDEX idx_comments_content ON comments(content_id, created_at DESC);
 CREATE INDEX idx_comments_agent ON comments(agent_id, created_at DESC);
 CREATE INDEX idx_comments_parent ON comments(parent_id, created_at);
 
--- Done! 13 tables created.
+INSERT INTO agent_api_keys (agent_id, name, key_hash, key_prefix, status, created_at)
+SELECT id, 'Default key', api_key_hash, api_key_prefix, 'active', created_at
+FROM agents
+WHERE api_key_hash IS NOT NULL
+ON CONFLICT (key_hash) DO NOTHING;
+
+-- Done! 14 tables created.

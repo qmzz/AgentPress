@@ -53,6 +53,16 @@ type AgentConsolePayload = {
   }>;
 };
 
+type AgentKey = {
+  id: string;
+  name: string;
+  prefix: string;
+  status: string;
+  lastUsedAt: string | null;
+  createdAt: string | null;
+  revokedAt: string | null;
+};
+
 export function AgentConsole() {
   const [apiKey, setApiKey] = useState('');
   const [data, setData] = useState<AgentConsolePayload | null>(null);
@@ -73,6 +83,9 @@ export function AgentConsole() {
   const [resetStep, setResetStep] = useState<'email' | 'verify'>('email');
   const [resetForm, setResetForm] = useState({ email: '', code: '', slug: '' });
   const [codeSent, setCodeSent] = useState(false);
+  const [keys, setKeys] = useState<AgentKey[]>([]);
+  const [newKeyName, setNewKeyName] = useState('Agent key');
+  const [newApiKey, setNewApiKey] = useState<string | null>(null);
 
   const authHeaders = useMemo(() => ({
     Authorization: `Bearer ${apiKey}`,
@@ -106,9 +119,66 @@ export function AgentConsole() {
       window.localStorage.setItem('agentpress_api_key', key.trim());
       setApiKey(key.trim());
       setData(payload.data);
+      await loadKeys(key.trim()).catch(() => setKeys([]));
       setMessage('Console loaded.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to load console');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadKeys(key = apiKey) {
+    if (!key.trim()) return;
+    const response = await fetch('/api/v1/agent/keys', {
+      headers: { Authorization: `Bearer ${key.trim()}` },
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? 'Failed to load API keys');
+    setKeys(payload.data.keys ?? []);
+  }
+
+  async function createKey() {
+    setLoading(true);
+    setMessage(null);
+    setNewApiKey(null);
+    try {
+      const response = await fetch('/api/v1/agent/keys', {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newKeyName.trim() || 'Agent key' }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? 'Failed to create API key');
+      setNewApiKey(payload.data.api_key);
+      setNewKeyName('Agent key');
+      setMessage('New API key created. Save it now.');
+      await loadKeys();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to create API key');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function revokeKey(id: string) {
+    if (!window.confirm('Revoke this API key? Agents using it will lose access.')) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/v1/agent/keys/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? 'Failed to revoke API key');
+      setMessage('API key revoked.');
+      await loadKeys();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to revoke API key');
     } finally {
       setLoading(false);
     }
@@ -559,6 +629,78 @@ export function AgentConsole() {
           </section>
 
           <section className="rounded-xl border border-slate-200 bg-white p-6">
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">API Keys</h2>
+                <p className="text-sm text-slate-500">Create, rotate, and revoke Agent keys without changing the Agent identity.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => loadKeys()}
+                disabled={loading}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700 disabled:opacity-60"
+              >
+                Refresh keys
+              </button>
+            </div>
+
+            {newApiKey && (
+              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-medium text-amber-900">New key shown once. Copy it now.</p>
+                <code className="mt-2 block break-all rounded bg-white p-3 text-xs text-amber-900">{newApiKey}</code>
+              </div>
+            )}
+
+            <div className="mb-5 flex flex-col gap-3 md:flex-row">
+              <input
+                type="text"
+                value={newKeyName}
+                onChange={(event) => setNewKeyName(event.target.value)}
+                placeholder="Production publisher"
+                className="h-10 flex-1 rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              />
+              <button
+                type="button"
+                onClick={createKey}
+                disabled={loading || !newKeyName.trim()}
+                className="inline-flex h-10 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
+              >
+                Create key
+              </button>
+            </div>
+
+            <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+              {keys.length === 0 ? (
+                <p className="p-4 text-sm text-slate-500">No keys loaded yet.</p>
+              ) : keys.map((key) => (
+                <div key={key.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-slate-900">{key.name}</span>
+                      <span className={key.status === 'active' ? 'rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700' : 'rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500'}>
+                        {key.status}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      prefix {key.prefix} · created {formatDate(key.createdAt)} · last used {formatDate(key.lastUsedAt)}
+                    </p>
+                  </div>
+                  {key.status === 'active' && (
+                    <button
+                      type="button"
+                      onClick={() => revokeKey(key.id)}
+                      disabled={loading}
+                      className="inline-flex h-9 items-center justify-center rounded-lg border border-red-200 px-3 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
+                    >
+                      Revoke
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-6">
             <div className="mb-5 flex items-center gap-2">
               <FileText className="h-5 w-5 text-slate-400" />
               <h2 className="text-lg font-semibold text-slate-900">Recent Content</h2>
@@ -633,3 +775,7 @@ export function AgentConsole() {
   );
 }
 
+function formatDate(value: string | null) {
+  if (!value) return 'never';
+  return new Date(value).toLocaleString();
+}

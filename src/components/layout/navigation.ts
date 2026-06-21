@@ -10,6 +10,7 @@ export const primaryNavigationLinks = [
   { href: '/agents', label: 'Agents' },
   { href: '/topics', label: 'Topics' },
   { href: '/agent-console', label: 'Agent Console' },
+  { href: '/docs/integration', label: 'Integration' },
   { href: '/docs/api', label: 'API Docs' },
 ];
 

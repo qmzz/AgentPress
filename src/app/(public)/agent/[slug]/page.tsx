@@ -6,12 +6,13 @@ export const dynamic = 'force-dynamic';
 
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
-import { agents, contents } from '@/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
-import { Bot, Eye, BarChart3 } from 'lucide-react';
+import { agents, contents, contentReviews } from '@/lib/db/schema';
+import { eq, desc, and, sql, inArray } from 'drizzle-orm';
+import { Bot, Eye, BarChart3, CheckCircle2 } from 'lucide-react';
 import { TrustBadge } from '@/components/agent/TrustBadge';
 import { ContentCard } from '@/components/content/ContentCard';
 import { getAgentViewSummary, getContentViewCounts } from '@/lib/content-analytics';
+import { calculateAgentQualityScore, getQualityLabel } from '@/lib/quality-score';
 
 async function getAgentData(slug: string) {
   const agent = await db.query.agents.findFirst({ where: eq(agents.slug, slug) });
@@ -30,7 +31,25 @@ async function getAgentData(slug: string) {
     getAgentViewSummary(agent.id),
     getContentViewCounts(publishedContents.map((item) => item.id)),
   ]);
-  return { agent, contents: publishedContents, viewSummary, viewCounts };
+  const reviewContentIds = publishedContents.map((item) => item.id);
+  const [reviewSummary] = reviewContentIds.length === 0
+    ? [{ approved: 0, total: 0, avgQuality: 0 }]
+    : await db
+      .select({
+        approved: sql<number>`count(*) filter (where ${contentReviews.verdict} = 'approved')::int`,
+        total: sql<number>`count(*)::int`,
+        avgQuality: sql<number>`coalesce(avg((${contentReviews.score}->>'quality')::numeric), 0)::float`,
+      })
+      .from(contentReviews)
+      .where(inArray(contentReviews.contentId, reviewContentIds));
+  const approvalRate = reviewSummary.total > 0 ? reviewSummary.approved / reviewSummary.total : null;
+  const qualityScore = calculateAgentQualityScore({
+    totalPublished: agent.totalPublished,
+    viewCount7d: viewSummary.recent7d,
+    approvalRate,
+    avgQuality: reviewSummary.avgQuality || null,
+  });
+  return { agent, contents: publishedContents, viewSummary, viewCounts, qualityScore, approvalRate, avgQuality: reviewSummary.avgQuality };
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
@@ -42,7 +61,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function AgentPage({ params }: { params: { slug: string } }) {
   const data = await getAgentData(params.slug);
   if (!data) notFound();
-  const { agent, contents: agentContents, viewSummary, viewCounts } = data;
+  const { agent, contents: agentContents, viewSummary, viewCounts, qualityScore, approvalRate, avgQuality } = data;
   return (
     <div className="container-wide py-12">
       <header className="mb-12 flex items-start gap-6">
@@ -59,9 +78,15 @@ export default async function AgentPage({ params }: { params: { slug: string } }
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-500">
             <span className="flex items-center gap-1"><BarChart3 className="h-4 w-4" /> {agent.totalPublished} published</span>
             <span className="flex items-center gap-1"><Eye className="h-4 w-4" /> {viewSummary.total.toLocaleString()} views</span>
+            <span className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> Quality {qualityScore}/100 · {getQualityLabel(qualityScore)}</span>
           </div>
         </div>
       </header>
+      <section className="mb-10 grid gap-4 md:grid-cols-3">
+        <QualityCard label="Approval Rate" value={approvalRate == null ? 'No reviews' : `${Math.round(approvalRate * 100)}%`} />
+        <QualityCard label="Avg Review Quality" value={avgQuality ? `${Math.round(avgQuality * 100)}%` : 'No signal'} />
+        <QualityCard label="Views (7d)" value={viewSummary.recent7d.toLocaleString()} />
+      </section>
       <section>
         <h2 className="mb-6 text-xl font-bold text-slate-900">Published Content</h2>
         {agentContents.length === 0 ? (
@@ -84,6 +109,15 @@ export default async function AgentPage({ params }: { params: { slug: string } }
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function QualityCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
     </div>
   );
 }
