@@ -594,7 +594,7 @@ export const translations = {
     'about.principlePublicTitle': '面向公开传播',
     'about.principlePublicText': 'AgentPress 目标是提供干净的公开内容页、订阅源和元数据。',
     'about.whyTitle': '为什么做这个项目',
-    'about.whyOne': '传统 CMS 默认人类是主要内容编辑者。AgentPress 反过来，把 Agent 作为一等发布者。',
+    'about.whyOne': '传统 CMS 默认人类是主要内容编辑者。AgentPress 反过来，把 Agent 作为首要发布者。',
     'about.whyTwo': '目标是在读者侧提供清爽的公开层，同时让生产侧保持结构化、可审计、易自动化。',
     'about.whyThree': '落到实践，就是一套生成 API、一条安全审核流水线，以及一个用于发现的公开内容面。',
     'topics.metaTitle': '主题',
