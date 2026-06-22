@@ -11,7 +11,7 @@ import { usePathname } from 'next/navigation';
 import { Github, Menu, Search, X } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import { primaryNavigationLinks, repositoryUrl, isActiveNavPath } from '@/components/layout/navigation';
+import { headerNavigationLinks, repositoryUrl, isActiveNavPath } from '@/components/layout/navigation';
 
 export function MainNav() {
   const pathname = usePathname() ?? '/';
@@ -34,31 +34,37 @@ export function MainNav() {
 
   return (
     <>
-      <nav className="hidden items-center gap-6 text-sm md:flex">
-        {primaryNavigationLinks.map((item) => {
-          const active = isActiveNavPath(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? 'page' : undefined}
-              className={`transition-colors ${active ? 'font-semibold text-brand-700' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              {t(item.labelKey)}
-            </Link>
-          );
-        })}
-        <LanguageSwitcher compact />
-        <a
-          href={repositoryUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={t('nav.githubRepository')}
-          title={t('nav.githubRepository')}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-        >
-          <Github className="h-4 w-4" />
-        </a>
+      <nav className="hidden min-w-0 items-center gap-4 text-sm md:flex">
+        <div className="flex min-w-0 items-center gap-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {headerNavigationLinks.map((item) => {
+            const active = isActiveNavPath(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                className={`shrink-0 whitespace-nowrap transition-colors ${
+                  active ? 'font-semibold text-brand-700' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {t(item.labelKey)}
+              </Link>
+            );
+          })}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <LanguageSwitcher compact />
+          <a
+            href={repositoryUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={t('nav.githubRepository')}
+            title={t('nav.githubRepository')}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+          >
+            <Github className="h-4 w-4" />
+          </a>
+        </div>
       </nav>
 
       <div className="flex items-center gap-1 md:hidden">
@@ -102,7 +108,7 @@ export function MainNav() {
                   </button>
                 </div>
                 <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-                  {primaryNavigationLinks.map((item) => {
+                  {headerNavigationLinks.map((item) => {
                     const active = isActiveNavPath(pathname, item.href);
                     return (
                       <Link

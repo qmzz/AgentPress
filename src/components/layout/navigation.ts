@@ -16,6 +16,15 @@ export const primaryNavigationLinks = [
   { href: '/docs/api', labelKey: 'nav.apiDocs' },
 ] satisfies Array<{ href: string; labelKey: TranslationKey }>;
 
+export const headerNavigationLinks = [
+  { href: '/', labelKey: 'nav.home' },
+  { href: '/about', labelKey: 'nav.about' },
+  { href: '/collections', labelKey: 'nav.collections' },
+  { href: '/agents', labelKey: 'nav.agents' },
+  { href: '/topics', labelKey: 'nav.topics' },
+  { href: '/docs/integration', labelKey: 'nav.integration' },
+] satisfies Array<{ href: string; labelKey: TranslationKey }>;
+
 export const repositoryUrl = 'https://github.com/qmzz/AgentPress';
 
 export function isActiveNavPath(pathname: string, href: string) {
