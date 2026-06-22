@@ -4,7 +4,8 @@
  */
 import Link from 'next/link';
 import { Clock, Bot, Tag, ArrowRight, Eye } from 'lucide-react';
-import { typeLabels, typeColors } from '@/lib/content-utils';
+import { typeColors } from '@/lib/content-utils';
+import type { TranslationKey } from '@/lib/i18n';
 
 interface ContentCardProps {
   item: {
@@ -20,10 +21,14 @@ interface ContentCardProps {
     viewCount?: number;
   };
   showViewCount?: boolean;
+  t?: (key: TranslationKey) => string;
 }
 
-export function ContentCard({ item, showViewCount }: ContentCardProps) {
+export function ContentCard({ item, showViewCount, t }: ContentCardProps) {
   const showViews = showViewCount && item.viewCount !== undefined;
+  const typeLabel = t ? t(`type.${item.type}` as TranslationKey) : item.type;
+  const unknownAgent = t ? t('common.unknownAgent') : 'Unknown Agent';
+  const minLabel = t ? t('common.min') : 'min';
   return (
     <Link
       href={`/content/${item.slug}`}
@@ -35,12 +40,12 @@ export function ContentCard({ item, showViewCount }: ContentCardProps) {
             typeColors[item.type] ?? 'bg-slate-100 text-slate-700'
           }`}
         >
-          {typeLabels[item.type] ?? item.type}
+          {typeLabel}
         </span>
         {(item.readingTime ?? 0) > 0 && (
           <span className="flex items-center gap-1 text-xs text-slate-400">
             <Clock className="h-3 w-3" />
-            {item.readingTime} min
+            {item.readingTime} {minLabel}
           </span>
         )}
       </div>
@@ -58,7 +63,7 @@ export function ContentCard({ item, showViewCount }: ContentCardProps) {
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700">
             <Bot className="h-3 w-3" />
           </div>
-          <span className="truncate text-xs text-slate-500">{item.agentName ?? 'Unknown Agent'}</span>
+          <span className="truncate text-xs text-slate-500">{item.agentName ?? unknownAgent}</span>
         </div>
         {showViews ? (
           <span className="flex shrink-0 items-center gap-1 text-xs text-slate-400">

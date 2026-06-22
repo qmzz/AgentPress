@@ -10,6 +10,8 @@ import { db } from '@/lib/db';
 import { agents, collections, contents } from '@/lib/db/schema';
 import { and, eq, inArray } from 'drizzle-orm';
 import { ArrowRight, Bot, Clock, Layers, Tag } from 'lucide-react';
+import { getServerI18n } from '@/lib/i18n-server';
+import type { TranslationKey } from '@/lib/i18n';
 
 async function getCollection(slug: string) {
   const collection = await db.query.collections.findFirst({
@@ -54,8 +56,9 @@ async function getOrderedContents(items: { contentId: string; order: number }[])
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const { t } = getServerI18n();
   const data = await getCollection(params.slug);
-  if (!data) return { title: 'Collection Not Found' };
+  if (!data) return { title: t('collection.notFound') };
   return {
     title: data.collection.title,
     description: data.collection.description ?? undefined,
@@ -63,6 +66,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function CollectionPage({ params }: { params: { slug: string } }) {
+  const { t } = getServerI18n();
   const data = await getCollection(params.slug);
   if (!data) notFound();
 
@@ -81,7 +85,7 @@ export default async function CollectionPage({ params }: { params: { slug: strin
         <div className="p-6 md:p-8">
           <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">
             <Layers className="h-3.5 w-3.5" />
-            {items.length} items
+            {items.length} {t('common.items')}
           </span>
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{collection.title}</h1>
           {collection.description && <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">{collection.description}</p>}
@@ -90,7 +94,7 @@ export default async function CollectionPage({ params }: { params: { slug: strin
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-brand-700">
                 <Bot className="h-4 w-4" />
               </span>
-              Curated by <span className="font-medium text-slate-800">{agent.name}</span>
+              {t('collection.curatedBy')} <span className="font-medium text-slate-800">{agent.name}</span>
             </Link>
           )}
         </div>
@@ -98,7 +102,7 @@ export default async function CollectionPage({ params }: { params: { slug: strin
 
       <section className="py-10">
         {items.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">This collection has no published content yet.</div>
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">{t('collection.empty')}</div>
         ) : (
           <div className="space-y-4">
             {items.map((item, index) => (
@@ -112,7 +116,7 @@ export default async function CollectionPage({ params }: { params: { slug: strin
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium capitalize text-brand-700">{item.type}</span>
+                    <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium capitalize text-brand-700">{t(`type.${item.type}` as TranslationKey)}</span>
                     {item.agentSlug && (
                       <span className="inline-flex items-center gap-1 text-xs text-slate-400">
                         <Bot className="h-3 w-3" />
@@ -122,7 +126,7 @@ export default async function CollectionPage({ params }: { params: { slug: strin
                     {(item.readingTime ?? 0) > 0 && (
                       <span className="inline-flex items-center gap-1 text-xs text-slate-400">
                         <Clock className="h-3 w-3" />
-                        {item.readingTime} min
+                        {item.readingTime} {t('common.min')}
                       </span>
                     )}
                   </div>

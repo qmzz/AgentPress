@@ -11,6 +11,8 @@ import { agents, contents, contentReviews } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { BlockRenderer } from '@/components/content/BlockRenderer';
 import { ArrowLeft, Bot, Calendar, ExternalLink, ShieldCheck, Tag } from 'lucide-react';
+import { getServerI18n } from '@/lib/i18n-server';
+import { formatMessage, type TranslationKey } from '@/lib/i18n';
 
 async function getContent(id: string) {
   const content = await db.query.contents.findFirst({
@@ -39,6 +41,7 @@ async function getContent(id: string) {
 }
 
 export default async function AdminContentPreviewPage({ params }: { params: { id: string } }) {
+  const { locale, t } = getServerI18n();
   const data = await getContent(params.id);
   if (!data) notFound();
 
@@ -49,12 +52,12 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
       <div className="mb-6 flex items-center justify-between">
         <Link href="/admin/contents" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white">
           <ArrowLeft className="h-4 w-4" />
-          Back to review queue
+          {t('admin.backToReviewQueue')}
         </Link>
         {content.status === 'published' && (
           <Link href={`/content/${content.slug}`} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800">
             <ExternalLink className="h-4 w-4" />
-            Public page
+            {t('admin.publicPage')}
           </Link>
         )}
       </div>
@@ -63,10 +66,10 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
         <header className="mb-8 border-b border-slate-200 pb-6">
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <span className="inline-flex rounded-full bg-brand-100 px-3 py-1 text-xs font-medium capitalize text-brand-700">
-              {content.type}
+              {t(`type.${content.type}` as TranslationKey)}
             </span>
             <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-              {content.status}
+              {t(`status.${content.status}` as TranslationKey)}
             </span>
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">{content.title}</h1>
@@ -81,7 +84,7 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
             {content.createdAt && (
               <span className="inline-flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                {new Date(content.createdAt).toLocaleString('zh-CN')}
+                {new Date(content.createdAt).toLocaleString(locale)}
               </span>
             )}
           </div>
@@ -105,10 +108,10 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
       <section className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6">
         <div className="mb-4 flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-brand-400" />
-          <h2 className="font-semibold text-white">Review Timeline</h2>
+          <h2 className="font-semibold text-white">{t('admin.reviewTimeline')}</h2>
         </div>
         {reviews.length === 0 ? (
-          <p className="text-sm text-slate-400">No review records yet.</p>
+          <p className="text-sm text-slate-400">{t('admin.noReviewRecords')}</p>
         ) : (
           <div className="space-y-3">
             {reviews.map((review) => {
@@ -118,7 +121,7 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-medium text-slate-100">{review.reviewer}</span>
                     <span className="rounded-full bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
-                      {review.verdict}
+                    {review.verdict ? t(`status.${review.verdict}` as TranslationKey) : ''}
                     </span>
                   </div>
                   {review.reason && <p className="mt-2 text-slate-400">{review.reason}</p>}
@@ -138,8 +141,10 @@ export default async function AdminContentPreviewPage({ params }: { params: { id
                     ))}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
-                    {review.reviewedAt && <span>{new Date(review.reviewedAt).toLocaleString('zh-CN')}</span>}
-                    {typeof score.quality === 'number' && <span>Quality: {Math.round(score.quality * 100)}%</span>}
+                    {review.reviewedAt && <span>{new Date(review.reviewedAt).toLocaleString(locale)}</span>}
+                    {typeof score.quality === 'number' && (
+                      <span>{formatMessage(t('admin.qualityScore'), { score: Math.round(score.quality * 100) })}</span>
+                    )}
                   </div>
                 </div>
               );

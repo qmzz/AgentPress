@@ -12,7 +12,9 @@ import { Bot, Eye, BarChart3, CheckCircle2 } from 'lucide-react';
 import { TrustBadge } from '@/components/agent/TrustBadge';
 import { ContentCard } from '@/components/content/ContentCard';
 import { getAgentViewSummary, getContentViewCounts } from '@/lib/content-analytics';
-import { calculateAgentQualityScore, getQualityLabel } from '@/lib/quality-score';
+import { calculateAgentQualityScore } from '@/lib/quality-score';
+import { getServerI18n } from '@/lib/i18n-server';
+import { formatMessage } from '@/lib/i18n';
 
 async function getAgentData(slug: string) {
   const agent = await db.query.agents.findFirst({ where: eq(agents.slug, slug) });
@@ -53,12 +55,14 @@ async function getAgentData(slug: string) {
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const { t } = getServerI18n();
   const data = await getAgentData(params.slug);
-  if (!data) return { title: 'Not Found' };
-  return { title: `${data.agent.name} - Agent Profile`, description: data.agent.description ?? undefined };
+  if (!data) return { title: t('agent.notFound') };
+  return { title: formatMessage(t('agent.metaTitle'), { name: data.agent.name }), description: data.agent.description ?? undefined };
 }
 
 export default async function AgentPage({ params }: { params: { slug: string } }) {
+  const { t } = getServerI18n();
   const data = await getAgentData(params.slug);
   if (!data) notFound();
   const { agent, contents: agentContents, viewSummary, viewCounts, qualityScore, approvalRate, avgQuality } = data;
@@ -71,31 +75,34 @@ export default async function AgentPage({ params }: { params: { slug: string } }
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-bold text-slate-900">{agent.name}</h1>
-            <TrustBadge trustLevel={agent.trustLevel} />
+            <TrustBadge trustLevel={agent.trustLevel} t={t} />
           </div>
           <p className="mt-1 text-sm text-slate-500">@{agent.slug}</p>
           {agent.description && <p className="mt-3 max-w-2xl text-slate-600">{agent.description}</p>}
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-500">
-            <span className="flex items-center gap-1"><BarChart3 className="h-4 w-4" /> {agent.totalPublished} published</span>
-            <span className="flex items-center gap-1"><Eye className="h-4 w-4" /> {viewSummary.total.toLocaleString()} views</span>
-            <span className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> Quality {qualityScore}/100 · {getQualityLabel(qualityScore)}</span>
+            <span className="flex items-center gap-1"><BarChart3 className="h-4 w-4" /> {agent.totalPublished} {t('agent.published')}</span>
+            <span className="flex items-center gap-1"><Eye className="h-4 w-4" /> {formatMessage(t('common.views'), { count: viewSummary.total.toLocaleString() })}</span>
+            <span className="flex items-center gap-1">
+              <CheckCircle2 className="h-4 w-4" />
+              {formatMessage(t('agent.quality'), { score: qualityScore, label: getLocalizedQualityLabel(qualityScore, t) })}
+            </span>
           </div>
         </div>
       </header>
       <section className="mb-10 grid gap-4 md:grid-cols-3">
-        <QualityCard label="Approval Rate" value={approvalRate == null ? 'No reviews' : `${Math.round(approvalRate * 100)}%`} />
-        <QualityCard label="Avg Review Quality" value={avgQuality ? `${Math.round(avgQuality * 100)}%` : 'No signal'} />
-        <QualityCard label="Views (7d)" value={viewSummary.recent7d.toLocaleString()} />
+        <QualityCard label={t('agent.approvalRate')} value={approvalRate == null ? t('agent.noReviews') : `${Math.round(approvalRate * 100)}%`} />
+        <QualityCard label={t('agent.avgReviewQuality')} value={avgQuality ? `${Math.round(avgQuality * 100)}%` : t('agent.noSignal')} />
+        <QualityCard label={t('agent.views7d')} value={viewSummary.recent7d.toLocaleString()} />
       </section>
       <section>
-        <h2 className="mb-6 text-xl font-bold text-slate-900">Published Content</h2>
+        <h2 className="mb-6 text-xl font-bold text-slate-900">{t('agent.publishedContent')}</h2>
         {agentContents.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white py-16 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
               <Bot className="h-6 w-6" />
             </div>
-            <p className="mt-4 text-lg font-medium text-slate-900">No published content yet</p>
-            <p className="mt-2 text-sm text-slate-500">This Agent has not published anything so far.</p>
+            <p className="mt-4 text-lg font-medium text-slate-900">{t('agent.emptyTitle')}</p>
+            <p className="mt-2 text-sm text-slate-500">{t('agent.emptyDescription')}</p>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -104,6 +111,7 @@ export default async function AgentPage({ params }: { params: { slug: string } }
                 key={item.id}
                 item={{ ...item, agentName: agent.name, agentSlug: agent.slug, viewCount: viewCounts.get(item.id) ?? 0 }}
                 showViewCount
+                t={t}
               />
             ))}
           </div>
@@ -120,4 +128,11 @@ function QualityCard({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
     </div>
   );
+}
+
+function getLocalizedQualityLabel(score: number, t: (key: 'quality.excellent' | 'quality.healthy' | 'quality.developing' | 'quality.needsSignal') => string) {
+  if (score >= 80) return t('quality.excellent');
+  if (score >= 60) return t('quality.healthy');
+  if (score >= 40) return t('quality.developing');
+  return t('quality.needsSignal');
 }

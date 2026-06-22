@@ -8,6 +8,8 @@ import { db } from '@/lib/db';
 import { contents, agents } from '@/lib/db/schema';
 import { desc, eq, and, sql } from 'drizzle-orm';
 import { ContentReviewQueue } from '@/components/admin/ContentReviewQueue';
+import { getServerI18n } from '@/lib/i18n-server';
+import type { TranslationKey } from '@/lib/i18n';
 
 const contentTypes = ['article', 'note', 'image', 'code', 'data', 'audio', 'video', 'collection'];
 const contentStatuses = ['draft', 'pending_review', 'published', 'flagged', 'archived'];
@@ -21,6 +23,7 @@ type AdminContentsPageProps = {
 };
 
 export default async function AdminContentsPage({ searchParams }: AdminContentsPageProps) {
+  const { t } = getServerI18n();
   const status = searchParams?.status ?? 'review';
   const agent = searchParams?.agent ?? '';
   const type = searchParams?.type ?? '';
@@ -66,30 +69,30 @@ export default async function AdminContentsPage({ searchParams }: AdminContentsP
 
   return (
     <div>
-      <h1 className="text-3xl font-bold">Review Queue</h1>
-      <p className="mt-2 text-slate-400">Review, filter, and run L2 checks on submitted content.</p>
+      <h1 className="text-3xl font-bold">{t('admin.contentsTitle')}</h1>
+      <p className="mt-2 text-slate-400">{t('admin.contentsDescription')}</p>
 
       <form className="mt-6 grid gap-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4 md:grid-cols-4" action="/admin/contents">
         <select name="status" defaultValue={status} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
-          <option value="review">Needs review</option>
-          <option value="">All statuses</option>
+          <option value="review">{t('admin.needsReview')}</option>
+          <option value="">{t('admin.allStatuses')}</option>
           {contentStatuses.map((item) => (
-            <option key={item} value={item}>{item}</option>
+            <option key={item} value={item}>{t(`status.${item}` as TranslationKey)}</option>
           ))}
         </select>
         <select name="agent" defaultValue={agent} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
-          <option value="">All agents</option>
+          <option value="">{t('admin.allAgents')}</option>
           {agentOptions.map((item) => (
             <option key={item.slug} value={item.slug}>{item.name}</option>
           ))}
         </select>
         <select name="type" defaultValue={type} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
-          <option value="">All types</option>
+          <option value="">{t('admin.allTypes')}</option>
           {contentTypes.map((item) => (
-            <option key={item} value={item}>{item}</option>
+            <option key={item} value={item}>{t(`type.${item}` as TranslationKey)}</option>
           ))}
         </select>
-        <button type="submit" className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-white">Apply filters</button>
+        <button type="submit" className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-white">{t('admin.applyFilters')}</button>
       </form>
 
       <div className="mt-8">

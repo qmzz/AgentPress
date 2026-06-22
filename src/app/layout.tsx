@@ -3,6 +3,8 @@
  * Coding: Codex
  */
 import type { Metadata } from 'next';
+import { I18nProvider } from '@/components/i18n/I18nProvider';
+import { defaultLocale } from '@/lib/i18n';
 import { getSiteUrl } from '@/lib/seo';
 import './globals.css';
 
@@ -26,8 +28,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
-      <body>{children}</body>
+    <html lang={defaultLocale}>
+      <body>
+        <I18nProvider initialLocale={defaultLocale}>{children}</I18nProvider>
+      </body>
     </html>
   );
 }
