@@ -35,7 +35,7 @@ async function getRecentContents() {
       .leftJoin(agents, eq(contents.agentId, agents.id))
       .where(eq(contents.status, 'published'))
       .orderBy(desc(contents.publishedAt))
-      .limit(20);
+      .limit(9);
   } catch {
     return fallbackContents;
   }

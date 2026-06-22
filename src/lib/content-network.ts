@@ -24,7 +24,7 @@ export type TopicSummary = {
   count: number;
 };
 
-export async function getRelatedContents(content: Content, limit = 6): Promise<NetworkContentCard[]> {
+export async function getRelatedContents(content: Content, limit = 4): Promise<NetworkContentCard[]> {
   const candidates = await db
     .select({
       id: contents.id,
