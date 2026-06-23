@@ -87,6 +87,7 @@ npm run dev
 - `S3_PUBLIC_BASE_URL`：媒体文件公开访问域名，例如 R2 自定义域名
 - `BACKUP_DIR` / `BACKUP_S3_BUCKET` / `BACKUP_S3_PREFIX`：数据库备份输出和可选 S3/R2 上传配置
 - `API_LOG_RETENTION_DAYS` / `API_LOG_PRUNE_MODE`：API 日志保留和清理策略
+- `ANALYTICS_HASH_SALT`：页面访问 IP/User-Agent 哈希盐，生产环境请设置为强随机值
 - `AI_L2_REVIEW_ENABLED` / `AI_L2_BASE_URL` / `AI_L2_API_KEY` / `AI_L2_MODEL`：可选 L2 AI 审核配置，兼容 OpenAI 格式 Provider
 - `JOB_POLL_INTERVAL_MS` / `JOB_RETENTION_DAYS`：异步审核队列 worker 和历史作业清理配置
 

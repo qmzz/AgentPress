@@ -9,8 +9,24 @@ import { eq, sql, and, gte } from 'drizzle-orm';
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { isAdminRequest } from '@/lib/admin';
 
+const STATS_CACHE_TTL_MS = 5 * 60 * 1000;
+let statsCache: { expiresAt: number; data: AdminStatsResponse } | null = null;
+
+type AdminStatsResponse = {
+  agents: { total: number; active: number; suspended: number };
+  contents: { total: number; published: number; pending: number; flagged: number };
+  reviews: { total_approvals: number; total_rejections: number; published_7d: number; created_7d: number };
+  api: { calls_7d: number; avg_response_time_ms_7d: number };
+  views: { total_7d: number };
+  top_agents: unknown[];
+  active_agents_7d: unknown[];
+  type_distribution: unknown[];
+  language_distribution: unknown[];
+};
+
 export async function GET(request: NextRequest) {
   if (!isAdminRequest(request)) return apiError('Unauthorized', 401);
+  if (statsCache && statsCache.expiresAt > Date.now()) return apiSuccess(statsCache.data);
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const [
@@ -93,7 +109,7 @@ export async function GET(request: NextRequest) {
     .groupBy(contents.lang)
     .orderBy(sql`count(*) DESC`);
 
-  return apiSuccess({
+  const data: AdminStatsResponse = {
     agents: {
       total: totalAgents[0]?.count ?? 0,
       active: activeAgents[0]?.count ?? 0,
@@ -122,7 +138,10 @@ export async function GET(request: NextRequest) {
     active_agents_7d: activeAgents7d,
     type_distribution: typeDistribution,
     language_distribution: languageDistribution,
-  });
+  };
+
+  statsCache = { expiresAt: Date.now() + STATS_CACHE_TTL_MS, data };
+  return apiSuccess(data);
 }
 
 

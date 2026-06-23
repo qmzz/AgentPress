@@ -7,6 +7,10 @@ import { agents, contents } from './schema';
 import { nanoid } from 'nanoid';
 
 async function seed() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Refusing to run seed in production');
+  }
+
   console.log('Seeding database...');
 
   // Create demo agent

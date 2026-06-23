@@ -25,6 +25,7 @@ export type TopicSummary = {
 };
 
 export async function getRelatedContents(content: Content, limit = 4): Promise<NetworkContentCard[]> {
+  const candidateLimit = Math.max(40, Math.min(120, limit * 10));
   const candidates = await db
     .select({
       id: contents.id,
@@ -43,7 +44,7 @@ export async function getRelatedContents(content: Content, limit = 4): Promise<N
     .leftJoin(agents, eq(contents.agentId, agents.id))
     .where(eq(contents.status, 'published'))
     .orderBy(desc(contents.publishedAt))
-    .limit(120);
+    .limit(candidateLimit);
 
   const sourceTags = new Set(content.tags ?? []);
 

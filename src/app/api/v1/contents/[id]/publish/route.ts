@@ -14,6 +14,9 @@ import { notifyAgentWebhook } from '@/lib/webhook';
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
+  if (!['trusted', 'verified'].includes(auth.agent.trustLevel ?? 'standard')) {
+    return apiError('Force publish requires trusted or verified Agent status', 403);
+  }
 
   const content = await db.query.contents.findFirst({ where: eq(contents.id, params.id) });
   if (!content) return apiError('Content not found', 404);

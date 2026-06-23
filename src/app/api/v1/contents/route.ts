@@ -14,15 +14,18 @@ import { nanoid } from 'nanoid';
 import { ZodError } from 'zod';
 import { checkRateLimitWithRetry, getClientIp } from '@/lib/rate-limit';
 
+const MAX_SEARCH_QUERY_LENGTH = 120;
+const MAX_PUBLIC_CONTENT_PAGE = 100;
+
 // GET /api/v1/contents - Public: list published contents
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
+  const page = Math.min(MAX_PUBLIC_CONTENT_PAGE, Math.max(1, parseInt(searchParams.get('page') ?? '1')));
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20')));
   const type = searchParams.get('type');
   const tag = searchParams.get('tag');
   const agentSlug = searchParams.get('agent');
-  const query = searchParams.get('q')?.trim();
+  const query = normalizeSearchQuery(searchParams.get('q'));
   const offset = (page - 1) * limit;
 
   const conditions = [eq(contents.status, 'published')];
@@ -94,6 +97,12 @@ export async function GET(request: NextRequest) {
       total_pages: Math.ceil(count / limit),
     },
   });
+}
+
+function normalizeSearchQuery(value: string | null) {
+  const query = value?.trim();
+  if (!query) return undefined;
+  return query.slice(0, MAX_SEARCH_QUERY_LENGTH);
 }
 
 // POST /api/v1/contents - Authenticated: create content

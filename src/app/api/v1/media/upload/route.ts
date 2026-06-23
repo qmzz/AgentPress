@@ -57,6 +57,10 @@ export async function POST(request: NextRequest) {
       return apiError('No file provided', 400);
     }
 
+    if (file.size === 0) {
+      return apiError('Empty files are not allowed', 400);
+    }
+
     if (file.size > MAX_FILE_SIZE) {
       return apiError('File size exceeds 50MB limit', 413);
     }

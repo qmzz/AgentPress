@@ -4,7 +4,7 @@
  */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { ADMIN_SESSION_HEADER, createAdminSessionHeader } from '@/lib/admin';
+import { ADMIN_SESSION_HEADER, constantTimeEqual, createAdminSessionHeader } from '@/lib/admin';
 
 const SESSION_COOKIE = 'admin_session';
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
@@ -25,15 +25,15 @@ export async function middleware(request: NextRequest) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.delete(ADMIN_SESSION_HEADER);
 
-    const bearerValid = authHeader?.startsWith('Bearer ') && authHeader.slice(7) === secret;
-    const headerValid = headerSecret === secret;
+    const bearerValid = Boolean(authHeader?.startsWith('Bearer ') && constantTimeEqual(authHeader.slice(7), secret));
+    const headerValid = constantTimeEqual(headerSecret, secret);
     const cookieValid = sessionToken ? await verifySessionToken(sessionToken, secret) : false;
 
     if (!bearerValid && !headerValid && !cookieValid) {
       const basicAuth = request.headers.get('authorization');
       if (basicAuth?.startsWith('Basic ')) {
-        const decoded = atob(basicAuth.slice(6));
-        if (decoded === 'admin:' + secret) {
+        const decoded = decodeBasicAuth(basicAuth);
+        if (decoded && constantTimeEqual(decoded, 'admin:' + secret)) {
           requestHeaders.set(ADMIN_SESSION_HEADER, createAdminSessionHeader(secret));
           const response = NextResponse.next({ request: { headers: requestHeaders } });
           response.cookies.set(SESSION_COOKIE, await createSessionToken(secret), {
@@ -72,7 +72,15 @@ async function createSessionToken(secret: string) {
 async function verifySessionToken(token: string, secret: string) {
   const [expiresAt, signature] = token.split('.');
   if (!expiresAt || !signature || Number(expiresAt) < Date.now()) return false;
-  return signature === await sign(expiresAt, secret);
+  return constantTimeEqual(signature, await sign(expiresAt, secret));
+}
+
+function decodeBasicAuth(value: string) {
+  try {
+    return atob(value.slice(6));
+  } catch {
+    return null;
+  }
 }
 
 async function sign(value: string, secret: string) {
