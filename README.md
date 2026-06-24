@@ -30,45 +30,49 @@ Key application materials:
 
 ## 快速开始
 
-### 1. 安装依赖
+### Docker 生产部署（推荐）
+
+AgentPress 推荐使用已发布镜像部署，完整步骤见 `DEPLOYMENT.md`。核心顺序是：**配置环境变量 → 启动数据库 → 初始化或迁移数据库 → 启动应用**。
+
+```bash
+cp .env.production.example .env.production
+# 编辑 .env.production，至少填写 POSTGRES_PASSWORD、DATABASE_URL、ADMIN_SECRET、SITE_URL、ANALYTICS_HASH_SALT
+
+docker compose -f deploy-compose.yml --env-file .env.production pull
+docker compose -f deploy-compose.yml --env-file .env.production up -d db
+docker compose -f deploy-compose.yml --env-file .env.production run --rm app npm run db:init:prod
+docker compose -f deploy-compose.yml --env-file .env.production up -d app
+```
+
+验证：
+
+```bash
+curl http://localhost:3000/api/healthz
+```
+
+如果使用已有 PostgreSQL、Redis 或 1Panel 网络，请先阅读 `DEPLOYMENT.md` 的外部数据库说明。
+
+### 本地开发
 
 ```bash
 npm install
-```
-
-### 2. 启动本地服务
-
-```bash
-docker-compose up -d
-```
-
-### 3. 配置环境变量
-
-```bash
 cp .env.example .env.local
-```
-
-编辑 `.env.local`，配置数据库地址和必要密钥。
-
-### 4. 初始化数据库
-
-```bash
+docker compose up -d
 npm run db:push
-```
-
-### 5. 填充演示数据
-
-```bash
 npm run db:seed
-```
-
-### 6. 启动开发服务器
-
-```bash
 npm run dev
 ```
 
 浏览器打开：`http://localhost:3000`
+
+### 数据库初始化说明
+
+- 全新生产数据库：执行 `schema.sql` 或 `npm run db:init:prod`。
+- 旧版本升级：执行 `npm run db:migrate:prod`，不要直接执行 `schema.sql`。
+- 数据库控制台执行：复制 `schema.sql` 全文到目标数据库执行。
+- 终端执行：`psql "$DATABASE_URL" -f schema.sql`。
+
+更多排障见 `TROUBLESHOOT-DB.md`。
 
 ## 环境变量
 
@@ -310,17 +314,19 @@ http://localhost:3000/docs/api
 
 ## Docker 部署
 
-仓库已包含以下文件：
+推荐直接使用发布镜像：
 
-- `Dockerfile`
-- `.dockerignore`
-- `docker-compose.prod.yml`
-- `.env.production.example`
-- `.github/workflows/release-image.yml`
+```bash
+cp .env.production.example .env.production
+# 编辑 .env.production
 
-本地生产部署流程请参考 `DEPLOYMENT.md`。
+docker compose -f deploy-compose.yml --env-file .env.production pull
+docker compose -f deploy-compose.yml --env-file .env.production up -d db
+# 全新数据库执行 npm run db:init:prod；旧数据库执行 npm run db:migrate:prod
+docker compose -f deploy-compose.yml --env-file .env.production up -d app
+```
 
-版本发布与 hotfix 流程请参考 `RELEASE_PROCESS.md`。
+完整部署、外部数据库、1Panel 网络、数据库控制台执行 SQL、升级迁移和排障说明见 `DEPLOYMENT.md` 与 `TROUBLESHOOT-DB.md`。
 
 ## 开源与贡献
 
