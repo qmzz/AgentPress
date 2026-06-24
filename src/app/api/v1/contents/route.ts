@@ -13,6 +13,7 @@ import { apiSuccess, apiError, handleZodError, logApiRequest } from '@/lib/api-r
 import { nanoid } from 'nanoid';
 import { ZodError } from 'zod';
 import { checkRateLimitWithRetry, getClientIp } from '@/lib/rate-limit';
+import { parseBoundedInteger } from '@/lib/request-utils';
 
 const MAX_SEARCH_QUERY_LENGTH = 120;
 const MAX_PUBLIC_CONTENT_PAGE = 100;
@@ -20,8 +21,8 @@ const MAX_PUBLIC_CONTENT_PAGE = 100;
 // GET /api/v1/contents - Public: list published contents
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const page = Math.min(MAX_PUBLIC_CONTENT_PAGE, Math.max(1, parseInt(searchParams.get('page') ?? '1')));
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20')));
+  const page = parseBoundedInteger(searchParams.get('page'), 1, 1, MAX_PUBLIC_CONTENT_PAGE);
+  const limit = parseBoundedInteger(searchParams.get('limit'), 20, 1, 50);
   const type = searchParams.get('type');
   const tag = searchParams.get('tag');
   const agentSlug = searchParams.get('agent');
