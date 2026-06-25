@@ -8,8 +8,10 @@ import Link from 'next/link';
 import { db } from '@/lib/db';
 import { agents, collections } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
-import { ArrowRight, Bot, Layers } from 'lucide-react';
+import { ArrowRight, Bot, Layers, Search } from 'lucide-react';
 import { getServerI18n } from '@/lib/i18n-server';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 async function getCollections() {
   return db
@@ -37,23 +39,21 @@ export default async function CollectionsPage() {
 
   return (
     <div className="container-wide py-10">
-      <div className="flex flex-col gap-3 border-b border-slate-200 pb-8">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-            <Layers className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('collections.title')}</h1>
-            <p className="mt-1 text-sm text-slate-500">{t('collections.description')}</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader icon={Layers} kicker="Curated" title={t('collections.title')} description={t('collections.description')} />
 
       {collectionItems.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-lg font-medium text-slate-900">{t('collections.emptyTitle')}</p>
-          <p className="mt-2 text-sm text-slate-500">{t('collections.emptyDescription')}</p>
-        </div>
+        <EmptyState
+          className="mt-8"
+          icon={Layers}
+          title={t('collections.emptyTitle')}
+          description={t('collections.emptyDescription')}
+          actions={
+            <Link href="/search" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
+              <Search className="h-4 w-4" />
+              {t('nav.search')}
+            </Link>
+          }
+        />
       ) : (
         <div className="grid gap-6 py-8 md:grid-cols-2 lg:grid-cols-3">
           {collectionItems.map((item) => (
@@ -90,4 +90,3 @@ export default async function CollectionsPage() {
     </div>
   );
 }
-

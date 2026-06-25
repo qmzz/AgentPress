@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Compass, Search, SlidersHorizontal } from 'lucide-react';
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { agents, contents } from '@/lib/db/schema';
@@ -15,6 +15,8 @@ import { getTopTopics } from '@/lib/content-network';
 import { absoluteUrl, siteName, truncateSeoText } from '@/lib/seo';
 import { getServerI18n } from '@/lib/i18n-server';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 const contentTypes = ['article', 'note', 'image', 'code', 'data', 'audio', 'video', 'collection'];
 const contentTypeLabelKeys: Record<string, TranslationKey> = {
@@ -184,19 +186,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(searchJsonLd) }}
       />
-      <div className="flex flex-col gap-3 border-b border-slate-200 pb-8">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-            <Search className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('search.title')}</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {hasFilters ? `${total} ${t('search.resultsFound')}` : t('search.latest')}
-            </p>
-          </div>
-        </div>
+      <PageHeader
+        icon={Search}
+        kicker={hasFilters ? `${total} ${t('search.resultsFound')}` : 'Discover'}
+        title={t('search.title')}
+        description={hasFilters ? t('search.noContentHint') : t('search.latest')}
+      />
 
+      <div className="mt-6 flex flex-col gap-3 border-b border-slate-200 pb-8">
         <form className="mt-5 grid gap-3 md:grid-cols-[1fr_180px_auto]" action="/search">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -242,9 +239,19 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       </div>
 
       {items.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-lg font-medium text-slate-900">{t('search.noContent')}</p>
-          <p className="mt-2 text-sm text-slate-500">{t('search.noContentHint')}</p>
+        <div className="grid gap-8 py-8 lg:grid-cols-[1fr_280px]">
+          <EmptyState
+            icon={Compass}
+            title={t('search.noContent')}
+            description={t('search.noContentHint')}
+            actions={
+              <Link href="/search" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
+                <Search className="h-4 w-4" />
+                {t('search.all')}
+              </Link>
+            }
+          />
+          <TrendingTopics topics={topics} t={t} />
         </div>
       ) : (
         <div className="grid gap-8 py-8 lg:grid-cols-[1fr_280px]">
@@ -272,16 +279,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               </div>
             )}
           </div>
-          <aside className="h-fit rounded-xl border border-slate-200 bg-slate-50 p-5">
-            <h2 className="text-sm font-semibold text-slate-900">{t('home.trendingTopics')}</h2>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {topics.map((topic) => (
-                <Link key={topic.tag} href={`/tag/${encodeURIComponent(topic.tag)}`} className="rounded-full bg-white px-3 py-1 text-xs text-slate-600 hover:text-brand-700">
-                  #{topic.tag} · {topic.count}
-                </Link>
-              ))}
-            </div>
-          </aside>
+          <TrendingTopics topics={topics} t={t} />
         </div>
       )}
     </div>
@@ -298,4 +296,19 @@ function buildSearchHref(query: string, type: string, page: number) {
   if (page > 1) params.set('page', String(page));
   const qs = params.toString();
   return qs ? `/search?${qs}` : '/search';
+}
+
+function TrendingTopics({ topics, t }: { topics: Awaited<ReturnType<typeof getTopTopics>>; t: (key: TranslationKey) => string }) {
+  return (
+    <aside className="h-fit rounded-xl border border-slate-200 bg-slate-50 p-5">
+      <h2 className="text-sm font-semibold text-slate-900">{t('home.trendingTopics')}</h2>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {topics.map((topic) => (
+          <Link key={topic.tag} href={`/tag/${encodeURIComponent(topic.tag)}`} className="rounded-full bg-white px-3 py-1 text-xs text-slate-600 hover:text-brand-700">
+            #{topic.tag} · {topic.count}
+          </Link>
+        ))}
+      </div>
+    </aside>
+  );
 }
