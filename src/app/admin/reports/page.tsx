@@ -11,6 +11,7 @@ import { desc, eq } from 'drizzle-orm';
 import { Flag } from 'lucide-react';
 import { ReportActionButton } from '@/components/admin/ReportActionButton';
 import { getServerI18n } from '@/lib/i18n-server';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
 
 const reportStatuses = ['open', 'reviewing', 'resolved', 'dismissed'];

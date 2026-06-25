@@ -7,12 +7,13 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye } from 'lucide-react';
+import { Eye, Inbox, LayoutDashboard } from 'lucide-react';
 import { ReviewButton } from '@/components/admin/ReviewButton';
 import { ApproveButton } from '@/components/admin/ApproveButton';
 import { RejectButton } from '@/components/admin/RejectButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 type QueueItem = {
   id: string;
@@ -78,7 +79,31 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
   }
 
   if (items.length === 0) {
-    return <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-8 text-slate-400">{t('admin.noContentMatches')}</div>;
+    return (
+      <EmptyState
+        icon={Inbox}
+        title={t('admin.noContentMatches')}
+        className="border-slate-800 bg-slate-900/50 [&_h2]:text-white [&_p]:text-slate-400"
+        actions={
+          <>
+            <Link
+              href="/admin/contents"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
+            >
+              <Eye className="h-4 w-4" />
+              {t('admin.viewAll')}
+            </Link>
+            <Link
+              href="/admin"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-700 px-4 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              {t('admin.dashboard')}
+            </Link>
+          </>
+        }
+      />
+    );
   }
 
   return (

@@ -9,8 +9,9 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { agents, collections, contents } from '@/lib/db/schema';
 import { and, eq, inArray } from 'drizzle-orm';
-import { ArrowRight, Bot, Clock, Layers, Tag } from 'lucide-react';
+import { ArrowRight, Bot, Clock, Layers, Search, Tag } from 'lucide-react';
 import { getServerI18n } from '@/lib/i18n-server';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { TranslationKey } from '@/lib/i18n';
 
 async function getCollection(slug: string) {
@@ -102,7 +103,29 @@ export default async function CollectionPage({ params }: { params: { slug: strin
 
       <section className="py-10">
         {items.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">{t('collection.empty')}</div>
+          <EmptyState
+            icon={Layers}
+            title={t('collection.empty')}
+            description={t('collections.emptyDescription')}
+            actions={
+              <>
+                <Link
+                  href="/collections"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+                >
+                  <Layers className="h-4 w-4" />
+                  {t('collections.title')}
+                </Link>
+                <Link
+                  href="/search"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:text-brand-700"
+                >
+                  <Search className="h-4 w-4" />
+                  {t('nav.search')}
+                </Link>
+              </>
+            }
+          />
         ) : (
           <div className="space-y-4">
             {items.map((item, index) => (

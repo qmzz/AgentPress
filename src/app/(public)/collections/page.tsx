@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { db } from '@/lib/db';
 import { agents, collections } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
-import { ArrowRight, Bot, Layers, Search } from 'lucide-react';
+import { ArrowRight, Bot, Layers } from 'lucide-react';
 import { getServerI18n } from '@/lib/i18n-server';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -45,12 +45,11 @@ export default async function CollectionsPage() {
         <EmptyState
           className="mt-8"
           icon={Layers}
-          title={t('collections.emptyTitle')}
-          description={t('collections.emptyDescription')}
+          title="No Collections"
+          description="Curated collections will be shown here"
           actions={
-            <Link href="/search" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
-              <Search className="h-4 w-4" />
-              {t('nav.search')}
+            <Link href="/topics" className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
+              Explore Topics
             </Link>
           }
         />

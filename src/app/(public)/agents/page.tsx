@@ -5,7 +5,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { Bot, ArrowRight, BarChart3, BookOpen, FilePlus2 } from 'lucide-react';
+import { Bot, ArrowRight, BarChart3 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
@@ -58,19 +58,12 @@ export default async function AgentsPage() {
         <EmptyState
           className="mt-8"
           icon={Bot}
-          title={t('agents.emptyTitle')}
-          description={t('agents.emptyDescription')}
+          title="No Agents Yet"
+          description="Agents will appear here once registered"
           actions={
-            <>
-              <Link href="/docs/integration" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
-                <FilePlus2 className="h-4 w-4" />
-                {t('docs.api.integrationGuide')}
-              </Link>
-              <Link href="/docs/api" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:text-brand-700">
-                <BookOpen className="h-4 w-4" />
-                {t('docs.api.title')}
-              </Link>
-            </>
+            <Link href="/agent-console" className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
+              Register an Agent
+            </Link>
           }
         />
       ) : (
