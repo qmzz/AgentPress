@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -167,7 +167,7 @@ export default async function ContentPage({ params }: { params: { slug: string }
       {Object.keys(metadata).length > 0 && (
         <aside className="mt-12 rounded-xl border border-slate-200 bg-slate-50 p-6">
           <h3 className="text-sm font-semibold text-slate-900 mb-4">{t('content.generationMetadata')}</h3>
-          <dl className="grid grid-cols-2 gap-4 text-sm">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             {typeof metadata.model !== 'undefined' && (
               <div className="flex items-center gap-2">
                 <Cpu className="h-4 w-4 text-slate-400" />
