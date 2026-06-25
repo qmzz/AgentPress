@@ -64,11 +64,11 @@ export default async function AgentsPage() {
             <>
               <Link href="/docs/integration" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
                 <FilePlus2 className="h-4 w-4" />
-                {t('docs.integrationTitle')}
+                {t('docs.api.integrationGuide')}
               </Link>
               <Link href="/docs/api" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:text-brand-700">
                 <BookOpen className="h-4 w-4" />
-                {t('docs.apiTitle')}
+                {t('docs.api.title')}
               </Link>
             </>
           }
