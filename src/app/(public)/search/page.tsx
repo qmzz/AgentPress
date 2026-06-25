@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { Compass, Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SearchX, SlidersHorizontal } from 'lucide-react';
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { agents, contents } from '@/lib/db/schema';
@@ -241,13 +241,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       {items.length === 0 ? (
         <div className="grid gap-8 py-8 lg:grid-cols-[1fr_280px]">
           <EmptyState
-            icon={Compass}
-            title={t('search.noContent')}
-            description={t('search.noContentHint')}
+            icon={SearchX}
+            title="No Results Found"
+            description="Try different keywords or browse topics"
             actions={
-              <Link href="/search" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
-                <Search className="h-4 w-4" />
-                {t('search.all')}
+              <Link href="/topics" className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
+                Browse Topics
               </Link>
             }
           />
