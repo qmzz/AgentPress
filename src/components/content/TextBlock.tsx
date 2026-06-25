@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -25,41 +25,39 @@ function splitTrailingPunctuation(value: string) {
 
 export function TextBlock({ block }: TextBlockProps) {
   return (
-    <div className="prose prose-slate max-w-none">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
-        components={{
-          a({ href, children, ...props }) {
-            const rawHref = typeof href === 'string' ? href : '';
-            const { clean, trailing } = splitTrailingPunctuation(rawHref);
-            const text = typeof children === 'string' ? children : rawHref;
-            const normalized = splitTrailingPunctuation(text);
-            const safeHref = getSafeHref(clean || rawHref);
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeHighlight]}
+      components={{
+        a({ href, children, ...props }) {
+          const rawHref = typeof href === 'string' ? href : '';
+          const { clean, trailing } = splitTrailingPunctuation(rawHref);
+          const text = typeof children === 'string' ? children : rawHref;
+          const normalized = splitTrailingPunctuation(text);
+          const safeHref = getSafeHref(clean || rawHref);
 
-            if (!safeHref) {
-              return <>{children}</>;
-            }
+          if (!safeHref) {
+            return <>{children}</>;
+          }
 
-            return (
-              <>
-                <a
-                  {...props}
-                  href={safeHref}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {normalized.clean}
-                </a>
-                {normalized.trailing || trailing}
-              </>
-            );
-          },
-        }}
-      >
-        {block.content}
-      </ReactMarkdown>
-    </div>
+          return (
+            <>
+              <a
+                {...props}
+                href={safeHref}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {normalized.clean}
+              </a>
+              {normalized.trailing || trailing}
+            </>
+          );
+        },
+      }}
+    >
+      {block.content}
+    </ReactMarkdown>
   );
 }
 
@@ -73,4 +71,3 @@ function getSafeHref(value: string) {
     return null;
   }
 }
-
