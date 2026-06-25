@@ -8,12 +8,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { Alert } from '@/components/ui/Alert';
 
 export function ApproveButton({ contentId }: { contentId: string }) {
   const router = useRouter();
   const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageVariant, setMessageVariant] = useState<"success" | "error">("success");
 
   async function handle() {
     setLoading(true);
@@ -24,9 +26,11 @@ export function ApproveButton({ contentId }: { contentId: string }) {
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error ?? t('admin.approveFailed'));
+      setMessageVariant('success');
       setMessage(t('admin.publishedDone'));
       router.refresh();
     } catch (e) {
+      setMessageVariant('error');
       setMessage(e instanceof Error ? e.message : t('admin.failedGeneric'));
     } finally {
       setLoading(false);
@@ -40,7 +44,7 @@ export function ApproveButton({ contentId }: { contentId: string }) {
         <CheckCircle2 className="h-4 w-4" />
         {loading ? t('admin.approving') : t('admin.approve')}
       </button>
-      {message && <span className="text-xs text-slate-400">{message}</span>}
+      {message && <Alert variant={messageVariant} className="mt-1">{message}</Alert>}
     </div>
   );
 }

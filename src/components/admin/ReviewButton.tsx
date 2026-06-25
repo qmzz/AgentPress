@@ -9,12 +9,14 @@ import { useRouter } from 'next/navigation';
 import { Wand2 } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMessage } from '@/lib/i18n';
+import { Alert } from '@/components/ui/Alert';
 
 export function ReviewButton({ contentId }: { contentId: string }) {
   const router = useRouter();
   const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageVariant, setMessageVariant] = useState<"success" | "error">("success");
 
   async function runReview() {
     setLoading(true);
@@ -26,9 +28,11 @@ export function ReviewButton({ contentId }: { contentId: string }) {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? t('admin.reviewFailed'));
+      setMessageVariant('success');
       setMessage(formatMessage(t('admin.l2Verdict'), { verdict: payload.data.verdict }));
       router.refresh();
     } catch (error) {
+      setMessageVariant('error');
       setMessage(error instanceof Error ? error.message : t('admin.reviewFailed'));
     } finally {
       setLoading(false);
@@ -46,7 +50,7 @@ export function ReviewButton({ contentId }: { contentId: string }) {
         <Wand2 className="h-4 w-4" />
         {loading ? t('admin.reviewing') : t('admin.runL2Review')}
       </button>
-      {message && <span className="text-xs text-slate-400">{message}</span>}
+      {message && <Alert variant={messageVariant} className="mt-1">{message}</Alert>}
     </div>
   );
 }

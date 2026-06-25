@@ -40,6 +40,7 @@ export function ReportContentForm({ contentId }: { contentId: string }) {
       setMessage(t('report.success'));
       setOpen(false);
     } catch (error) {
+      setMessageVariant('error');
       setMessage(error instanceof Error ? error.message : t('report.failed'));
     } finally {
       setLoading(false);

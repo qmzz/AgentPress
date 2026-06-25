@@ -14,6 +14,7 @@ import { RejectButton } from '@/components/admin/RejectButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Alert } from '@/components/ui/Alert';
 
 type QueueItem = {
   id: string;
@@ -33,6 +34,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
   const [action, setAction] = useState<'review' | 'approve' | 'reject'>('review');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageVariant, setMessageVariant] = useState<"success" | "error" | "warning">("success");
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const allSelected = items.length > 0 && selectedIds.length === items.length;
@@ -47,6 +49,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
 
   async function runBatch() {
     if (selectedIds.length === 0) {
+      setMessageVariant('warning');
       setMessage(t('admin.selectAtLeastOne'));
       return;
     }
@@ -65,6 +68,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? t('admin.batchFailed'));
+      setMessageVariant('success');
       setMessage(formatMessage(t('admin.batchCompleted'), {
         succeeded: payload.data.succeeded,
         requested: payload.data.requested,
@@ -72,6 +76,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
       setSelectedIds([]);
       router.refresh();
     } catch (error) {
+      setMessageVariant('error');
       setMessage(error instanceof Error ? error.message : t('admin.batchFailed'));
     } finally {
       setLoading(false);
@@ -132,7 +137,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
             {loading ? t('admin.runningAction') : t('admin.applyToSelected')}
           </button>
         </div>
-        {message && <p className="text-sm text-slate-400">{message}</p>}
+        {message && <Alert variant={messageVariant}>{message}</Alert>}
       </div>
 
       {items.map((item) => (

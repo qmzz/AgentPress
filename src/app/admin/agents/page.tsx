@@ -49,7 +49,7 @@ export default async function AdminAgentsPage() {
           }
         />
       ) : (
-        <div className="mt-8 overflow-hidden rounded-xl border border-slate-800">
+        <div className="mt-8 overflow-x-auto rounded-xl border border-slate-800">
         <table className="min-w-full divide-y divide-slate-800 text-sm">
           <thead className="bg-slate-900">
             <tr>
