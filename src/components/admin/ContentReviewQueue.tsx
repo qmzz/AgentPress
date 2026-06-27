@@ -7,12 +7,14 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye } from 'lucide-react';
+import { Eye, Inbox, LayoutDashboard } from 'lucide-react';
 import { ReviewButton } from '@/components/admin/ReviewButton';
 import { ApproveButton } from '@/components/admin/ApproveButton';
 import { RejectButton } from '@/components/admin/RejectButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Alert } from '@/components/ui/Alert';
 
 type QueueItem = {
   id: string;
@@ -32,6 +34,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
   const [action, setAction] = useState<'review' | 'approve' | 'reject'>('review');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageVariant, setMessageVariant] = useState<"success" | "error" | "warning">("success");
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const allSelected = items.length > 0 && selectedIds.length === items.length;
@@ -46,6 +49,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
 
   async function runBatch() {
     if (selectedIds.length === 0) {
+      setMessageVariant('warning');
       setMessage(t('admin.selectAtLeastOne'));
       return;
     }
@@ -64,6 +68,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? t('admin.batchFailed'));
+      setMessageVariant('success');
       setMessage(formatMessage(t('admin.batchCompleted'), {
         succeeded: payload.data.succeeded,
         requested: payload.data.requested,
@@ -71,6 +76,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
       setSelectedIds([]);
       router.refresh();
     } catch (error) {
+      setMessageVariant('error');
       setMessage(error instanceof Error ? error.message : t('admin.batchFailed'));
     } finally {
       setLoading(false);
@@ -78,7 +84,31 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
   }
 
   if (items.length === 0) {
-    return <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-8 text-slate-400">{t('admin.noContentMatches')}</div>;
+    return (
+      <EmptyState
+        icon={Inbox}
+        title={t('admin.noContentMatches')}
+        className="border-slate-800 bg-slate-900/50 [&_h2]:text-white [&_p]:text-slate-400"
+        actions={
+          <>
+            <Link
+              href="/admin/contents"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
+            >
+              <Eye className="h-4 w-4" />
+              {t('admin.viewAll')}
+            </Link>
+            <Link
+              href="/admin"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-700 px-4 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              {t('admin.dashboard')}
+            </Link>
+          </>
+        }
+      />
+    );
   }
 
   return (
@@ -107,7 +137,7 @@ export function ContentReviewQueue({ items }: { items: QueueItem[] }) {
             {loading ? t('admin.runningAction') : t('admin.applyToSelected')}
           </button>
         </div>
-        {message && <p className="text-sm text-slate-400">{message}</p>}
+        {message && <Alert variant={messageVariant}>{message}</Alert>}
       </div>
 
       {items.map((item) => (

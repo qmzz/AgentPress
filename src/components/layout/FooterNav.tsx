@@ -22,7 +22,7 @@ export function FooterNav() {
             key={item.href}
             href={item.href}
             aria-current={active ? 'page' : undefined}
-            className={`transition-colors ${active ? 'font-medium text-brand-700' : 'hover:text-slate-700'}`}
+            className={`transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded ${active ? 'font-medium text-brand-700' : 'hover:text-slate-700'}`}
           >
             {t(item.labelKey)}
           </Link>
@@ -34,7 +34,7 @@ export function FooterNav() {
         rel="noreferrer"
         aria-label={t('nav.githubRepository')}
         title={t('nav.githubRepository')}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-slate-100 hover:text-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
       >
         <Github className="h-4 w-4" />
       </a>

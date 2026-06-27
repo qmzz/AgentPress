@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /*
  * Design: github.com/qmzz
@@ -8,8 +8,26 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Bot, CheckCircle2, ExternalLink, FileText, RefreshCw, Send, Settings, Trash2 } from 'lucide-react';
 import { TrustBadge } from '@/components/agent/TrustBadge';
+import { Alert } from '@/components/ui/Alert';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
+
+type LoadingAction =
+  | 'load'
+  | 'createKey'
+  | 'webhook'
+  | 'content'
+  | 'register'
+  | 'resetEmail'
+  | 'resetVerify'
+  | 'revokeKey';
+
+type TabId = 'overview' | 'keys' | 'webhook' | 'content';
+
+type AlertState = {
+  variant: 'success' | 'error' | 'warning' | 'info';
+  message: string;
+} | null;
 
 type AgentConsolePayload = {
   agent: {
@@ -65,13 +83,21 @@ type AgentKey = {
   revokedAt: string | null;
 };
 
+const TABS: { id: TabId; i18nKey: TranslationKey }[] = [
+  { id: 'overview', i18nKey: 'agentConsole.tab.overview' },
+  { id: 'keys', i18nKey: 'agentConsole.tab.keys' },
+  { id: 'webhook', i18nKey: 'agentConsole.tab.webhook' },
+  { id: 'content', i18nKey: 'agentConsole.tab.content' },
+];
+
 export function AgentConsole({ registrationEnabled = true }: { registrationEnabled?: boolean }) {
   const { locale, t } = useI18n();
   const [apiKey, setApiKey] = useState('');
   const [data, setData] = useState<AgentConsolePayload | null>(null);
   const [webhookUrl, setWebhookUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState<LoadingAction | null>(null);
+  const [alert, setAlert] = useState<AlertState>(null);
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [showRegister, setShowRegister] = useState(false);
   const [registerForm, setRegisterForm] = useState({
     name: '',
@@ -105,14 +131,26 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
     }
   }, [data?.agent.webhook_url]);
 
+  function clearAlert() {
+    setAlert(null);
+  }
+
+  function showError(message: string) {
+    setAlert({ variant: 'error', message });
+  }
+
+  function showSuccess(message: string) {
+    setAlert({ variant: 'success', message });
+  }
+
   async function loadConsole(key = apiKey) {
     if (!key.trim()) {
-      setMessage(t('agentConsole.pasteKeyFirst'));
+      showError(t('agentConsole.pasteKeyFirst'));
       return;
     }
 
-    setLoading(true);
-    setMessage(null);
+    clearAlert();
+    setLoadingAction('load');
     try {
       const response = await fetch('/api/v1/agent/me', {
         headers: { Authorization: `Bearer ${key.trim()}` },
@@ -123,11 +161,12 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
       setApiKey(key.trim());
       setData(payload.data);
       await loadKeys(key.trim()).catch(() => setKeys([]));
-      setMessage(t('agentConsole.consoleLoaded'));
+      showSuccess(t('agentConsole.consoleLoaded'));
+      setActiveTab('overview');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('agentConsole.loadFailed'));
+      showError(error instanceof Error ? error.message : t('agentConsole.loadFailed'));
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   }
 
@@ -142,8 +181,8 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
   }
 
   async function createKey() {
-    setLoading(true);
-    setMessage(null);
+    clearAlert();
+    setLoadingAction('createKey');
     setNewApiKey(null);
     try {
       const response = await fetch('/api/v1/agent/keys', {
@@ -158,19 +197,19 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
       if (!response.ok) throw new Error(payload.error ?? t('agentConsole.createKeyFailed'));
       setNewApiKey(payload.data.api_key);
       setNewKeyName(t('agentConsole.defaultKeyName'));
-      setMessage(t('agentConsole.newKeyCreated'));
+      showSuccess(t('agentConsole.newKeyCreated'));
       await loadKeys();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('agentConsole.createKeyFailed'));
+      showError(error instanceof Error ? error.message : t('agentConsole.createKeyFailed'));
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   }
 
   async function revokeKey(id: string) {
     if (!window.confirm(t('agentConsole.revokeKeyConfirm'))) return;
-    setLoading(true);
-    setMessage(null);
+    clearAlert();
+    setLoadingAction('revokeKey');
     try {
       const response = await fetch(`/api/v1/agent/keys/${id}`, {
         method: 'DELETE',
@@ -178,18 +217,18 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? t('agentConsole.revokeKeyFailed'));
-      setMessage(t('agentConsole.keyRevoked'));
+      showSuccess(t('agentConsole.keyRevoked'));
       await loadKeys();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('agentConsole.revokeKeyFailed'));
+      showError(error instanceof Error ? error.message : t('agentConsole.revokeKeyFailed'));
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   }
 
   async function updateWebhook() {
-    setLoading(true);
-    setMessage(null);
+    clearAlert();
+    setLoadingAction('webhook');
     try {
       const response = await fetch('/api/v1/agent/me', {
         method: 'PATCH',
@@ -201,12 +240,12 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? t('agentConsole.webhookUpdateFailed'));
-      setMessage(t('agentConsole.webhookUpdated'));
+      showSuccess(t('agentConsole.webhookUpdated'));
       await loadConsole();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('agentConsole.webhookUpdateFailed'));
+      showError(error instanceof Error ? error.message : t('agentConsole.webhookUpdateFailed'));
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   }
 
@@ -220,8 +259,8 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
   }
 
   async function runContentAction(url: string, method: string, successMessage: string) {
-    setLoading(true);
-    setMessage(null);
+    clearAlert();
+    setLoadingAction('content');
     try {
       const response = await fetch(url, {
         method,
@@ -229,17 +268,18 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? t('agentConsole.actionFailed'));
-      setMessage(successMessage);
+      showSuccess(successMessage);
       await loadConsole();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('agentConsole.actionFailed'));
+      showError(error instanceof Error ? error.message : t('agentConsole.actionFailed'));
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   }
+
   async function registerAgent() {
-    setLoading(true);
-    setMessage(null);
+    clearAlert();
+    setLoadingAction('register');
     try {
       const response = await fetch('/api/v1/agents/register', {
         method: 'POST',
@@ -256,17 +296,17 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? t('agentConsole.registrationFailed'));
       setRegisteredKey(payload.data.api_key);
-      setMessage(t('agentConsole.registrationSuccessMessage'));
+      showSuccess(t('agentConsole.registrationSuccessMessage'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('agentConsole.registrationFailed'));
+      showError(error instanceof Error ? error.message : t('agentConsole.registrationFailed'));
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   }
 
   async function requestResetCode() {
-    setLoading(true);
-    setMessage(null);
+    clearAlert();
+    setLoadingAction('resetEmail');
     try {
       const response = await fetch('/api/v1/agent/request-reset', {
         method: 'POST',
@@ -277,17 +317,17 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
       if (!response.ok) throw new Error(payload.error ?? t('agentConsole.requestFailed'));
       setCodeSent(true);
       setResetStep('verify');
-      setMessage(t('agentConsole.codeSent'));
+      showSuccess(t('agentConsole.codeSent'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('agentConsole.requestFailed'));
+      showError(error instanceof Error ? error.message : t('agentConsole.requestFailed'));
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   }
 
   async function verifyResetCode() {
-    setLoading(true);
-    setMessage(null);
+    clearAlert();
+    setLoadingAction('resetVerify');
     try {
       const response = await fetch('/api/v1/agent/verify-reset', {
         method: 'POST',
@@ -300,20 +340,23 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? t('agentConsole.verificationFailed'));
-      setMessage(t('agentConsole.resetSuccess'));
+      showSuccess(t('agentConsole.resetSuccess'));
       setShowReset(false);
       setResetStep('email');
       setResetForm({ email: '', code: '', slug: '' });
       setCodeSent(false);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('agentConsole.verificationFailed'));
+      showError(error instanceof Error ? error.message : t('agentConsole.verificationFailed'));
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   }
 
+  const isBusy = loadingAction !== null;
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Header */}
       <section className="rounded-xl border border-slate-200 bg-white p-6">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
@@ -321,13 +364,21 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
           </div>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-slate-900">{t('agentConsole.title')}</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {t('agentConsole.subtitle')}
-            </p>
+            <p className="mt-1 text-sm text-slate-500">{t('agentConsole.subtitle')}</p>
           </div>
         </div>
+      </section>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto]">
+      {/* Alert */}
+      {alert && (
+        <Alert variant={alert.variant}>
+          {alert.message}
+        </Alert>
+      )}
+
+      {/* API Key input */}
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
           <input
             type="password"
             value={apiKey}
@@ -338,14 +389,15 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
           <button
             type="button"
             onClick={() => loadConsole()}
-            disabled={loading}
+            disabled={isBusy}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
           >
             <RefreshCw className="h-4 w-4" />
-            {loading ? t('agentConsole.loading') : t('agentConsole.loadConsole')}
+            {loadingAction === 'load' ? t('agentConsole.loading') : t('agentConsole.loadConsole')}
           </button>
         </div>
-        {message && <p className="mt-3 text-sm text-slate-500">{message}</p>}
+
+        {/* Registration toggle */}
         {!data && !registeredKey && registrationEnabled && (
           <button
             type="button"
@@ -360,8 +412,27 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
             {t('agentConsole.registrationDisabled')}
           </p>
         )}
+        {/* API Key reset toggle */}
+        {!data && !registeredKey && !showRegister && (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowReset(!showReset);
+                if (!showReset) {
+                  setResetStep('email');
+                  setCodeSent(false);
+                }
+              }}
+              className="text-sm text-brand-700 hover:text-brand-800"
+            >
+              {showReset ? t('agentConsole.resetToggleClose') : t('agentConsole.resetToggleOpen')}
+            </button>
+          </div>
+        )}
       </section>
 
+      {/* Registration form */}
       {registrationEnabled && showRegister && !data && !registeredKey && (
         <section className="rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('agentConsole.registerTitle')}</h2>
@@ -437,115 +508,100 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
             <button
               type="button"
               onClick={registerAgent}
-              disabled={loading || !registerForm.name || !registerForm.slug || !registerForm.ownerEmail}
+              disabled={isBusy || !registerForm.name || !registerForm.slug || !registerForm.ownerEmail}
               className="h-11 w-full rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
             >
-              {loading ? t('agentConsole.registering') : t('agentConsole.registerButton')}
+              {loadingAction === 'register' ? t('agentConsole.registering') : t('agentConsole.registerButton')}
             </button>
           </div>
         </section>
       )}
 
-      {!data && !registeredKey && !showRegister && (
+      {/* Key reset form */}
+      {showReset && !data && !registeredKey && !showRegister && (
         <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <button
-            type="button"
-            onClick={() => {
-              setShowReset(!showReset);
-              if (!showReset) {
-                setResetStep('email');
-                setCodeSent(false);
-              }
-            }}
-            className="text-sm text-brand-700 hover:text-brand-800"
-          >
-            {showReset ? t('agentConsole.resetToggleClose') : t('agentConsole.resetToggleOpen')}
-          </button>
-          {showReset && (
-            <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
-              <h3 className="text-sm font-semibold text-slate-900">{t('agentConsole.resetTitle')}</h3>
-              
-              {resetStep === 'email' && (
-                <>
-                  <p className="text-sm text-slate-600">{t('agentConsole.resetEmailInstruction')}</p>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.email')}</label>
-                    <input
-                      type="email"
-                      value={resetForm.email}
-                      onChange={(e) => setResetForm({ ...resetForm, email: e.target.value })}
-                      placeholder="agent@example.com"
-                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={requestResetCode}
-                    disabled={loading || !resetForm.email}
-                    className="h-10 w-full rounded-lg bg-slate-900 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-                  >
-                    {loading ? t('agentConsole.sending') : t('agentConsole.sendVerificationCode')}
-                  </button>
-                </>
-              )}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-slate-900">{t('agentConsole.resetTitle')}</h3>
 
-              {resetStep === 'verify' && (
-                <>
-                  <p className="text-sm text-slate-600">
-                    {formatMessage(t('agentConsole.verifyInstruction'), { email: resetForm.email })}
-                  </p>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.verificationCode')}</label>
-                    <input
-                      type="text"
-                      value={resetForm.code}
-                      onChange={(e) => setResetForm({ ...resetForm, code: e.target.value.replace(/\D/g, '').slice(0, 6) })}
-                      placeholder="123456"
-                      maxLength={6}
-                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.slug')}</label>
-                    <input
-                      type="text"
-                      value={resetForm.slug}
-                      onChange={(e) => setResetForm({ ...resetForm, slug: e.target.value })}
-                      placeholder="my-ai-agent"
-                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={verifyResetCode}
-                    disabled={loading || !resetForm.code || resetForm.code.length !== 6 || !resetForm.slug}
-                    className="h-10 w-full rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
-                  >
-                    {loading ? t('agentConsole.verifying') : t('agentConsole.verifyReset')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setResetStep('email');
-                      setCodeSent(false);
-                    }}
-                    className="text-sm text-slate-600 hover:text-slate-900"
-                  >
-                    ← {t('agentConsole.backToEmail')}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
+            {resetStep === 'email' && (
+              <>
+                <p className="text-sm text-slate-600">{t('agentConsole.resetEmailInstruction')}</p>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.email')}</label>
+                  <input
+                    type="email"
+                    value={resetForm.email}
+                    onChange={(e) => setResetForm({ ...resetForm, email: e.target.value })}
+                    placeholder="agent@example.com"
+                    className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={requestResetCode}
+                  disabled={isBusy || !resetForm.email}
+                  className="h-10 w-full rounded-lg bg-slate-900 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                >
+                  {loadingAction === 'resetEmail' ? t('agentConsole.sending') : t('agentConsole.sendVerificationCode')}
+                </button>
+              </>
+            )}
+
+            {resetStep === 'verify' && (
+              <>
+                <p className="text-sm text-slate-600">
+                  {formatMessage(t('agentConsole.verifyInstruction'), { email: resetForm.email })}
+                </p>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.verificationCode')}</label>
+                  <input
+                    type="text"
+                    value={resetForm.code}
+                    onChange={(e) => setResetForm({ ...resetForm, code: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                    placeholder="123456"
+                    maxLength={6}
+                    className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('agentConsole.slug')}</label>
+                  <input
+                    type="text"
+                    value={resetForm.slug}
+                    onChange={(e) => setResetForm({ ...resetForm, slug: e.target.value })}
+                    placeholder="my-ai-agent"
+                    className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={verifyResetCode}
+                  disabled={isBusy || !resetForm.code || resetForm.code.length !== 6 || !resetForm.slug}
+                  className="h-10 w-full rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
+                >
+                  {loadingAction === 'resetVerify' ? t('agentConsole.verifying') : t('agentConsole.verifyReset')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetStep('email');
+                    setCodeSent(false);
+                  }}
+                  className="text-sm text-slate-600 hover:text-slate-900"
+                >
+                  ← {t('agentConsole.backToEmail')}
+                </button>
+              </>
+            )}
+          </div>
         </section>
       )}
 
+      {/* Registered key banner */}
       {registeredKey && (
         <section className="rounded-xl border border-green-200 bg-green-50 p-6">
           <h2 className="mb-3 text-lg font-semibold text-green-900">{t('agentConsole.registrationSuccessful')}</h2>
-          <p className="mb-4 text-sm text-green-800">
-            {t('agentConsole.keyReminder')}
-          </p>
+          <p className="mb-4 text-sm text-green-800">{t('agentConsole.keyReminder')}</p>
           <div className="rounded-lg border border-green-300 bg-white p-3">
             <code className="break-all text-sm text-slate-900">{registeredKey}</code>
           </div>
@@ -553,7 +609,7 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
             type="button"
             onClick={() => {
               navigator.clipboard.writeText(registeredKey);
-              setMessage(t('agentConsole.copied'));
+              showSuccess(t('agentConsole.copied'));
             }}
             className="mt-3 inline-flex h-10 items-center justify-center rounded-lg bg-green-600 px-4 text-sm font-medium text-white hover:bg-green-500"
           >
@@ -574,220 +630,256 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
         </section>
       )}
 
+      {/* Tab navigation — only meaningful after data is loaded */}
       {data && (
-        <>
-          <section className="grid gap-4 md:grid-cols-4">
-            {['draft', 'pending_review', 'published', 'flagged'].map((status) => (
-              <div key={status} className="rounded-xl border border-slate-200 bg-white p-5">
-                <p className="text-xs uppercase tracking-wide text-slate-400">{t(`status.${status}` as TranslationKey)}</p>
-                <p className="mt-2 text-3xl font-bold text-slate-900">{data.content_counts[status] ?? 0}</p>
-              </div>
+        <div className="rounded-xl border border-slate-200 bg-white">
+          <nav className="flex" role="tablist">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={
+                  activeTab === tab.id
+                    ? 'relative flex-1 border-b-2 border-brand-600 px-4 py-3 text-sm font-semibold text-brand-700'
+                    : 'flex-1 border-b border-slate-200 px-4 py-3 text-sm text-slate-500 hover:text-slate-700'
+                }
+              >
+                {t(tab.i18nKey)}
+              </button>
             ))}
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
-              <p className="text-xs uppercase tracking-wide text-slate-400">{t('agentConsole.views7d')}</p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">{data.agent.view_count_7d ?? 0}</p>
-            </div>
-          </section>
+          </nav>
 
-          <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-semibold text-slate-900">{data.agent.name}</h2>
-                    <TrustBadge trustLevel={data.agent.trust_level} t={t} />
+          <div className="p-6">
+            {/* Overview tab */}
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                {/* Status cards */}
+                <div className="grid gap-4 md:grid-cols-4">
+                  {['draft', 'pending_review', 'published', 'flagged'].map((status) => (
+                    <div key={status} className="rounded-xl border border-slate-200 bg-white p-5">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">{t(`status.${status}` as TranslationKey)}</p>
+                      <p className="mt-2 text-3xl font-bold text-slate-900">{data.content_counts[status] ?? 0}</p>
+                    </div>
+                  ))}
+                  <div className="rounded-xl border border-slate-200 bg-white p-5">
+                    <p className="text-xs uppercase tracking-wide text-slate-400">{t('agentConsole.views7d')}</p>
+                    <p className="mt-2 text-3xl font-bold text-slate-900">{data.agent.view_count_7d ?? 0}</p>
                   </div>
-                  <p className="text-sm text-slate-500">
-                    {formatMessage(t('agentConsole.apiKeyPrefix'), { slug: data.agent.slug, prefix: data.agent.api_key_prefix })}
-                  </p>
                 </div>
-                <Link href={`/agent/${data.agent.slug}`} className="inline-flex items-center gap-2 text-sm text-brand-700 hover:text-brand-800">
-                  {t('agentConsole.publicProfile')}
-                  <ExternalLink className="h-4 w-4" />
-                </Link>
-              </div>
-              <p className="text-sm leading-6 text-slate-600">{data.agent.description ?? t('agentConsole.noDescriptionYet')}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {data.agent.capabilities?.map((capability) => (
-                  <span key={capability} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
-                    {capability}
-                  </span>
-                ))}
-              </div>
-            </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <div className="mb-3 flex items-center gap-2">
-                <Settings className="h-4 w-4 text-slate-400" />
-                <h2 className="font-semibold text-slate-900">{t('agentConsole.webhook')}</h2>
-              </div>
-              <p className="mb-3 text-sm text-slate-500">{t('agentConsole.webhookDescription')}</p>
-              <input
-                type="url"
-                value={webhookUrl}
-                onChange={(event) => setWebhookUrl(event.target.value)}
-                placeholder="https://example.com/agentpress/webhook"
-                className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-              />
-              <button
-                type="button"
-                onClick={updateWebhook}
-                disabled={loading}
-                className="mt-3 inline-flex h-10 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
-              >
-                {t('agentConsole.saveWebhook')}
-              </button>
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-slate-200 bg-white p-6">
-            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">{t('agentConsole.apiKeys')}</h2>
-                <p className="text-sm text-slate-500">{t('agentConsole.apiKeysDescription')}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => loadKeys()}
-                disabled={loading}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700 disabled:opacity-60"
-              >
-                {t('agentConsole.refreshKeys')}
-              </button>
-            </div>
-
-            {newApiKey && (
-              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-                <p className="text-sm font-medium text-amber-900">{t('agentConsole.newKeyShownOnce')}</p>
-                <code className="mt-2 block break-all rounded bg-white p-3 text-xs text-amber-900">{newApiKey}</code>
+                {/* Agent profile card */}
+                <div className="rounded-xl border border-slate-200 bg-white p-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-lg font-semibold text-slate-900">{data.agent.name}</h2>
+                        <TrustBadge trustLevel={data.agent.trust_level} t={t} />
+                      </div>
+                      <p className="text-sm text-slate-500">
+                        {formatMessage(t('agentConsole.apiKeyPrefix'), { slug: data.agent.slug, prefix: data.agent.api_key_prefix })}
+                      </p>
+                    </div>
+                    <Link href={`/agent/${data.agent.slug}`} className="inline-flex items-center gap-2 text-sm text-brand-700 hover:text-brand-800">
+                      {t('agentConsole.publicProfile')}
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
+                  </div>
+                  <p className="text-sm leading-6 text-slate-600">{data.agent.description ?? t('agentConsole.noDescriptionYet')}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {data.agent.capabilities?.map((capability) => (
+                      <span key={capability} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
+                        {capability}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
-            <div className="mb-5 flex flex-col gap-3 md:flex-row">
-              <input
-                type="text"
-                value={newKeyName}
-                onChange={(event) => setNewKeyName(event.target.value)}
-                placeholder="Production publisher"
-                className="h-10 flex-1 rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-              />
-              <button
-                type="button"
-                onClick={createKey}
-                disabled={loading || !newKeyName.trim()}
-                className="inline-flex h-10 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
-              >
-                {t('agentConsole.createKey')}
-              </button>
-            </div>
-
-            <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
-              {keys.length === 0 ? (
-                <p className="p-4 text-sm text-slate-500">{t('agentConsole.noKeysLoaded')}</p>
-              ) : keys.map((key) => (
-                <div key={key.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-900">{key.name}</span>
-                      <span className={key.status === 'active' ? 'rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700' : 'rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500'}>
-                        {key.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {formatMessage(t('agentConsole.keyMeta'), {
-                        prefix: key.prefix,
-                        created: formatDate(key.createdAt, locale, t('agentConsole.never')),
-                        lastUsed: formatDate(key.lastUsedAt, locale, t('agentConsole.never')),
-                      })}
-                    </p>
-                  </div>
-                  {key.status === 'active' && (
-                    <button
-                      type="button"
-                      onClick={() => revokeKey(key.id)}
-                      disabled={loading}
-                      className="inline-flex h-9 items-center justify-center rounded-lg border border-red-200 px-3 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
-                    >
-                      {t('agentConsole.revoke')}
-                    </button>
-                  )}
+            {/* Keys tab */}
+            {activeTab === 'keys' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">{t('agentConsole.apiKeys')}</h2>
+                  <p className="text-sm text-slate-500">{t('agentConsole.apiKeysDescription')}</p>
                 </div>
-              ))}
-            </div>
-          </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-6">
-            <div className="mb-5 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-slate-400" />
-              <h2 className="text-lg font-semibold text-slate-900">{t('agentConsole.recentContent')}</h2>
-            </div>
-            <div className="space-y-4">
-              {data.recent_contents.length === 0 ? (
-                <p className="text-sm text-slate-500">{t('agentConsole.noContent')}</p>
-              ) : data.recent_contents.map((item) => (
-                <div key={item.id} className="rounded-lg border border-slate-200 p-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium capitalize text-brand-700">{t(`type.${item.type}` as TranslationKey)}</span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{item.status ? t(`status.${item.status}` as TranslationKey) : ''}</span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
-                          {item.viewCount ?? 0} {t('agentConsole.views')}
-                        </span>
+                {newApiKey && (
+                  <Alert variant="warning">
+                    <p className="text-sm font-medium">{t('agentConsole.newKeyShownOnce')}</p>
+                    <code className="mt-2 block break-all rounded bg-white p-3 text-xs">{newApiKey}</code>
+                  </Alert>
+                )}
+
+                <div className="flex flex-col gap-3 md:flex-row">
+                  <input
+                    type="text"
+                    value={newKeyName}
+                    onChange={(event) => setNewKeyName(event.target.value)}
+                    placeholder="Production publisher"
+                    className="h-10 flex-1 rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={createKey}
+                    disabled={isBusy || !newKeyName.trim()}
+                    className="inline-flex h-10 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
+                  >
+                    {loadingAction === 'createKey' ? t('agentConsole.loading') : t('agentConsole.createKey')}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-500">{keys.length} {keys.length === 1 ? 'key' : 'keys'}</span>
+                  <button
+                    type="button"
+                    onClick={() => loadKeys()}
+                    disabled={isBusy}
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700 disabled:opacity-60"
+                  >
+                    {t('agentConsole.refreshKeys')}
+                  </button>
+                </div>
+
+                <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+                  {keys.length === 0 ? (
+                    <p className="p-4 text-sm text-slate-500">{t('agentConsole.noKeysLoaded')}</p>
+                  ) : keys.map((key) => (
+                    <div key={key.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium text-slate-900">{key.name}</span>
+                          <span className={key.status === 'active' ? 'rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700' : 'rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500'}>
+                            {key.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {formatMessage(t('agentConsole.keyMeta'), {
+                            prefix: key.prefix,
+                            created: formatDate(key.createdAt, locale, t('agentConsole.never')),
+                            lastUsed: formatDate(key.lastUsedAt, locale, t('agentConsole.never')),
+                          })}
+                        </p>
                       </div>
-                      <h3 className="mt-2 font-semibold text-slate-900">{item.title}</h3>
-                      {item.summary && <p className="mt-1 text-sm text-slate-500">{item.summary}</p>}
+                      {key.status === 'active' && (
+                        <button
+                          type="button"
+                          onClick={() => revokeKey(key.id)}
+                          disabled={isBusy}
+                          className="inline-flex h-9 items-center justify-center rounded-lg border border-red-200 px-3 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
+                        >
+                          {loadingAction === 'revokeKey' ? t('agentConsole.loading') : t('agentConsole.revoke')}
+                        </button>
+                      )}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Link href={`/api/v1/contents/${item.id}`} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700">
-                        API
-                      </Link>
-                      {item.status === 'published' && (
-                        <Link href={`/content/${item.slug}`} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700">
-                          {t('agentConsole.view')}
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Webhook tab */}
+            {activeTab === 'webhook' && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-slate-400" />
+                  <h2 className="font-semibold text-slate-900">{t('agentConsole.webhook')}</h2>
+                </div>
+                <p className="text-sm text-slate-500">{t('agentConsole.webhookDescription')}</p>
+                <input
+                  type="url"
+                  value={webhookUrl}
+                  onChange={(event) => setWebhookUrl(event.target.value)}
+                  placeholder="https://example.com/agentpress/webhook"
+                  className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                />
+                <button
+                  type="button"
+                  onClick={updateWebhook}
+                  disabled={isBusy}
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60"
+                >
+                  {loadingAction === 'webhook' ? t('agentConsole.loading') : t('agentConsole.saveWebhook')}
+                </button>
+              </div>
+            )}
+
+            {/* Content tab */}
+            {activeTab === 'content' && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-slate-400" />
+                  <h2 className="text-lg font-semibold text-slate-900">{t('agentConsole.recentContent')}</h2>
+                </div>
+                {data.recent_contents.length === 0 ? (
+                  <p className="text-sm text-slate-500">{t('agentConsole.noContent')}</p>
+                ) : data.recent_contents.map((item) => (
+                  <div key={item.id} className="rounded-lg border border-slate-200 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium capitalize text-brand-700">{t(`type.${item.type}` as TranslationKey)}</span>
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{item.status ? t(`status.${item.status}` as TranslationKey) : ''}</span>
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
+                            {item.viewCount ?? 0} {t('agentConsole.views')}
+                          </span>
+                        </div>
+                        <h3 className="mt-2 font-semibold text-slate-900">{item.title}</h3>
+                        {item.summary && <p className="mt-1 text-sm text-slate-500">{item.summary}</p>}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={`/api/v1/contents/${item.id}`} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700">
+                          API
                         </Link>
-                      )}
-                      {item.status !== 'published' && item.status !== 'archived' && (
-                        <button type="button" onClick={() => submitContent(item.id)} className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-sm text-white hover:bg-brand-500">
-                          <Send className="h-3.5 w-3.5" />
-                          {t('agentConsole.submit')}
-                        </button>
-                      )}
-                      {item.status !== 'archived' && item.status !== 'published' && (
-                        <button type="button" onClick={() => archiveContent(item.id)} className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-500">
-                          <Trash2 className="h-3.5 w-3.5" />
-                          {t('agentConsole.archive')}
-                        </button>
+                        {item.status === 'published' && (
+                          <Link href={`/content/${item.slug}`} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-brand-200 hover:text-brand-700">
+                            {t('agentConsole.view')}
+                          </Link>
+                        )}
+                        {item.status !== 'published' && item.status !== 'archived' && (
+                          <button type="button" onClick={() => submitContent(item.id)} disabled={isBusy} className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-sm text-white hover:bg-brand-500 disabled:opacity-60">
+                            <Send className="h-3.5 w-3.5" />
+                            {loadingAction === 'content' ? t('agentConsole.loading') : t('agentConsole.submit')}
+                          </button>
+                        )}
+                        {item.status !== 'archived' && item.status !== 'published' && (
+                          <button type="button" onClick={() => archiveContent(item.id)} disabled={isBusy} className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-500 disabled:opacity-60">
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {loadingAction === 'content' ? t('agentConsole.loading') : t('agentConsole.archive')}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 border-t border-slate-100 pt-3">
+                      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t('agentConsole.reviewHistory')}</h4>
+                      {item.reviews.length === 0 ? (
+                        <p className="text-xs text-slate-400">{t('agentConsole.noReviewsYet')}</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {item.reviews.map((review) => (
+                            <div key={review.id} className="rounded bg-slate-50 p-3 text-sm">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-slate-700">{review.reviewer}</span>
+                                <span className="inline-flex items-center gap-1 text-slate-500">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  {review.verdict ? t(`status.${review.verdict}` as TranslationKey) : ''}
+                                </span>
+                              </div>
+                              {review.reason && <p className="mt-1 text-slate-500">{review.reason}</p>}
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
-
-                  <div className="mt-4 border-t border-slate-100 pt-3">
-                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t('agentConsole.reviewHistory')}</h4>
-                    {item.reviews.length === 0 ? (
-                      <p className="text-xs text-slate-400">{t('agentConsole.noReviewsYet')}</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {item.reviews.map((review) => (
-                          <div key={review.id} className="rounded bg-slate-50 p-3 text-sm">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-slate-700">{review.reviewer}</span>
-                              <span className="inline-flex items-center gap-1 text-slate-500">
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                {review.verdict ? t(`status.${review.verdict}` as TranslationKey) : ''}
-                              </span>
-                            </div>
-                            {review.reason && <p className="mt-1 text-slate-500">{review.reason}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
 type Endpoint = { method: string; path: string; description: string; auth: boolean };
 
 const methodColors: Record<string, string> = {
-  GET: 'bg-emerald-500/10 text-emerald-300',
+  GET: 'bg-emerald-500/10 text-emerald-600',
   POST: 'bg-brand-500/10 text-brand-300',
   PATCH: 'bg-yellow-500/10 text-yellow-300',
   DELETE: 'bg-red-500/10 text-red-300',
@@ -115,7 +115,7 @@ export default function ApiDocsPage() {
                 <p className="text-sm text-slate-500">{section.description}</p>
               </div>
             </div>
-            <div className="overflow-hidden rounded-xl border border-slate-200">
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50">
                   <tr>
@@ -128,12 +128,12 @@ export default function ApiDocsPage() {
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {section.endpoints.map((endpoint) => (
                     <tr key={`${endpoint.method}-${endpoint.path}`} className="hover:bg-slate-50">
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`inline-block rounded px-2 py-0.5 font-mono text-xs font-medium ${methodColors[endpoint.method]}`}>
                           {endpoint.method}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <code className="font-mono text-xs text-slate-800">{endpoint.path}</code>
                       </td>
                       <td className="px-4 py-3 text-slate-600">{endpoint.description}</td>

@@ -8,12 +8,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { XCircle } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { Alert } from '@/components/ui/Alert';
 
 export function RejectButton({ contentId }: { contentId: string }) {
   const router = useRouter();
   const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageVariant, setMessageVariant] = useState<"success" | "error">("success");
 
   async function handle() {
     const reason = window.prompt(t('admin.rejectionReason')) ?? '';
@@ -27,9 +29,11 @@ export function RejectButton({ contentId }: { contentId: string }) {
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error ?? t('admin.rejectFailed'));
+      setMessageVariant('success');
       setMessage(t('admin.flaggedDone'));
       router.refresh();
     } catch (e) {
+      setMessageVariant('error');
       setMessage(e instanceof Error ? e.message : t('admin.failedGeneric'));
     } finally {
       setLoading(false);
@@ -43,7 +47,7 @@ export function RejectButton({ contentId }: { contentId: string }) {
         <XCircle className="h-4 w-4" />
         {loading ? t('admin.rejecting') : t('admin.reject')}
       </button>
-      {message && <span className="text-xs text-slate-400">{message}</span>}
+      {message && <Alert variant={messageVariant} className="mt-1">{message}</Alert>}
     </div>
   );
 }

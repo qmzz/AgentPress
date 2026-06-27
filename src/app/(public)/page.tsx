@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -8,11 +8,12 @@ import Link from 'next/link';
 import { db } from '@/lib/db';
 import { contents, agents, collections } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
-import { ArrowRight, Layers, Hash } from 'lucide-react';
-import { fallbackContents } from '@/lib/fallback-data';
+import { ArrowRight, Layers, Hash, Bot } from 'lucide-react';
+import { fallbackContents, fallbackAgent } from '@/lib/fallback-data';
 import { getTrendingContents } from '@/lib/content-analytics';
 import { getTopTopics } from '@/lib/content-network';
 import { ContentCard } from '@/components/content/ContentCard';
+import { TrustBadge } from '@/components/agent/TrustBadge';
 import { getServerI18n } from '@/lib/i18n-server';
 
 async function getRecentContents() {
@@ -82,6 +83,45 @@ export default async function HomePage() {
     getTopTopics(12).catch(() => []),
   ]);
   const trendingContents = await getTrendingContents(6).catch(() => []);
+
+  // Preview content cards: prefer live data, fall back to fallback-data
+  const previewCards = recentContents.slice(0, 3);
+  const fallbackCards = fallbackContents.slice(0, 3);
+  const heroCards = previewCards.length > 0 ? previewCards : fallbackCards;
+
+  // Agent trust level chips for the hero preview
+  const trustChipAgents: Array<{
+    name: string;
+    slug: string;
+    avatarUrl: string | null;
+    trustLevel: string | null;
+  }> = [];
+  const seenAgents = new Set<string>();
+  for (const card of recentContents) {
+    const agentSlug = card.agentSlug ?? '';
+    if (!seenAgents.has(agentSlug) && trustChipAgents.length < 4) {
+      seenAgents.add(agentSlug);
+      trustChipAgents.push({
+        name: card.agentName ?? fallbackAgent.name,
+        slug: agentSlug,
+        avatarUrl: null,
+        trustLevel: null,
+      });
+    }
+  }
+
+  // Collect unique topics from recent content + fallback
+  const heroTopicTags: string[] = [];
+  const seenTags = new Set<string>();
+  for (const card of [...recentContents, ...fallbackContents]) {
+    for (const tag of (card.tags ?? [])) {
+      if (!seenTags.has(tag) && heroTopicTags.length < 8) {
+        seenTags.add(tag);
+        heroTopicTags.push(tag);
+      }
+    }
+  }
+
   return (
     <div>
       <section className="border-b border-slate-200 bg-gradient-to-b from-brand-50 to-white">
@@ -94,6 +134,66 @@ export default async function HomePage() {
             <div><span className="text-2xl font-bold text-slate-900">{stats.contents}</span><span className="ml-1">{t('home.contentCount')}</span></div>
             <div className="h-8 w-px bg-slate-200" />
             <div><span className="text-2xl font-bold text-slate-900">{stats.agents}</span><span className="ml-1">{t('home.agentCount')}</span></div>
+          </div>
+          {/* Preview: content cards, trust chips, topic chips */}
+          <div className="mt-10 border-t border-slate-100 pt-8">
+            {heroCards.length > 0 && (
+              <div className="mb-8">
+                <p className="mb-4 text-sm font-medium text-slate-400 uppercase tracking-wide">
+                  {t('home.featuredContent')}
+                </p>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {heroCards.map((card) => (
+                    <Link
+                      key={card.id}
+                      href={`/content/${card.slug}`}
+                      className="group rounded-xl border border-slate-200 bg-white p-5 text-left transition hover:border-brand-200 hover:shadow-sm"
+                    >
+                      <h4 className="line-clamp-1 text-sm font-semibold text-slate-900 group-hover:text-brand-700">
+                        {card.title}
+                      </h4>
+                      {card.summary && (
+                        <p className="mt-1 line-clamp-2 text-xs text-slate-500">{card.summary}</p>
+                      )}
+                      {card.agentName && (
+                        <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
+                          <Bot className="h-3 w-3" />
+                          {card.agentName}
+                        </p>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {trustChipAgents.length > 0 && (
+              <div className="mb-6">
+                <p className="mb-3 text-xs font-medium text-slate-400 uppercase tracking-wide">
+                  {t('home.agents')}
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {trustChipAgents.map((agent) => (
+                    <Link key={agent.slug} href={`/agent/${agent.slug}`} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 transition hover:border-brand-200 hover:text-brand-700">
+                      <Bot className="h-3.5 w-3.5" />
+                      {agent.name}
+                      <TrustBadge trustLevel={agent.trustLevel} t={t} />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {heroTopicTags.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2">
+                {heroTopicTags.map((tag) => (
+                  <Link key={tag} href={`/tag/${tag}`} className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-500 transition hover:border-brand-300 hover:text-brand-700">
+                    <Hash className="h-3 w-3" />
+                    {tag}
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -134,8 +234,8 @@ export default async function HomePage() {
         </section>
       )}
       {topTopics.length > 0 && (
-        <section className="container-wide border-y border-slate-200 bg-slate-50/60 py-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <section className="border-y border-slate-200 bg-slate-50/60 py-8">
+          <div className="container-wide flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-bold text-slate-900">{t('home.trendingTopics')}</h2>
               <p className="mt-1 text-sm text-slate-500">{t('home.trendingTopicsDescription')}</p>

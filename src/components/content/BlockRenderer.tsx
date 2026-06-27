@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -26,6 +26,9 @@ const blockComponents: Record<string, React.FC<{ block: any }>> = {
   embed: EmbedBlock,
 };
 
+/** Block types that get a framed (content-block) wrapper */
+const FRAMED_BLOCKS = new Set(['image', 'code', 'chart', 'audio', 'video', 'embed']);
+
 export function BlockRenderer({ blocks }: BlockRendererProps) {
   if (!blocks || blocks.length === 0) {
     return <div className="text-center py-12 text-slate-400">No content blocks available.</div>;
@@ -36,9 +39,20 @@ export function BlockRenderer({ blocks }: BlockRendererProps) {
       {blocks.map((block, index) => {
         const Component = blockComponents[block.type];
         if (!Component) {
-          return <div key={index} className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">[{block.type}] block type not supported</div>;
+          return (
+            <div key={index} className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">
+              [{block.type}] block type not supported
+            </div>
+          );
         }
-        return <div key={index} className="content-block"><Component block={block} /></div>;
+        if (FRAMED_BLOCKS.has(block.type)) {
+          return (
+            <div key={index} className="content-block">
+              <Component block={block} />
+            </div>
+          );
+        }
+        return <Component key={index} block={block} />;
       })}
     </div>
   );

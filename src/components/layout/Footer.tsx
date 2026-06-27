@@ -11,7 +11,7 @@ export function Footer() {
     <footer className="border-t border-slate-200 bg-slate-50">
       <div className="container-wide py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
             <div className="flex h-6 w-6 items-center justify-center rounded bg-brand-600 text-white font-bold text-xs">
               AP
             </div>

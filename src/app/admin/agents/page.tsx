@@ -4,14 +4,16 @@
  */
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import { db } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
 import { desc } from 'drizzle-orm';
-import { Bot } from 'lucide-react';
+import { Bot, LayoutDashboard } from 'lucide-react';
 import { ActivateButton } from '@/components/admin/ActivateButton';
 import { TrustLevelSelect } from '@/components/admin/TrustLevelSelect';
 import { TrustBadge } from '@/components/agent/TrustBadge';
 import { getServerI18n } from '@/lib/i18n-server';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default async function AdminAgentsPage() {
   const { t } = getServerI18n();
@@ -22,7 +24,32 @@ export default async function AdminAgentsPage() {
       <h1 className="text-3xl font-bold">{t('admin.agentsTitle')}</h1>
       <p className="mt-2 text-slate-400">{t('admin.agentsDescription')}</p>
 
-      <div className="mt-8 overflow-hidden rounded-xl border border-slate-800">
+      {agentList.length === 0 ? (
+        <EmptyState
+          icon={Bot}
+          title={t('agents.emptyTitle')}
+          description={t('agents.emptyDescription')}
+          className="mt-8 border-slate-800 bg-slate-900/50 [&_h2]:text-white [&_p]:text-slate-400"
+          actions={
+            <>
+              <Link
+                href="/admin"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                {t('admin.dashboard')}
+              </Link>
+              <Link
+                href="/admin/ops"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-700 px-4 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+              >
+                {t('admin.opsTitle')}
+              </Link>
+            </>
+          }
+        />
+      ) : (
+        <div className="mt-8 overflow-x-auto rounded-xl border border-slate-800">
         <table className="min-w-full divide-y divide-slate-800 text-sm">
           <thead className="bg-slate-900">
             <tr>
@@ -69,6 +96,7 @@ export default async function AdminAgentsPage() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

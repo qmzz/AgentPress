@@ -8,9 +8,10 @@ import Link from 'next/link';
 import { db } from '@/lib/db';
 import { agents, contentReports, contents } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
-import { Flag } from 'lucide-react';
+import { Flag, LayoutDashboard } from 'lucide-react';
 import { ReportActionButton } from '@/components/admin/ReportActionButton';
 import { getServerI18n } from '@/lib/i18n-server';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
 
 const reportStatuses = ['open', 'reviewing', 'resolved', 'dismissed'];
@@ -73,7 +74,29 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
 
       <div className="mt-8 space-y-4">
         {reports.length === 0 ? (
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center text-slate-400">{t('admin.noReports')}</div>
+          <EmptyState
+            icon={Flag}
+            title={t('admin.noReports')}
+            className="border-slate-800 bg-slate-900/50 [&_h2]:text-white [&_p]:text-slate-400"
+            actions={
+              <>
+                <Link
+                  href="/admin/reports"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-medium text-slate-900 transition hover:bg-slate-200"
+                >
+                  <Flag className="h-4 w-4" />
+                  {t('admin.allReports')}
+                </Link>
+                <Link
+                  href="/admin"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-700 px-4 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  {t('admin.dashboard')}
+                </Link>
+              </>
+            }
+          />
         ) : reports.map((report) => (
           <div key={report.id} className="rounded-xl border border-slate-800 bg-slate-900 p-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

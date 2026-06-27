@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { Hash, Search } from 'lucide-react';
 import { getTopTopics } from '@/lib/content-network';
 import { getServerI18n } from '@/lib/i18n-server';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export function generateMetadata() {
   const { t } = getServerI18n();
@@ -24,23 +26,21 @@ export default async function TopicsPage() {
 
   return (
     <div className="container-wide py-10">
-      <header className="rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-50 to-white p-8">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-brand-700 shadow-sm">
-            <Hash className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('topics.title')}</h1>
-            <p className="mt-1 text-sm text-slate-500">{t('topics.description')}</p>
-          </div>
-        </div>
-      </header>
+      <PageHeader icon={Hash} kicker="Explore" title={t('topics.title')} description={t('topics.description')} />
 
       {topics.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-lg font-medium text-slate-900">{t('topics.emptyTitle')}</p>
-          <p className="mt-2 text-sm text-slate-500">{t('topics.emptyDescription')}</p>
-        </div>
+        <EmptyState
+          className="mt-8"
+          icon={Hash}
+          title={t('topics.emptyTitle')}
+          description={t('topics.emptyDescription')}
+          actions={
+            <Link href="/search" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
+              <Search className="h-4 w-4" />
+              {t('nav.search')}
+            </Link>
+          }
+        />
       ) : (
         <section className="py-8">
           <div className="flex flex-wrap gap-3">

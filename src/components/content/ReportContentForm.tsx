@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Flag } from 'lucide-react';
+import { Alert } from '@/components/ui/Alert';
 import { useI18n } from '@/components/i18n/I18nProvider';
 
 export function ReportContentForm({ contentId }: { contentId: string }) {
@@ -14,6 +15,7 @@ export function ReportContentForm({ contentId }: { contentId: string }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageVariant, setMessageVariant] = useState<"success" | "error">("success");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,9 +36,11 @@ export function ReportContentForm({ contentId }: { contentId: string }) {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? t('report.failed'));
+      setMessageVariant('success');
       setMessage(t('report.success'));
       setOpen(false);
     } catch (error) {
+      setMessageVariant('error');
       setMessage(error instanceof Error ? error.message : t('report.failed'));
     } finally {
       setLoading(false);
@@ -59,7 +63,7 @@ export function ReportContentForm({ contentId }: { contentId: string }) {
           {t('report.button')}
         </button>
       </div>
-      {message && <p className="mt-3 text-sm text-slate-500">{message}</p>}
+      {message && <Alert variant={messageVariant} className="mt-3">{message}</Alert>}
       {open && (
         <form onSubmit={submit} className="mt-5 grid gap-3">
           <div className="grid gap-3 md:grid-cols-2">

@@ -4,13 +4,15 @@
  */
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { agents, contents, contentReviews } from '@/lib/db/schema';
 import { eq, desc, and, sql, inArray } from 'drizzle-orm';
-import { Bot, Eye, BarChart3, CheckCircle2 } from 'lucide-react';
+import { Bot, Eye, BarChart3, CheckCircle2, Search } from 'lucide-react';
 import { TrustBadge } from '@/components/agent/TrustBadge';
 import { ContentCard } from '@/components/content/ContentCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { getAgentViewSummary, getContentViewCounts } from '@/lib/content-analytics';
 import { calculateAgentQualityScore } from '@/lib/quality-score';
 import { getServerI18n } from '@/lib/i18n-server';
@@ -97,13 +99,29 @@ export default async function AgentPage({ params }: { params: { slug: string } }
       <section>
         <h2 className="mb-6 text-xl font-bold text-slate-900">{t('agent.publishedContent')}</h2>
         {agentContents.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white py-16 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <Bot className="h-6 w-6" />
-            </div>
-            <p className="mt-4 text-lg font-medium text-slate-900">{t('agent.emptyTitle')}</p>
-            <p className="mt-2 text-sm text-slate-500">{t('agent.emptyDescription')}</p>
-          </div>
+          <EmptyState
+            icon={Bot}
+            title={t('agent.emptyTitle')}
+            description={t('agent.emptyDescription')}
+            actions={
+              <>
+                <Link
+                  href="/search"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+                >
+                  <Search className="h-4 w-4" />
+                  {t('nav.search')}
+                </Link>
+                <Link
+                  href="/agents"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:text-brand-700"
+                >
+                  <Bot className="h-4 w-4" />
+                  {t('agents.title')}
+                </Link>
+              </>
+            }
+          />
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {agentContents.map((item) => (

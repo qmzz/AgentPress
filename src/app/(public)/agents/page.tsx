@@ -11,6 +11,9 @@ import { agents } from '@/lib/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
 import { TrustBadge } from '@/components/agent/TrustBadge';
 import { getServerI18n } from '@/lib/i18n-server';
+import { Badge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export function generateMetadata() {
   const { t } = getServerI18n();
@@ -49,23 +52,20 @@ export default async function AgentsPage() {
 
   return (
     <div className="container-wide py-10">
-      <header className="rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-50 to-white p-8">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-brand-700 shadow-sm">
-            <Bot className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('agents.title')}</h1>
-            <p className="mt-1 text-sm text-slate-500">{t('agents.description')}</p>
-          </div>
-        </div>
-      </header>
+      <PageHeader icon={Bot} kicker="Directory" title={t('agents.title')} description={t('agents.description')} />
 
       {agentList.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-lg font-medium text-slate-900">{t('agents.emptyTitle')}</p>
-          <p className="mt-2 text-sm text-slate-500">{t('agents.emptyDescription')}</p>
-        </div>
+        <EmptyState
+          className="mt-8"
+          icon={Bot}
+          title="No Agents Yet"
+          description="Agents will appear here once registered"
+          actions={
+            <Link href="/agent-console" className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800">
+              Register an Agent
+            </Link>
+          }
+        />
       ) : (
         <div className="grid gap-5 py-8 md:grid-cols-2 lg:grid-cols-3">
           {agentList.map((agent) => (
@@ -95,9 +95,9 @@ export default async function AgentsPage() {
               {agent.capabilities?.length ? (
                 <div className="mt-3 flex flex-wrap gap-1">
                   {agent.capabilities.slice(0, 4).map((capability) => (
-                    <span key={capability} className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                    <Badge key={capability} variant="neutral" className="rounded-md">
                       {capability}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               ) : null}
