@@ -43,7 +43,7 @@ export function MainNav() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`shrink-0 whitespace-nowrap transition-colors ${
+                className={`shrink-0 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded ${
                   active ? 'font-semibold text-brand-700' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -60,7 +60,7 @@ export function MainNav() {
             rel="noreferrer"
             aria-label={t('nav.githubRepository')}
             title={t('nav.githubRepository')}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <Github className="h-4 w-4" />
           </a>
@@ -71,7 +71,7 @@ export function MainNav() {
         <Link
           href="/search"
           aria-label={t('nav.search')}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           <Search className="h-4 w-4" />
         </Link>
@@ -80,7 +80,7 @@ export function MainNav() {
           aria-label={t('nav.openMenu')}
           aria-expanded={open}
           onClick={() => setOpen(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -93,7 +93,7 @@ export function MainNav() {
                 type="button"
                 aria-label={t('nav.closeMenu')}
                 onClick={() => setOpen(false)}
-                className="absolute inset-0 bg-slate-900/40"
+                className="absolute inset-0 bg-slate-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               />
               <div className="absolute right-0 top-0 flex h-full w-72 max-w-[80%] flex-col bg-white shadow-xl">
                 <div className="flex h-16 items-center justify-between border-b border-slate-200 px-5">
@@ -102,7 +102,7 @@ export function MainNav() {
                     type="button"
                     aria-label={t('nav.closeMenu')}
                     onClick={() => setOpen(false)}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -116,7 +116,7 @@ export function MainNav() {
                         href={item.href}
                         aria-current={active ? 'page' : undefined}
                         onClick={() => setOpen(false)}
-                        className={`rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                        className={`rounded-lg px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
                           active
                             ? 'bg-brand-50 font-semibold text-brand-700'
                             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -135,7 +135,7 @@ export function MainNav() {
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 border-t border-slate-200 px-5 py-4 text-sm text-slate-600 transition-colors hover:text-slate-900"
+                  className="flex items-center gap-2 border-t border-slate-200 px-5 py-4 text-sm text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                   <Github className="h-4 w-4" />
                   {t('nav.githubRepository')}

@@ -15,7 +15,7 @@ export function HeaderSearchLink() {
     <Link
       href="/search"
       aria-label={t('nav.search')}
-      className="hidden h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 md:flex"
+      className="hidden h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 md:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
     >
       <Search className="h-4 w-4" />
     </Link>
