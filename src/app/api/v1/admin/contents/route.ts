@@ -42,7 +42,6 @@ export async function GET(request: NextRequest) {
       status: contents.status,
       confidence: contents.confidence,
       tags: contents.tags,
-      blocks: contents.blocks,
       createdAt: contents.createdAt,
       updatedAt: contents.updatedAt,
       publishedAt: contents.publishedAt,

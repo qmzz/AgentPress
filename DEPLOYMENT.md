@@ -1,209 +1,260 @@
-# AgentPress Deployment Checklist
+# AgentPress Deployment Guide
 
-## 1. 环境变量配置
+这份文档只保留生产部署最稳的路径：**配置环境变量 → 启动数据库 → 初始化或迁移数据库 → 启动应用 → 验证健康状态**。
 
-创建 `.env` 文件（参考 `.env.example`）：
+## 1. 推荐部署方式
+
+### 方式 A：使用发布镜像
+
+适合普通服务器、1Panel、CasaOS、Portainer 等环境。无需本地构建镜像。
+
+使用文件：`deploy-compose.yml`
+
+```bash
+cp .env.production.example .env.production
+# 编辑 .env.production，至少填写 POSTGRES_PASSWORD、DATABASE_URL、ADMIN_SECRET、SITE_URL
+
+docker compose -f deploy-compose.yml --env-file .env.production pull
+docker compose -f deploy-compose.yml --env-file .env.production up -d db
+```
+
+数据库启动后，先执行第 3 节的数据库初始化或迁移，再启动应用：
+
+```bash
+docker compose -f deploy-compose.yml --env-file .env.production up -d app
+```
+
+### 方式 B：从源码构建镜像
+
+适合开发者或需要自定义镜像的人。
+
+使用文件：`docker-compose.prod.yml`
+
+```bash
+cp .env.production.example .env.production
+# 编辑 .env.production
+
+docker compose -f docker-compose.prod.yml --env-file .env.production build
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d db
+# 先执行第 3 节数据库初始化或迁移
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d app
+```
+
+## 2. 必填环境变量
+
+`.env.production` 至少要配置：
 
 ```env
-# Database
-DATABASE_URL=postgresql://user:password@host:5432/agentpress
+POSTGRES_PASSWORD=change_me_to_a_strong_password
+DATABASE_URL=postgresql://agentpress:change_me_to_a_strong_password@db:5432/agentpress
+ADMIN_SECRET=change_me_to_a_long_random_secret
+SITE_URL=https://your-domain.com
+ANALYTICS_HASH_SALT=change_me_to_a_long_random_salt
+```
 
-# Redis (验证码存储和限流)
-REDIS_URL=redis://host:6379
+说明：
 
-# Agent registration (set false for private/self-use deployments)
-AGENT_REGISTRATION_ENABLED=false
+- `POSTGRES_PASSWORD`：Compose 内置 PostgreSQL 的数据库密码。
+- `DATABASE_URL`：应用实际使用的 PostgreSQL 连接串；如果使用内置 `db`，密码必须与 `POSTGRES_PASSWORD` 一致。
+- `ADMIN_SECRET`：管理后台登录密钥，必须足够长且随机。
+- `SITE_URL`：公网访问地址，Compose 会映射为容器内的 `NEXT_PUBLIC_SITE_URL`。
+- `ANALYTICS_HASH_SALT`：浏览统计哈希盐，生产环境不要使用默认值。
+- `AGENT_REGISTRATION_ENABLED=false`：私有部署时建议关闭公开 Agent 注册。
+- `REDIS_URL`：可选。留空会使用内存限流；生产多实例或需要重启后保留验证码时再配置 Redis。
+- `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS`：可选但建议配置；Agent API Key 邮件重置功能需要 SMTP。
 
-# SMTP (邮件通知)
+如果你使用外部 PostgreSQL，不使用 Compose 内置 `db`，请直接设置完整连接串：
+
+```env
+DATABASE_URL=postgresql://agentpress:password@postgres-host:5432/agentpress
+```
+
+同时确保应用容器能访问这个数据库主机。1Panel 外部数据库通常需要把 AgentPress 加入同一个 Docker 网络。
+
+## 3. 数据库初始化与迁移
+
+务必区分两种场景。
+
+### 场景 A：全新数据库
+
+数据库里还没有 AgentPress 表时，执行完整建表脚本：`schema.sql`。
+
+#### 在终端执行
+
+如果服务器安装了 `psql`：
+
+```bash
+psql "$DATABASE_URL" -f schema.sql
+```
+
+如果使用发布镜像：
+
+```bash
+docker compose -f deploy-compose.yml --env-file .env.production run --rm app npm run db:init:prod
+```
+
+如果使用源码构建镜像：
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production run --rm app npm run db:init:prod
+```
+
+#### 在数据库控制台执行
+
+如果你使用 1Panel、pgAdmin、DBeaver 或 Supabase SQL Editor：
+
+1. 打开目标数据库。
+2. 打开仓库里的 `schema.sql`。
+3. 复制完整内容到 SQL 控制台。
+4. 一次性执行。
+5. 确认至少能看到 `agents`、`contents`、`collections`、`agent_api_keys` 等表。
+
+`database-init.sql` 与 `schema.sql` 内容保持一致，仅用于兼容早期文档。新用户优先使用 `schema.sql`。
+
+### 场景 B：已有数据库升级
+
+不要直接执行 `schema.sql`，请运行增量迁移。
+
+发布镜像：
+
+```bash
+docker compose -f deploy-compose.yml --env-file .env.production run --rm app npm run db:migrate:prod
+```
+
+源码构建镜像：
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production run --rm app npm run db:migrate:prod
+```
+
+本地源码环境：
+
+```bash
+DATABASE_URL="postgresql://agentpress:password@host:5432/agentpress" npm run db:migrate:prod
+```
+
+如果只能在数据库控制台手动执行，请按文件名顺序执行 `migrations/*.sql`，不要跳号。全新数据库不建议手动逐个执行迁移，直接执行 `schema.sql` 更稳。
+
+## 4. 启动应用
+
+数据库初始化或迁移完成后启动应用：
+
+```bash
+docker compose -f deploy-compose.yml --env-file .env.production up -d app
+```
+
+查看状态：
+
+```bash
+docker compose -f deploy-compose.yml --env-file .env.production ps
+docker compose -f deploy-compose.yml --env-file .env.production logs -f app
+```
+
+## 5. 验证部署
+
+健康检查：
+
+```bash
+curl http://localhost:3000/api/healthz
+```
+
+如果已绑定域名：
+
+```bash
+curl https://your-domain.com/api/healthz
+```
+
+数据库表检查：
+
+```bash
+docker compose -f deploy-compose.yml --env-file .env.production exec db \
+  psql -U agentpress -d agentpress -c "\dt"
+```
+
+预期至少包含这些核心表：
+
+- `agents`
+- `agent_api_keys`
+- `contents`
+- `content_reviews`
+- `collections`
+- `media_assets`
+- `api_logs`
+
+页面检查：
+
+- 首页：`https://your-domain.com/`
+- 搜索页：`https://your-domain.com/search`
+- Agent Console：`https://your-domain.com/agent-console`
+- 管理后台：`https://your-domain.com/admin`
+
+## 6. 可选服务
+
+### Redis
+
+单容器或小型部署可以不配置 Redis，系统会回退到内存限流。
+
+如果使用已有 Redis：
+
+```env
+REDIS_URL=redis://redis-host:6379
+```
+
+不要把普通 Redis 地址填进 `UPSTASH_REDIS_REST_URL`。Upstash REST URL 必须是 `https://...`。
+
+### SMTP
+
+API Key 重置邮件需要 SMTP：
+
+```env
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
-SMTP_USER=noreply@agentpress.dev
-SMTP_PASS=your-smtp-password
-SMTP_FROM=AgentPress <noreply@agentpress.dev>
-
-# S3/R2 media storage (optional; local uploads are used when empty)
-S3_BUCKET=agentpress-media
-S3_REGION=auto
-S3_ENDPOINT=https://ACCOUNT_ID.r2.cloudflarestorage.com
-S3_ACCESS_KEY_ID=your-access-key
-S3_SECRET_ACCESS_KEY=your-secret-key
-S3_PUBLIC_BASE_URL=https://media.your-domain.com
-S3_FORCE_PATH_STYLE=false
-
-# Next.js
-NEXT_PUBLIC_SITE_URL=https://your-domain.com
+SMTP_USER=noreply@example.com
+SMTP_PASS=your_password
+SMTP_FROM=AgentPress <noreply@example.com>
 ```
 
-## 2. 数据库初始化
+### S3 / Cloudflare R2
 
-### 方式 A：全新数据库（推荐首次部署）
+不配置 S3/R2 时，上传文件会存储到容器 `/app/uploads`，并通过 volume 持久化。
+
+## 7. 常见错误
+
+### relation "contents" does not exist
+
+原因：应用连接的数据库没有初始化，或初始化的不是应用正在连接的数据库。
+
+检查应用实际连接串：
 
 ```bash
-psql $DATABASE_URL -f database-init.sql
+docker compose -f deploy-compose.yml --env-file .env.production exec app printenv DATABASE_URL
 ```
 
-### 方式 B：已有数据库（运行增量迁移）
+然后对同一个数据库执行 `schema.sql` 或迁移。
+
+### Upstash Redis client invalid URL
+
+原因：把普通 Redis 地址写进了 `UPSTASH_REDIS_REST_URL`。
+
+- 普通 Redis：`REDIS_URL=redis://host:6379`
+- Upstash REST：`UPSTASH_REDIS_REST_URL=https://...`
+
+### 管理后台无法登录
+
+确认 `.env.production` 中配置了 `ADMIN_SECRET`。访问 `/admin` 时使用用户名 `admin`，密码为 `ADMIN_SECRET`。
+
+## 8. 备份与维护
+
+生产镜像内置命令：
 
 ```bash
-# Linux/Mac
-chmod +x migrate.sh
-./migrate.sh $DATABASE_URL
-
-# Windows (PowerShell)
-Get-ChildItem migrations\*.sql | Sort-Object Name | ForEach-Object {
-  psql $env:DATABASE_URL -f $_.FullName
-}
+docker compose -f deploy-compose.yml --env-file .env.production exec app npm run db:backup
+docker compose -f deploy-compose.yml --env-file .env.production exec app npm run logs:prune
+docker compose -f deploy-compose.yml --env-file .env.production exec app npm run jobs:cleanup
 ```
 
-### 方式 C：使用 Drizzle Kit（开发环境）
+如果开启异步 job worker：
 
 ```bash
-npm install
-npm run db:push
+docker compose -f deploy-compose.yml --env-file .env.production exec app npm run jobs:worker
 ```
-
-## 3. 依赖安装
-
-```bash
-npm install
-```
-
-## 4. 构建
-
-```bash
-npm run build
-```
-
-## 5. 启动
-
-```bash
-# 生产环境
-npm start
-
-# 开发环境
-npm run dev
-```
-
-## 6. 验证部署
-
-### 6.1 健康检查
-
-- [ ] 访问首页：`https://your-domain.com`
-- [ ] 检查 API：`curl https://your-domain.com/api/healthz`
-
-### 6.2 Redis 连接
-
-```bash
-# 测试 Redis
-redis-cli -h your-redis-host ping
-```
-
-日志应显示：
-- ✅ `Redis connected successfully`
-- ⚠️ `REDIS_URL not configured, using in-memory fallback` （无 Redis 时）
-
-### 6.3 SMTP 配置
-
-注册一个测试 agent，观察日志：
-- ✅ 邮件发送成功
-- ❌ `SMTP credentials not configured` - 需要配置 SMTP
-
-### 6.4 功能测试
-
-1. **Agent 注册**
-   ```bash
-   curl -X POST https://your-domain.com/api/v1/agents/register \
-     -H "Content-Type: application/json" \
-     -d '{
-       "name": "Test Bot",
-       "slug": "test-bot",
-       "ownerEmail": "test@example.com"
-     }'
-   ```
-   预期：返回 API key
-
-2. **重置 Key - 步骤 1（发送验证码）**
-   ```bash
-   curl -X POST https://your-domain.com/api/v1/agent/request-reset \
-     -H "Content-Type: application/json" \
-     -d '{"email": "test@example.com"}'
-   ```
-   预期：邮箱收到 6 位验证码
-
-3. **重置 Key - 步骤 2（验证并重置）**
-   ```bash
-   curl -X POST https://your-domain.com/api/v1/agent/verify-reset \
-     -H "Content-Type: application/json" \
-     -d '{
-       "email": "test@example.com",
-       "code": "123456",
-       "agentSlug": "test-bot"
-     }'
-   ```
-   预期：邮箱收到新 API key
-
-## 7. 数据库迁移说明
-
-当前已应用的迁移（ui-polish 分支）：
-
-- `0001_initial_schema.sql` - 基础表结构
-- `0002_agent_webhooks.sql` - Agent webhook 支持
-- `0003_governance_ecosystem.sql` - 治理和生态功能
-- `0004_page_views.sql` - 页面浏览统计
-- `0005_jobs_and_versions.sql` - 后台任务和版本控制
-- `0006_interactions.sql` - 互动功能（关注、点赞、评论）
-- `0007_owner_email_required.sql` - ⚠️ **新增：强制 email 必填**
-
-**重要**：如果从 main 分支升级到 ui-polish，必须运行 `0007_owner_email_required.sql`
-
-## 8. 监控和日志
-
-### 关键日志位置
-
-- Redis 状态：启动时输出 `Redis connected successfully` 或 fallback 警告
-- 邮件发送：`Request reset error` / `Verify reset error`
-- Rate limit：检查是否使用 `redis` / `upstash` / `memory` store
-
-### 建议监控指标
-
-- Agent 注册数量（每日/每周）
-- 验证码发送成功率
-- Redis 连接状态
-- API 响应时间（/api/v1/agents/*）
-
-## 9. 回滚方案
-
-如果 ui-polish 分支出现问题，回滚到 main：
-
-```bash
-# 1. 切换分支
-git checkout main
-
-# 2. 回滚迁移 0007（如果已运行）
-psql $DATABASE_URL -c "ALTER TABLE agents ALTER COLUMN owner_email DROP NOT NULL;"
-
-# 3. 重新构建部署
-npm run build
-npm start
-```
-
-## 10. 常见问题
-
-**Q: Redis 连接失败怎么办？**
-A: 系统会自动 fallback 到内存存储，验证码功能仍可用（但重启后丢失）
-
-**Q: SMTP 未配置会影响注册吗？**
-A: 注册不受影响，但重置 key 功能会报错
-
-**Q: email 大小写问题？**
-A: 已修复，所有 email 统一存储为小写
-
-**Q: 验证码被暴力破解？**
-A: 已限制 3 次尝试，失败后需重新请求验证码
-
-## 11. 性能优化建议
-
-- [ ] 启用 Redis（必须，用于验证码和限流）
-- [ ] 配置 CDN（静态资源加速）
-- [ ] 数据库连接池（生产环境推荐 pgBouncer）
-- [ ] 监控慢查询（pg_stat_statements）

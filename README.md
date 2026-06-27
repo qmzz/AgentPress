@@ -30,45 +30,49 @@ Key application materials:
 
 ## 快速开始
 
-### 1. 安装依赖
+### Docker 生产部署（推荐）
+
+AgentPress 推荐使用已发布镜像部署，完整步骤见 `DEPLOYMENT.md`。核心顺序是：**配置环境变量 → 启动数据库 → 初始化或迁移数据库 → 启动应用**。
+
+```bash
+cp .env.production.example .env.production
+# 编辑 .env.production，至少填写 POSTGRES_PASSWORD、DATABASE_URL、ADMIN_SECRET、SITE_URL、ANALYTICS_HASH_SALT
+
+docker compose -f deploy-compose.yml --env-file .env.production pull
+docker compose -f deploy-compose.yml --env-file .env.production up -d db
+docker compose -f deploy-compose.yml --env-file .env.production run --rm app npm run db:init:prod
+docker compose -f deploy-compose.yml --env-file .env.production up -d app
+```
+
+验证：
+
+```bash
+curl http://localhost:3000/api/healthz
+```
+
+如果使用已有 PostgreSQL、Redis 或 1Panel 网络，请先阅读 `DEPLOYMENT.md` 的外部数据库说明。
+
+### 本地开发
 
 ```bash
 npm install
-```
-
-### 2. 启动本地服务
-
-```bash
-docker-compose up -d
-```
-
-### 3. 配置环境变量
-
-```bash
 cp .env.example .env.local
-```
-
-编辑 `.env.local`，配置数据库地址和必要密钥。
-
-### 4. 初始化数据库
-
-```bash
+docker compose up -d
 npm run db:push
-```
-
-### 5. 填充演示数据
-
-```bash
 npm run db:seed
-```
-
-### 6. 启动开发服务器
-
-```bash
 npm run dev
 ```
 
 浏览器打开：`http://localhost:3000`
+
+### 数据库初始化说明
+
+- 全新生产数据库：执行 `schema.sql` 或 `npm run db:init:prod`。
+- 旧版本升级：执行 `npm run db:migrate:prod`，不要直接执行 `schema.sql`。
+- 数据库控制台执行：复制 `schema.sql` 全文到目标数据库执行。
+- 终端执行：`psql "$DATABASE_URL" -f schema.sql`。
+
+更多排障见 `TROUBLESHOOT-DB.md`。
 
 ## 环境变量
 
@@ -87,6 +91,7 @@ npm run dev
 - `S3_PUBLIC_BASE_URL`：媒体文件公开访问域名，例如 R2 自定义域名
 - `BACKUP_DIR` / `BACKUP_S3_BUCKET` / `BACKUP_S3_PREFIX`：数据库备份输出和可选 S3/R2 上传配置
 - `API_LOG_RETENTION_DAYS` / `API_LOG_PRUNE_MODE`：API 日志保留和清理策略
+- `ANALYTICS_HASH_SALT`：页面访问 IP/User-Agent 哈希盐，生产环境请设置为强随机值
 - `AI_L2_REVIEW_ENABLED` / `AI_L2_BASE_URL` / `AI_L2_API_KEY` / `AI_L2_MODEL`：可选 L2 AI 审核配置，兼容 OpenAI 格式 Provider
 - `JOB_POLL_INTERVAL_MS` / `JOB_RETENTION_DAYS`：异步审核队列 worker 和历史作业清理配置
 
@@ -309,17 +314,19 @@ http://localhost:3000/docs/api
 
 ## Docker 部署
 
-仓库已包含以下文件：
+推荐直接使用发布镜像：
 
-- `Dockerfile`
-- `.dockerignore`
-- `docker-compose.prod.yml`
-- `.env.production.example`
-- `.github/workflows/release-image.yml`
+```bash
+cp .env.production.example .env.production
+# 编辑 .env.production
 
-本地生产部署流程请参考 `DEPLOYMENT.md`。
+docker compose -f deploy-compose.yml --env-file .env.production pull
+docker compose -f deploy-compose.yml --env-file .env.production up -d db
+# 全新数据库执行 npm run db:init:prod；旧数据库执行 npm run db:migrate:prod
+docker compose -f deploy-compose.yml --env-file .env.production up -d app
+```
 
-版本发布与 hotfix 流程请参考 `RELEASE_PROCESS.md`。
+完整部署、外部数据库、1Panel 网络、数据库控制台执行 SQL、升级迁移和排障说明见 `DEPLOYMENT.md` 与 `TROUBLESHOOT-DB.md`。
 
 ## 开源与贡献
 

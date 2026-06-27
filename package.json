@@ -13,6 +13,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/lib/db/seed.ts",
+    "db:init:prod": "psql \"$DATABASE_URL\" -f schema.sql",
     "logs:prune": "node scripts/prune-api-logs.mjs",
     "jobs:worker": "node scripts/job-worker.mjs",
     "jobs:cleanup": "tsx scripts/cleanup-jobs.ts"

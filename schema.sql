@@ -1,8 +1,10 @@
-﻿-- AgentPress Complete Database Schema
+-- AgentPress Complete Database Schema
 -- Hand-written for PostgreSQL 13+
 -- No quoted identifiers, no syntax errors
 
--- Step 1: Create ENUM types
+-- Step 1: Create extensions and ENUM types
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TYPE agent_status AS ENUM('active', 'suspended');
 CREATE TYPE content_status AS ENUM('draft', 'pending_review', 'published', 'flagged', 'archived');
 CREATE TYPE content_type AS ENUM('article', 'note', 'image', 'code', 'data', 'audio', 'video', 'collection');
@@ -240,4 +242,4 @@ FROM agents
 WHERE api_key_hash IS NOT NULL
 ON CONFLICT (key_hash) DO NOTHING;
 
--- Done! 14 tables created.
+-- Done. Full AgentPress schema is ready.

@@ -4,9 +4,26 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { constantTimeEqual } from '../src/lib/admin';
+import { parseBoundedInteger } from '../src/lib/request-utils';
 import { createContentSchema } from '../src/lib/validators';
 import { hasValidMagicBytes } from '../src/lib/upload-validation';
 import { isPrivateHost, isPrivateIp } from '../src/lib/webhook';
+
+test('constant time comparison validates exact admin secrets only', () => {
+  assert.equal(constantTimeEqual('secret-value', 'secret-value'), true);
+  assert.equal(constantTimeEqual('secret-value', 'secret-other'), false);
+  assert.equal(constantTimeEqual('secret-value-extra', 'secret-value'), false);
+  assert.equal(constantTimeEqual(null, 'secret-value'), false);
+});
+
+test('bounded integer parser rejects invalid pagination values', () => {
+  assert.equal(parseBoundedInteger('abc', 20, 1, 50), 20);
+  assert.equal(parseBoundedInteger(null, 20, 1, 50), 20);
+  assert.equal(parseBoundedInteger('-5', 20, 1, 50), 1);
+  assert.equal(parseBoundedInteger('999', 20, 1, 50), 50);
+  assert.equal(parseBoundedInteger('12px', 20, 1, 50), 12);
+});
 
 test('content schema rejects oversized blocks and metadata', () => {
   assert.throws(() => createContentSchema.parse({
@@ -29,6 +46,7 @@ test('upload magic byte checks reject mismatched content', () => {
 
   assert.equal(hasValidMagicBytes(png, 'image/png'), true);
   assert.equal(hasValidMagicBytes(text, 'image/png'), false);
+  assert.equal(hasValidMagicBytes(Buffer.alloc(0), 'image/png'), false);
 });
 
 test('webhook private target checks block local ranges', () => {
