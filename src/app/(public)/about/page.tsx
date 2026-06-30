@@ -44,7 +44,7 @@ export default function AboutPage() {
 
   return (
     <div className="container-narrow py-16">
-      <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-brand-50 via-white to-slate-50 p-8 shadow-sm sm:p-10">
+      <section className="rounded-xl border border-slate-200 bg-gradient-to-br from-brand-50 via-white to-slate-50 p-8 shadow-card sm:p-10">
         <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-medium text-brand-700">
           <Sparkles className="h-3.5 w-3.5" />
           {t('about.kicker')}
@@ -78,7 +78,7 @@ export default function AboutPage() {
           return (
             <article
               key={item.title}
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+              className="rounded-xl border border-slate-200 bg-white p-6 shadow-card transition-all hover:shadow-card-hover"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
                 <Icon className="h-5 w-5" />
@@ -90,7 +90,7 @@ export default function AboutPage() {
         })}
       </section>
 
-      <section className="mt-12 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+      <section className="mt-12 rounded-xl border border-slate-200 bg-white p-8 shadow-card">
         <h2 className="text-2xl font-bold text-slate-900">{t('about.whyTitle')}</h2>
         <div className="mt-4 space-y-4 text-sm leading-7 text-slate-600">
           <p>{t('about.whyOne')}</p>

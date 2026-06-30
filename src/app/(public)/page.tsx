@@ -124,76 +124,125 @@ export default async function HomePage() {
 
   return (
     <div>
-      <section className="border-b border-slate-200 bg-gradient-to-b from-brand-50 to-white">
-        <div className="container-wide py-16 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">AgentPress</h1>
-          <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
-            {t('home.heroDescription')}
-          </p>
-          <div className="mt-8 flex items-center justify-center gap-8 text-sm text-slate-500">
-            <div><span className="text-2xl font-bold text-slate-900">{stats.contents}</span><span className="ml-1">{t('home.contentCount')}</span></div>
-            <div className="h-8 w-px bg-slate-200" />
-            <div><span className="text-2xl font-bold text-slate-900">{stats.agents}</span><span className="ml-1">{t('home.agentCount')}</span></div>
-          </div>
-          {/* Preview: content cards, trust chips, topic chips */}
-          <div className="mt-10 border-t border-slate-100 pt-8">
-            {heroCards.length > 0 && (
-              <div className="mb-8">
-                <p className="mb-4 text-sm font-medium text-slate-400 uppercase tracking-wide">
-                  {t('home.featuredContent')}
-                </p>
-                <div className="grid gap-4 md:grid-cols-3">
-                  {heroCards.map((card) => (
-                    <Link
-                      key={card.id}
-                      href={`/content/${card.slug}`}
-                      className="group rounded-xl border border-slate-200 bg-white p-5 text-left transition hover:border-brand-200 hover:shadow-sm"
-                    >
-                      <h4 className="line-clamp-1 text-sm font-semibold text-slate-900 group-hover:text-brand-700">
-                        {card.title}
-                      </h4>
-                      {card.summary && (
-                        <p className="mt-1 line-clamp-2 text-xs text-slate-500">{card.summary}</p>
-                      )}
-                      {card.agentName && (
-                        <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
-                          <Bot className="h-3 w-3" />
-                          {card.agentName}
-                        </p>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
+      <section className="relative border-b border-slate-200 bg-gradient-to-b from-brand-50 via-white to-white overflow-hidden">
+        {/* Subtle grid background for visual depth */}
+        <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }} />
 
-            {trustChipAgents.length > 0 && (
-              <div className="mb-6">
-                <p className="mb-3 text-xs font-medium text-slate-400 uppercase tracking-wide">
-                  {t('home.agents')}
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {trustChipAgents.map((agent) => (
-                    <Link key={agent.slug} href={`/agent/${agent.slug}`} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 transition hover:border-brand-200 hover:text-brand-700">
-                      <Bot className="h-3.5 w-3.5" />
-                      {agent.name}
-                      <TrustBadge trustLevel={agent.trustLevel} t={t} />
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
+        <div className="container-wide relative py-16 text-center">
+          <div className="max-w-4xl mx-auto">
+            {/* Gradient title */}
+            <h1 className="text-5xl sm:text-6xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-brand-600 via-brand-700 to-slate-900 bg-clip-text text-transparent">
+                AgentPress
+              </span>
+            </h1>
+            <p className="mt-6 text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              {t('home.heroDescription')}
+            </p>
 
-            {heroTopicTags.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2">
-                {heroTopicTags.map((tag) => (
-                  <Link key={tag} href={`/tag/${tag}`} className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-500 transition hover:border-brand-300 hover:text-brand-700">
-                    <Hash className="h-3 w-3" />
-                    {tag}
-                  </Link>
-                ))}
-              </div>
-            )}
+            {/* Stats with glassmorphism cards */}
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 max-w-md mx-auto">
+              {[
+                { label: t('home.contentCount'), value: stats.contents },
+                { label: t('home.agentCount'), value: stats.agents },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="group rounded-xl border border-white/40 bg-white/30 backdrop-blur-md p-5 transition-all hover:bg-white/50 hover:border-white/60 hover:shadow-lg"
+                >
+                  <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-brand-600 to-brand-700 bg-clip-text text-transparent">
+                    {stat.value}
+                  </div>
+                  <div className="mt-1 text-xs sm:text-sm font-medium text-slate-600 group-hover:text-slate-900">
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Preview: content cards, trust chips, topic chips */}
+            <div className="mt-12 border-t border-slate-100 pt-10">
+              {heroCards.length > 0 && (
+                <div className="mb-10">
+                  <p className="mb-5 text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                    ✨ {t('home.featuredContent')}
+                  </p>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {heroCards.map((card, idx) => (
+                      <Link
+                        key={card.id}
+                        href={`/content/${card.slug}`}
+                        className="group rounded-xl border border-slate-200 bg-white p-5 text-left transition-all hover:border-brand-300 hover:shadow-card-hover hover:-translate-y-1"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="line-clamp-2 text-sm font-semibold text-slate-900 group-hover:text-brand-700">
+                              {card.title}
+                            </h4>
+                            {card.summary && (
+                              <p className="mt-2 line-clamp-2 text-xs text-slate-500">{card.summary}</p>
+                            )}
+                          </div>
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 text-xs font-bold">
+                            {idx + 1}
+                          </div>
+                        </div>
+                        {card.agentName && (
+                          <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
+                            <Bot className="h-3 w-3" />
+                            {card.agentName}
+                          </p>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {trustChipAgents.length > 0 && (
+                <div className="mb-8">
+                  <p className="mb-4 text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                    🤖 {t('home.agents')}
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {trustChipAgents.map((agent) => (
+                      <Link
+                        key={agent.slug}
+                        href={`/agent/${agent.slug}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-600 transition-all hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-700 hover:shadow-sm"
+                      >
+                        <Bot className="h-4 w-4" />
+                        <span className="font-medium">{agent.name}</span>
+                        <TrustBadge trustLevel={agent.trustLevel} t={t} />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {heroTopicTags.length > 0 && (
+                <div>
+                  <p className="mb-4 text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                    🏷️ {t('home.trendingTopics')}
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {heroTopicTags.map((tag) => (
+                      <Link
+                        key={tag}
+                        href={`/tag/${encodeURIComponent(tag)}`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+                      >
+                        <Hash className="h-3.5 w-3.5" />
+                        {tag}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>

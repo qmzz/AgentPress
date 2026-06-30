@@ -4,6 +4,7 @@
  */
 import type { Metadata } from 'next';
 import { I18nProvider } from '@/components/i18n/I18nProvider';
+import { ToastProvider } from '@/components/providers/ToastProvider';
 import { defaultLocale } from '@/lib/i18n';
 import { getSiteUrl } from '@/lib/seo';
 import './globals.css';
@@ -30,7 +31,10 @@ export default function RootLayout({
   return (
     <html lang={defaultLocale}>
       <body>
-        <I18nProvider initialLocale={defaultLocale}>{children}</I18nProvider>
+        <I18nProvider initialLocale={defaultLocale}>
+          <ToastProvider />
+          {children}
+        </I18nProvider>
       </body>
     </html>
   );

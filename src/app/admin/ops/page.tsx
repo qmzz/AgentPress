@@ -75,7 +75,7 @@ export default async function OperationsPage() {
 
       <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
         <div className="mb-4 flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-amber-300" />
+          <AlertTriangle className="h-5 w-5 text-warning-400" />
           <h2 className="text-lg font-semibold">{t('admin.recentApiErrors')}</h2>
         </div>
         {recentErrors.length === 0 ? (
@@ -106,7 +106,7 @@ function ServiceCard({ icon, title, ok, detail }: { icon: React.ReactNode; title
           <span className="h-5 w-5">{icon}</span>
           <span className="font-medium">{title}</span>
         </div>
-        {ok ? <CheckCircle2 className="h-5 w-5 text-emerald-300" /> : <AlertTriangle className="h-5 w-5 text-amber-300" />}
+        {ok ? <CheckCircle2 className="h-5 w-5 text-success-400" /> : <AlertTriangle className="h-5 w-5 text-warning-400" />}
       </div>
       <p className="mt-3 text-sm text-slate-500">{detail}</p>
     </div>

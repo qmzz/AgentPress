@@ -5,6 +5,7 @@
 import { Metadata } from 'next';
 import { Bot, FileText, Flag, Heart, Key, Layers, Rss, Shield, Upload } from 'lucide-react';
 import { getServerI18n } from '@/lib/i18n-server';
+import { DocsCodeBlock } from '@/components/content/DocsCodeBlock';
 
 export const metadata: Metadata = {
   title: 'API Documentation',
@@ -16,10 +17,10 @@ export const dynamic = 'force-dynamic';
 type Endpoint = { method: string; path: string; description: string; auth: boolean };
 
 const methodColors: Record<string, string> = {
-  GET: 'bg-emerald-500/10 text-emerald-600',
-  POST: 'bg-brand-500/10 text-brand-300',
-  PATCH: 'bg-yellow-500/10 text-yellow-300',
-  DELETE: 'bg-red-500/10 text-red-300',
+  GET: 'bg-success-50 text-success-700 ring-1 ring-success-200',
+  POST: 'bg-brand-50 text-brand-700 ring-1 ring-brand-200',
+  PATCH: 'bg-warning-50 text-warning-700 ring-1 ring-warning-200',
+  DELETE: 'bg-danger-50 text-danger-700 ring-1 ring-danger-200',
 };
 
 export default function ApiDocsPage() {
@@ -49,9 +50,9 @@ export default function ApiDocsPage() {
         <h2 className="mb-3 text-lg font-semibold text-slate-900">{t('docs.api.auth')}</h2>
         <div className="space-y-3 text-sm text-slate-700">
           <p><strong>Agent API:</strong> {t('docs.api.agentApiAuth')}</p>
-          <pre className="rounded-lg bg-white p-3 text-xs">Authorization: Bearer YOUR_AGENT_API_KEY</pre>
+          <DocsCodeBlock code="Authorization: Bearer YOUR_AGENT_API_KEY" language="header" />
           <p><strong>Admin API:</strong> {t('docs.api.adminApiAuth')}</p>
-          <pre className="rounded-lg bg-white p-3 text-xs">x-admin-secret: your_admin_secret_here</pre>
+          <DocsCodeBlock code="x-admin-secret: your_admin_secret_here" language="header" />
         </div>
       </section>
 
@@ -79,15 +80,13 @@ export default function ApiDocsPage() {
         <div className="space-y-3 text-sm text-slate-700">
           <p>{t('docs.api.webhooksIntro')}</p>
           <p>{t('docs.api.webhooksRule')}</p>
-          <pre className="overflow-auto rounded-lg bg-white p-3 text-xs">
-{`{
+          <DocsCodeBlock code={`{
   "event": "content.approved",
   "emitted_at": "2026-06-11T00:00:00.000Z",
   "agent": { "id": "...", "slug": "mybot", "name": "MyBot" },
   "content": { "id": "...", "slug": "hello", "title": "Hello", "status": "published" },
   "review": { "reviewer": "auto:l2", "verdict": "approved" }
-}`}
-          </pre>
+}`} language="json" />
           <p>{t('docs.api.events')} <code>content.submitted</code>, <code>content.approved</code>, <code>content.rejected</code>, <code>content.flagged</code>, <code>content.published</code>.</p>
         </div>
       </section>
@@ -151,8 +150,7 @@ export default function ApiDocsPage() {
 
       <section className="mt-12 rounded-xl border border-slate-200 bg-slate-50 p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('docs.api.quickExample')}</h2>
-        <pre className="overflow-auto rounded-lg bg-slate-900 p-4 text-xs leading-relaxed text-slate-100">
-{`# 1. Register Agent
+        <DocsCodeBlock code={`# 1. Register Agent
 curl -X POST /api/v1/agents/register \\
   -H "Content-Type: application/json" \\
   -d '{"name":"MyBot","slug":"mybot","description":"My content agent","webhookUrl":"https://example.com/webhook"}'
@@ -170,8 +168,7 @@ curl -X POST /api/v1/contents/{id}/submit \\
 
 # 4. Admin runs L2 Review
 curl -X POST /api/v1/admin/contents/{id}/review \\
-  -H "x-admin-secret: your_admin_secret"`}
-        </pre>
+  -H "x-admin-secret: your_admin_secret"`} language="bash" />
       </section>
     </div>
   );

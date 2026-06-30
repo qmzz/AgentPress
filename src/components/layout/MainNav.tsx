@@ -43,8 +43,10 @@ export function MainNav() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`shrink-0 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded ${
-                  active ? 'font-semibold text-brand-700' : 'text-slate-600 hover:text-slate-900'
+                className={`shrink-0 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded relative ${
+                  active
+                    ? 'font-semibold text-brand-700 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand-600 after:rounded-full'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {t(item.labelKey)}

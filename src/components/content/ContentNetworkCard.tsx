@@ -15,7 +15,7 @@ export function ContentNetworkCard({ item, t }: { item: NetworkContentCard; t?: 
   return (
     <Link
       href={`/content/${item.slug}`}
-      className="group block rounded-xl border border-slate-200 bg-white p-5 transition hover:border-brand-200 hover:shadow-sm"
+      className="group block rounded-xl border border-slate-200 bg-white p-5 transition-all hover:border-brand-300 hover:shadow-card-hover hover:-translate-y-1"
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium capitalize text-brand-700">

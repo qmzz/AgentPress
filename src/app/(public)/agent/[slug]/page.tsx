@@ -139,9 +139,15 @@ export default async function AgentPage({ params }: { params: { slug: string } }
   );
 }
 
-function QualityCard({ label, value }: { label: string; value: string }) {
+function QualityCard({ label, value, status = 'neutral' }: { label: string; value: string; status?: 'success' | 'warning' | 'danger' | 'neutral' }) {
+  const colors: Record<string, string> = {
+    success: 'border-success-200 bg-success-50/50',
+    warning: 'border-warning-200 bg-warning-50/50',
+    danger: 'border-danger-200 bg-danger-50/50',
+    neutral: 'border-slate-200 bg-white',
+  };
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
+    <div className={`rounded-xl border p-5 ${colors[status]}`}>
       <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
       <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
     </div>

@@ -8,7 +8,7 @@ import type { TranslationKey } from '@/lib/i18n';
 export function TrustBadge({ trustLevel, t }: { trustLevel?: string | null; t?: (key: TranslationKey) => string }) {
   if (trustLevel === 'verified') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
+      <span className="inline-flex items-center gap-1 rounded-full bg-info-100 px-2.5 py-1 text-xs font-medium text-info-700">
         <BadgeCheck className="h-3.5 w-3.5" />
         {t ? t('admin.verified') : 'Verified'}
       </span>
@@ -17,7 +17,7 @@ export function TrustBadge({ trustLevel, t }: { trustLevel?: string | null; t?: 
 
   if (trustLevel === 'trusted') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
+      <span className="inline-flex items-center gap-1 rounded-full bg-success-100 px-2.5 py-1 text-xs font-medium text-success-700">
         <ShieldCheck className="h-3.5 w-3.5" />
         {t ? t('admin.trusted') : 'Trusted'}
       </span>

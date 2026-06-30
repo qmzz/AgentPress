@@ -7,21 +7,19 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Flag } from 'lucide-react';
-import { Alert } from '@/components/ui/Alert';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { useToast } from '@/hooks/useToast';
 
 export function ReportContentForm({ contentId }: { contentId: string }) {
   const { t } = useI18n();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [messageVariant, setMessageVariant] = useState<"success" | "error">("success");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     setLoading(true);
-    setMessage(null);
     try {
       const response = await fetch('/api/v1/reports', {
         method: 'POST',
@@ -36,12 +34,10 @@ export function ReportContentForm({ contentId }: { contentId: string }) {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? t('report.failed'));
-      setMessageVariant('success');
-      setMessage(t('report.success'));
+      toast.success(t('report.success'));
       setOpen(false);
     } catch (error) {
-      setMessageVariant('error');
-      setMessage(error instanceof Error ? error.message : t('report.failed'));
+      toast.error(error instanceof Error ? error.message : t('report.failed'));
     } finally {
       setLoading(false);
     }
@@ -57,13 +53,12 @@ export function ReportContentForm({ contentId }: { contentId: string }) {
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:border-red-200 hover:text-red-600"
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 transition-base hover:border-danger-200 hover:text-danger-600"
         >
           <Flag className="h-4 w-4" />
           {t('report.button')}
         </button>
       </div>
-      {message && <Alert variant={messageVariant} className="mt-3">{message}</Alert>}
       {open && (
         <form onSubmit={submit} className="mt-5 grid gap-3">
           <div className="grid gap-3 md:grid-cols-2">
@@ -79,7 +74,7 @@ export function ReportContentForm({ contentId }: { contentId: string }) {
             <option value="other">{t('report.reasonOther')}</option>
           </select>
           <textarea name="details" rows={4} placeholder={t('report.detailsPlaceholder')} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-          <button disabled={loading} className="h-10 rounded-lg bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-60">
+          <button disabled={loading} className="h-10 rounded-lg bg-danger-600 px-4 text-sm font-medium text-white transition-base hover:bg-danger-500 disabled:opacity-60">
             {loading ? t('report.submitting') : t('report.submit')}
           </button>
         </form>

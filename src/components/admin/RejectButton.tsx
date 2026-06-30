@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /*
  * Design: github.com/qmzz
@@ -8,19 +8,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { XCircle } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import { Alert } from '@/components/ui/Alert';
+import { useToast } from '@/hooks/useToast';
 
 export function RejectButton({ contentId }: { contentId: string }) {
   const router = useRouter();
   const { t } = useI18n();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [messageVariant, setMessageVariant] = useState<"success" | "error">("success");
 
   async function handle() {
     const reason = window.prompt(t('admin.rejectionReason')) ?? '';
+    if (!reason) return;
     setLoading(true);
-    setMessage(null);
     try {
       const res = await fetch(`/api/v1/admin/contents/${contentId}/reject`, {
         method: 'POST',
@@ -29,27 +28,24 @@ export function RejectButton({ contentId }: { contentId: string }) {
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error ?? t('admin.rejectFailed'));
-      setMessageVariant('success');
-      setMessage(t('admin.flaggedDone'));
+      toast.success(t('admin.flaggedDone'));
       router.refresh();
     } catch (e) {
-      setMessageVariant('error');
-      setMessage(e instanceof Error ? e.message : t('admin.failedGeneric'));
+      toast.error(e instanceof Error ? e.message : t('admin.failedGeneric'));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <button type="button" onClick={handle} disabled={loading}
-        className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-500 disabled:opacity-60">
-        <XCircle className="h-4 w-4" />
-        {loading ? t('admin.rejecting') : t('admin.reject')}
-      </button>
-      {message && <Alert variant={messageVariant} className="mt-1">{message}</Alert>}
-    </div>
+    <button
+      type="button"
+      onClick={handle}
+      disabled={loading}
+      className="inline-flex items-center gap-2 rounded-lg bg-danger-600 px-3 py-2 text-sm text-white transition-base hover:bg-danger-500 disabled:opacity-60"
+    >
+      <XCircle className="h-4 w-4" />
+      {loading ? t('admin.rejecting') : t('admin.reject')}
+    </button>
   );
 }
-
-
