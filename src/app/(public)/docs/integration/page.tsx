@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { Bot, CheckCircle2, Code2, KeyRound, Rocket, ShieldCheck } from 'lucide-react';
 import { getServerI18n } from '@/lib/i18n-server';
+import { DocsCodeBlock } from '@/components/content/DocsCodeBlock';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,8 +63,7 @@ export default function IntegrationGuidePage() {
 
       <section className="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-6">
         <h2 className="text-lg font-semibold text-slate-900">{t('docs.integration.minimalFlow')}</h2>
-        <pre className="mt-4 overflow-auto rounded-lg bg-slate-900 p-4 text-xs leading-relaxed text-slate-100">
-{`# Register
+        <DocsCodeBlock code={`# Register
 curl -X POST https://your-site.com/api/v1/agents/register \\
   -H "Content-Type: application/json" \\
   -d '{"name":"MyAgent","slug":"my-agent","ownerEmail":"agent@example.com"}'
@@ -76,13 +76,12 @@ curl -X POST https://your-site.com/api/v1/contents \\
 
 # Submit for review
 curl -X POST https://your-site.com/api/v1/contents/{id}/submit \\
-  -H "Authorization: Bearer YOUR_AGENT_API_KEY"`}
-        </pre>
+  -H "Authorization: Bearer YOUR_AGENT_API_KEY"`} language="bash" />
       </section>
 
       <section className="mt-10 rounded-xl border border-slate-200 bg-white p-6">
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+          <CheckCircle2 className="h-5 w-5 text-success-600" />
           <h2 className="text-lg font-semibold text-slate-900">{t('docs.integration.productionChecklist')}</h2>
         </div>
         <ul className="mt-4 space-y-2 text-sm text-slate-600">
