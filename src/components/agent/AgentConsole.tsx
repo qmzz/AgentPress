@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { Bot, CheckCircle2, ExternalLink, FileText, RefreshCw, Send, Settings, Trash2 } from 'lucide-react';
 import { TrustBadge } from '@/components/agent/TrustBadge';
 import { Alert } from '@/components/ui/Alert';
+import { CopyButton } from '@/components/ui/CopyButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
 
@@ -408,7 +409,7 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
           </button>
         )}
         {!data && !registeredKey && !registrationEnabled && (
-          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <p className="mt-3 rounded-lg border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800">
             {t('agentConsole.registrationDisabled')}
           </p>
         )}
@@ -439,7 +440,7 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
           <div className="space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                {t('agentConsole.name')} <span className="text-red-500">{t('agentConsole.required')}</span>
+                {t('agentConsole.name')} <span className="text-danger-500">{t('agentConsole.required')}</span>
               </label>
               <input
                 type="text"
@@ -451,7 +452,7 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                {t('agentConsole.slug')} <span className="text-red-500">{t('agentConsole.required')}</span>
+                {t('agentConsole.slug')} <span className="text-danger-500">{t('agentConsole.required')}</span>
               </label>
               <input
                 type="text"
@@ -464,7 +465,7 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                {t('agentConsole.email')} <span className="text-red-500">{t('agentConsole.required')}</span>
+                {t('agentConsole.email')} <span className="text-danger-500">{t('agentConsole.required')}</span>
               </label>
               <input
                 type="email"
@@ -599,22 +600,13 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
 
       {/* Registered key banner */}
       {registeredKey && (
-        <section className="rounded-xl border border-green-200 bg-green-50 p-6">
-          <h2 className="mb-3 text-lg font-semibold text-green-900">{t('agentConsole.registrationSuccessful')}</h2>
-          <p className="mb-4 text-sm text-green-800">{t('agentConsole.keyReminder')}</p>
-          <div className="rounded-lg border border-green-300 bg-white p-3">
-            <code className="break-all text-sm text-slate-900">{registeredKey}</code>
+        <section className="rounded-xl border border-success-200 bg-success-50 p-6">
+          <h2 className="mb-3 text-lg font-semibold text-success-900">{t('agentConsole.registrationSuccessful')}</h2>
+          <p className="mb-4 text-sm text-success-800">{t('agentConsole.keyReminder')}</p>
+          <div className="flex items-center gap-2 rounded-lg border border-success-300 bg-white p-3">
+            <code className="flex-1 break-all text-sm text-slate-900">{registeredKey}</code>
+            <CopyButton text={registeredKey} />
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(registeredKey);
-              showSuccess(t('agentConsole.copied'));
-            }}
-            className="mt-3 inline-flex h-10 items-center justify-center rounded-lg bg-green-600 px-4 text-sm font-medium text-white hover:bg-green-500"
-          >
-            {t('agentConsole.copyToClipboard')}
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -710,7 +702,10 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
                 {newApiKey && (
                   <Alert variant="warning">
                     <p className="text-sm font-medium">{t('agentConsole.newKeyShownOnce')}</p>
-                    <code className="mt-2 block break-all rounded bg-white p-3 text-xs">{newApiKey}</code>
+                    <div className="mt-2 flex items-center gap-2 rounded bg-white p-3">
+                      <code className="flex-1 break-all text-xs">{newApiKey}</code>
+                      <CopyButton text={newApiKey} />
+                    </div>
                   </Alert>
                 )}
 
@@ -752,7 +747,7 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium text-slate-900">{key.name}</span>
-                          <span className={key.status === 'active' ? 'rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700' : 'rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500'}>
+                          <span className={key.status === 'active' ? 'rounded-full bg-success-50 px-2 py-0.5 text-xs text-success-700' : 'rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500'}>
                             {key.status}
                           </span>
                         </div>
@@ -769,7 +764,7 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
                           type="button"
                           onClick={() => revokeKey(key.id)}
                           disabled={isBusy}
-                          className="inline-flex h-9 items-center justify-center rounded-lg border border-red-200 px-3 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
+                          className="inline-flex h-9 items-center justify-center rounded-lg border border-danger-200 px-3 text-sm text-danger-600 hover:bg-danger-50 disabled:opacity-60"
                         >
                           {loadingAction === 'revokeKey' ? t('agentConsole.loading') : t('agentConsole.revoke')}
                         </button>
