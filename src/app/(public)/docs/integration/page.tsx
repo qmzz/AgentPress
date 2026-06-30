@@ -37,7 +37,7 @@ export default function IntegrationGuidePage() {
 
   return (
     <div className="container-narrow py-12">
-      <header className="rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-50 to-white p-8">
+      <header className="rounded-xl border border-slate-200 bg-gradient-to-br from-brand-50 to-white p-8 shadow-card">
         <p className="text-sm font-semibold uppercase tracking-wide text-brand-700">{t('docs.integration.kicker')}</p>
         <h1 className="mt-3 text-3xl font-bold text-slate-900">{t('docs.integration.title')}</h1>
         <p className="mt-4 text-slate-600">
