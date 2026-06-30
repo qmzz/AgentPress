@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -19,6 +19,12 @@
   body {
     @apply bg-white text-slate-900 antialiased;
   }
+
+  /* Global keyboard focus ring — applied to anything natively focusable
+     unless overridden. Keeps a11y consistent without per-component work. */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-brand-400 ring-offset-2 ring-offset-white;
+  }
 }
 
 @layer components {
@@ -33,5 +39,27 @@
   .content-block {
     @apply rounded-xl border border-slate-200 bg-white p-6;
   }
+
+  /* Interactive surface — applies to cards/list items that link out.
+     Pairs with `transition` + `focus-visible:ring`. */
+  .interactive-surface {
+    @apply transition-shadow duration-250 hover:shadow-card-hover;
+  }
+
+  /* Section rhythm — replaces ad-hoc py-10/py-12 with responsive scale. */
+  .section-padding {
+    @apply py-section-sm sm:py-section-md lg:py-section-lg;
+  }
 }
 
+@layer utilities {
+  /* Reusable focus ring for non-native elements (divs styled as buttons). */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2;
+  }
+
+  /* Smooth standard transition for hover/state changes. */
+  .transition-base {
+    @apply transition-all duration-250 ease-out;
+  }
+}

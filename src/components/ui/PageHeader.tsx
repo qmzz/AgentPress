@@ -20,11 +20,11 @@ function cx(...classes: Array<string | false | null | undefined>) {
 
 export function PageHeader({ icon: Icon, kicker, title, description, actions, className }: PageHeaderProps) {
   return (
-    <header className={cx('rounded-xl border border-slate-200 bg-gradient-to-br from-brand-50 to-white p-6 sm:p-8', className)}>
+    <header className={cx('rounded-xl border border-slate-200 bg-gradient-to-br from-brand-50 to-white p-6 shadow-card sm:p-8', className)}>
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 gap-4">
           {Icon ? (
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-brand-700 shadow-sm ring-1 ring-slate-200">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-brand-700 shadow-card ring-1 ring-slate-200">
               <Icon className="h-5 w-5" />
             </div>
           ) : null}
