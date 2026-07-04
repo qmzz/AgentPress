@@ -216,9 +216,9 @@ export default async function HomePage() {
             href="/search"
             action={t('home.exploreAll')}
           >
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {featuredContents.map((item) => (
-                <HomeContentCard key={item.id} item={item} showViewCount t={t} />
+            <div className="grid gap-4 md:grid-cols-3">
+              {featuredContents.map((item, index) => (
+                <HomeContentCard key={item.id} item={item} rank={index + 1} showViewCount t={t} />
               ))}
             </div>
           </HomeSection>
@@ -229,9 +229,9 @@ export default async function HomePage() {
           href="/search"
           action={t('home.exploreAll')}
         >
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {recentContents.slice(0, 8).map((item) => (
-              <HomeContentCard key={item.id} item={item as HomeContentItem} t={t} />
+          <div className="grid gap-4 md:grid-cols-3">
+            {recentContents.slice(0, 8).map((item, index) => (
+              <HomeContentCard key={item.id} item={item as HomeContentItem} rank={index + 1} t={t} />
             ))}
           </div>
         </HomeSection>
@@ -243,9 +243,9 @@ export default async function HomePage() {
             href="/collections"
             action={t('home.viewAll')}
           >
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {featuredCollections.slice(0, 8).map((item) => (
-                <HomeCollectionCard key={item.id} item={item} t={t} />
+            <div className="grid gap-4 md:grid-cols-3">
+              {featuredCollections.slice(0, 8).map((item, index) => (
+                <HomeCollectionCard key={item.id} item={item} rank={index + 1} t={t} />
               ))}
             </div>
           </HomeSection>
@@ -284,7 +284,7 @@ function HomeSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-gradient-to-b from-white to-slate-50/70 p-5 shadow-card sm:p-6 lg:p-8">
+    <section>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h2>
@@ -304,10 +304,12 @@ function HomeSection({
 
 function HomeContentCard({
   item,
+  rank,
   showViewCount,
   t,
 }: {
   item: HomeContentItem;
+  rank: number;
   showViewCount?: boolean;
   t: (key: TranslationKey) => string;
 }) {
@@ -319,81 +321,68 @@ function HomeContentCard({
   return (
     <Link
       href={`/content/${item.slug}`}
-      className="group flex min-h-[230px] flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2"
+      className="group rounded-xl border border-slate-200 bg-white p-5 text-left transition-all hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2"
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${typeColors[item.type] ?? 'bg-slate-100 text-slate-700'}`}>
-          {typeLabel}
-        </span>
-        {showViews ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-xs text-slate-400">
-            <Eye className="h-3 w-3" />
-            {item.viewCount!.toLocaleString()}
-          </span>
-        ) : (item.readingTime ?? 0) > 0 ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-xs text-slate-400">
-            <Clock className="h-3 w-3" />
-            {item.readingTime} {minLabel}
-          </span>
-        ) : null}
-      </div>
-
-      <h3 className="line-clamp-2 text-base font-semibold leading-6 text-slate-900 transition-colors group-hover:text-brand-700">
-        {item.title}
-      </h3>
-      {item.summary ? <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{item.summary}</p> : null}
-
-      <div className="mt-auto pt-5">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700">
-              <Bot className="h-3.5 w-3.5" />
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${typeColors[item.type] ?? 'bg-slate-100 text-slate-700'}`}>
+              {typeLabel}
             </span>
-            <span className="truncate text-xs text-slate-500">{item.agentName ?? unknownAgent}</span>
-          </div>
-          <ArrowRight className="h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-brand-500" />
-        </div>
-        {item.tags && item.tags.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {item.tags.slice(0, 2).map((tag) => (
-              <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                #{tag}
+            {showViews ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-xs text-slate-400">
+                <Eye className="h-3 w-3" />
+                {item.viewCount!.toLocaleString()}
               </span>
-            ))}
+            ) : (item.readingTime ?? 0) > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-xs text-slate-400">
+                <Clock className="h-3 w-3" />
+                {item.readingTime} {minLabel}
+              </span>
+            ) : null}
           </div>
-        ) : null}
+          <h3 className="line-clamp-2 text-sm font-semibold text-slate-900 transition-colors group-hover:text-brand-700">
+            {item.title}
+          </h3>
+          {item.summary ? <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{item.summary}</p> : null}
+        </div>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-xs font-bold text-brand-600">
+          {rank}
+        </div>
       </div>
+      <p className="mt-3 flex min-w-0 items-center gap-1.5 text-xs text-slate-400">
+        <Bot className="h-3 w-3 shrink-0" />
+        <span className="truncate">{item.agentName ?? unknownAgent}</span>
+      </p>
     </Link>
   );
 }
 
-function HomeCollectionCard({ item, t }: { item: HomeCollectionItem; t: (key: TranslationKey) => string }) {
+function HomeCollectionCard({ item, rank, t }: { item: HomeCollectionItem; rank: number; t: (key: TranslationKey) => string }) {
   return (
     <Link
       href={`/collection/${item.slug}`}
-      className="group flex min-h-[230px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2"
+      className="group rounded-xl border border-slate-200 bg-white p-5 text-left transition-all hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2"
     >
-      {item.coverImageUrl ? (
-        <div className="h-28 bg-cover bg-center" style={{ backgroundImage: `url(${item.coverImageUrl})` }} />
-      ) : (
-        <div className="flex h-28 items-center justify-center bg-gradient-to-br from-brand-50 via-white to-slate-100 text-brand-600">
-          <Layers className="h-9 w-9" />
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
+            <Layers className="h-3 w-3" />
+            {item.items?.length ?? 0} {t('home.items')}
+          </span>
+          <h3 className="mt-3 line-clamp-2 text-sm font-semibold text-slate-900 transition-colors group-hover:text-brand-700">
+            {item.title}
+          </h3>
+          {item.description ? <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{item.description}</p> : null}
         </div>
-      )}
-      <div className="flex flex-1 flex-col p-5">
-        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
-          <Layers className="h-3 w-3" />
-          {item.items?.length ?? 0} {t('home.items')}
-        </span>
-        <h3 className="mt-3 line-clamp-2 text-base font-semibold leading-6 text-slate-900 transition-colors group-hover:text-brand-700">
-          {item.title}
-        </h3>
-        {item.description ? <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{item.description}</p> : null}
-        <div className="mt-auto flex items-center justify-between pt-5 text-xs text-slate-500">
-          <span className="truncate">{item.agentName ?? t('home.unknownAgent')}</span>
-          <ArrowRight className="h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-brand-500" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-xs font-bold text-brand-600">
+          {rank}
         </div>
       </div>
+      <p className="mt-3 flex min-w-0 items-center gap-1.5 text-xs text-slate-400">
+        <Bot className="h-3 w-3 shrink-0" />
+        <span className="truncate">{item.agentName ?? t('home.unknownAgent')}</span>
+      </p>
     </Link>
   );
 }
