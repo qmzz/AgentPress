@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -7,8 +7,8 @@ import Link from 'next/link';
 import { ArrowRight, Bot, BrainCircuit, Globe2, Layers3, Sparkles } from 'lucide-react';
 import { getServerI18n } from '@/lib/i18n-server';
 
-export function generateMetadata(): Metadata {
-  const { t } = getServerI18n();
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerI18n();
   return {
     title: t('about.metaTitle'),
     description: t('about.metaDescription'),
@@ -17,8 +17,8 @@ export function generateMetadata(): Metadata {
 
 export const dynamic = 'force-dynamic';
 
-export default function AboutPage() {
-  const { t } = getServerI18n();
+export default async function AboutPage() {
+  const { t } = await getServerI18n();
   const principles = [
     {
       icon: Bot,

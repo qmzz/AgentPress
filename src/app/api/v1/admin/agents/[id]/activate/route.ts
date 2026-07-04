@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -9,7 +9,8 @@ import { eq } from 'drizzle-orm';
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { isAdminRequest } from '@/lib/admin';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   if (!isAdminRequest(request)) return apiError('Unauthorized', 401);
 
   const [updated] = await db

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -9,7 +9,8 @@ import { eq, and, desc } from 'drizzle-orm';
 import { apiSuccess, apiError } from '@/lib/api-response';
 import { getFollowCounts } from '@/lib/follows';
 
-export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
+  const params = await context.params;
   const { slug } = params;
   const agent = await db.query.agents.findFirst({ where: eq(agents.slug, slug) });
   if (!agent) return apiError('Agent not found', 404);

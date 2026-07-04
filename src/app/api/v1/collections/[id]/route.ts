@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -11,7 +11,8 @@ import { apiError, apiSuccess, handleZodError } from '@/lib/api-response';
 import { updateCollectionSchema } from '@/lib/validators';
 import { ZodError } from 'zod';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const collection = await findCollection(params.id);
   if (!collection) return apiError('Collection not found', 404);
 
@@ -38,7 +39,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   });
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   try {
     const auth = await authenticateAgent(request);
     if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
@@ -73,7 +75,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
 

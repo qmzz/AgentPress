@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -40,9 +40,10 @@ async function getContent(id: string) {
   return { content, agent, reviews };
 }
 
-export default async function AdminContentPreviewPage({ params }: { params: { id: string } }) {
-  const { locale, t } = getServerI18n();
-  const data = await getContent(params.id);
+export default async function AdminContentPreviewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { locale, t } = await getServerI18n();
+  const { id } = await params;
+  const data = await getContent(id);
   if (!data) notFound();
 
   const { content, agent, reviews } = data;

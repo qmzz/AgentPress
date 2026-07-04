@@ -75,7 +75,7 @@ async function getFeaturedCollections() {
 }
 
 export default async function HomePage() {
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   const [recentContents, stats, featuredCollections, topTopics] = await Promise.all([
     getRecentContents(),
     getStats(),

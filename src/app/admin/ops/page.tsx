@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 const EMPTY_API_SUMMARY = { calls: 0, errors: 0, avg_response_ms: 0 };
 
 export default async function OperationsPage() {
-  const { locale, t } = getServerI18n();
+  const { locale, t } = await getServerI18n();
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const [database, rateLimit, storage, jobStatus, apiSummary, recentErrors] = await Promise.all([
     checkDatabase(t),

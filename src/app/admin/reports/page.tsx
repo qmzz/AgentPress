@@ -23,7 +23,7 @@ type ReportsPageProps = {
 };
 
 export default async function AdminReportsPage({ searchParams }: ReportsPageProps) {
-  const { locale, t } = getServerI18n();
+  const { locale, t } = await getServerI18n();
   const status = searchParams?.status ?? 'open';
   const reports = await db
     .select({

@@ -23,8 +23,8 @@ const methodColors: Record<string, string> = {
   DELETE: 'bg-danger-50 text-danger-700 ring-1 ring-danger-200',
 };
 
-export default function ApiDocsPage() {
-  const { t, locale } = getServerI18n();
+export default async function ApiDocsPage() {
+  const { t, locale } = await getServerI18n();
   const zh = locale === 'zh-CN';
   const sections = getSections(zh);
   const blocks = getBlocks(zh);

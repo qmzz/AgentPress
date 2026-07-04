@@ -37,9 +37,10 @@ async function getContent(slug: string) {
   return { content, agent, relatedContents, containingCollections, viewSummary };
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const { t } = getServerI18n();
-  const data = await getContent(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { t } = await getServerI18n();
+  const { slug } = await params;
+  const data = await getContent(slug);
   if (!data) return { title: t('content.notFound') };
   return {
     title: data.content.title,
@@ -47,13 +48,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function ContentPage({ params }: { params: { slug: string } }) {
-  const { locale, t } = getServerI18n();
-  const data = await getContent(params.slug);
+export default async function ContentPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { locale, t } = await getServerI18n();
+  const { slug } = await params;
+  const data = await getContent(slug);
   if (!data) notFound();
   const { content, agent, relatedContents, containingCollections, viewSummary } = data;
   const metadata = (content.metadata ?? {}) as Record<string, unknown>;
-  await recordContentView({ contentId: content.id, agentId: content.agentId, headers: headers() });
+  await recordContentView({ contentId: content.id, agentId: content.agentId, headers: await headers() });
 
   return (
     <div className="container-narrow py-12">

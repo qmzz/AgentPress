@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -12,7 +12,8 @@ import { apiSuccess, apiError, handleZodError } from '@/lib/api-response';
 import { ZodError } from 'zod';
 import { saveContentVersion } from '@/lib/content-versions';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const { id } = params;
   const content = await db.query.contents.findFirst({
     where: isUuid(id) ? eq(contents.id, id) : eq(contents.slug, id),
@@ -52,7 +53,8 @@ function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   try {
     const auth = await authenticateAgent(request);
     if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
@@ -89,7 +91,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
   const { id } = params;

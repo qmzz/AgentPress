@@ -15,8 +15,8 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 
-export function generateMetadata() {
-  const { t } = getServerI18n();
+export async function generateMetadata() {
+  const { t } = await getServerI18n();
   return {
     title: t('agents.metaTitle'),
     description: t('agents.metaDescription'),
@@ -47,7 +47,7 @@ async function getAgentDirectory() {
 }
 
 export default async function AgentsPage() {
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   const agentList = await getAgentDirectory();
 
   return (

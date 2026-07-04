@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -7,7 +7,8 @@ import { authenticateAgent } from '@/lib/auth';
 import { updateComment, deleteComment } from '@/lib/comments';
 import { apiSuccess, apiError } from '@/lib/api-response';
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
   
@@ -21,7 +22,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   return apiSuccess({ comment });
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
   

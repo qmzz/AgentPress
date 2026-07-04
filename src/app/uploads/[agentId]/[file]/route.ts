@@ -11,8 +11,9 @@ import { mediaAssets } from '@/lib/db/schema';
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { agentId: string; file: string } }
+  context: { params: Promise<{ agentId: string; file: string }> }
 ) {
+  const params = await context.params;
   const storageKey = `${params.agentId}/${params.file}`;
   const [asset] = await db
     .select({

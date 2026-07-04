@@ -9,7 +9,7 @@ import { ADMIN_SESSION_HEADER, constantTimeEqual, createAdminSessionHeader } fro
 const SESSION_COOKIE = 'admin_session';
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (
     request.nextUrl.pathname.startsWith('/admin') ||
     request.nextUrl.pathname.startsWith('/api/v1/admin')
