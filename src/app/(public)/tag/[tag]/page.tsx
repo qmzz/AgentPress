@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -35,18 +35,20 @@ async function getContentsByTag(tag: string) {
     .limit(50);
 }
 
-export async function generateMetadata({ params }: { params: { tag: string } }) {
-  const { t } = getServerI18n();
-  const tag = decodeURIComponent(params.tag);
+export async function generateMetadata({ params }: { params: Promise<{ tag: string }> }) {
+  const { t } = await getServerI18n();
+  const { tag: encodedTag } = await params;
+  const tag = decodeURIComponent(encodedTag);
   return {
     title: `#${tag}`,
     description: formatMessage(t('tag.metaDescription'), { tag }),
   };
 }
 
-export default async function TagPage({ params }: { params: { tag: string } }) {
-  const { t } = getServerI18n();
-  const tag = decodeURIComponent(params.tag);
+export default async function TagPage({ params }: { params: Promise<{ tag: string }> }) {
+  const { t } = await getServerI18n();
+  const { tag: encodedTag } = await params;
+  const tag = decodeURIComponent(encodedTag);
   const items = await getContentsByTag(tag);
 
   return (

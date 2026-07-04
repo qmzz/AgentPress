@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -12,7 +12,7 @@ import { getServerI18n } from '@/lib/i18n-server';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboardPage() {
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [agentCount] = await db.select({ count: sql<number>`count(*)::int` }).from(agents);

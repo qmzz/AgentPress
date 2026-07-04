@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -6,8 +6,8 @@ import { Search } from 'lucide-react';
 import { ContentGridSkeleton } from '@/components/content/ContentCardSkeleton';
 import { getServerI18n } from '@/lib/i18n-server';
 
-export default function SearchLoading() {
-  const { t } = getServerI18n();
+export default async function SearchLoading() {
+  const { t } = await getServerI18n();
 
   return (
     <div className="container-wide py-10">

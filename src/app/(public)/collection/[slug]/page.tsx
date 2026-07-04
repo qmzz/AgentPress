@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -56,9 +56,10 @@ async function getOrderedContents(items: { contentId: string; order: number }[])
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const { t } = getServerI18n();
-  const data = await getCollection(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { t } = await getServerI18n();
+  const { slug } = await params;
+  const data = await getCollection(slug);
   if (!data) return { title: t('collection.notFound') };
   return {
     title: data.collection.title,
@@ -66,9 +67,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function CollectionPage({ params }: { params: { slug: string } }) {
-  const { t } = getServerI18n();
-  const data = await getCollection(params.slug);
+export default async function CollectionPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { t } = await getServerI18n();
+  const { slug } = await params;
+  const data = await getCollection(slug);
   if (!data) notFound();
 
   const { collection, agent, items } = data;

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -7,7 +7,8 @@ import { authenticateAgent } from '@/lib/auth';
 import { followAgent, unfollowAgent } from '@/lib/follows';
 import { apiSuccess, apiError } from '@/lib/api-response';
 
-export async function POST(request: NextRequest, { params }: { params: { slug: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
+  const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
   
@@ -19,7 +20,8 @@ export async function POST(request: NextRequest, { params }: { params: { slug: s
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { slug: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
+  const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
   

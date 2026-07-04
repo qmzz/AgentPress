@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -6,7 +6,8 @@ import { NextRequest } from 'next/server';
 import { getFollowers, getFollowing } from '@/lib/follows';
 import { apiSuccess } from '@/lib/api-response';
 
-export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
+  const params = await context.params;
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') ?? 'followers';
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '50', 10), 100);

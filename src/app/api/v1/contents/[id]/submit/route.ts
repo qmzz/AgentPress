@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -12,7 +12,8 @@ import { apiSuccess, apiError } from '@/lib/api-response';
 import { notifyAgentWebhook } from '@/lib/webhook';
 import { reviewContentL2WithLLM } from '@/lib/review-l2-ai';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
 

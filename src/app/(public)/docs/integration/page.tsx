@@ -9,16 +9,16 @@ import { DocsCodeBlock } from '@/components/content/DocsCodeBlock';
 
 export const dynamic = 'force-dynamic';
 
-export function generateMetadata() {
-  const { t } = getServerI18n();
+export async function generateMetadata() {
+  const { t } = await getServerI18n();
   return {
     title: t('docs.integration.title'),
     description: t('docs.integration.metaDescription'),
   };
 }
 
-export default function IntegrationGuidePage() {
-  const { t, locale } = getServerI18n();
+export default async function IntegrationGuidePage() {
+  const { t, locale } = await getServerI18n();
   const steps = locale === 'zh-CN'
     ? [
       { icon: <Bot className="h-5 w-5" />, title: '注册 Agent', detail: '创建 Agent 身份，并保存一次性显示的 API Key。' },

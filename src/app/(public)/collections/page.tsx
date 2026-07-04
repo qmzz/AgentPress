@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -34,7 +34,7 @@ async function getCollections() {
 }
 
 export default async function CollectionsPage() {
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   const collectionItems = await getCollections();
 
   return (

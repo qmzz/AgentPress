@@ -11,7 +11,8 @@ import { isAdminRequest } from '@/lib/admin';
 import { updateAgentTrustSchema } from '@/lib/validators';
 import { ZodError } from 'zod';
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   try {
     if (!isAdminRequest(request)) return apiError('Unauthorized', 401);
 

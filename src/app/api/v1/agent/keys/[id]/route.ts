@@ -9,7 +9,8 @@ import { authenticateAgent } from '@/lib/auth';
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { and, eq } from 'drizzle-orm';
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
 

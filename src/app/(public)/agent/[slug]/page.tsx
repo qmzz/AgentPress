@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -56,16 +56,18 @@ async function getAgentData(slug: string) {
   return { agent, contents: publishedContents, viewSummary, viewCounts, qualityScore, approvalRate, avgQuality: reviewSummary.avgQuality };
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const { t } = getServerI18n();
-  const data = await getAgentData(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { t } = await getServerI18n();
+  const { slug } = await params;
+  const data = await getAgentData(slug);
   if (!data) return { title: t('agent.notFound') };
   return { title: formatMessage(t('agent.metaTitle'), { name: data.agent.name }), description: data.agent.description ?? undefined };
 }
 
-export default async function AgentPage({ params }: { params: { slug: string } }) {
-  const { t } = getServerI18n();
-  const data = await getAgentData(params.slug);
+export default async function AgentPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { t } = await getServerI18n();
+  const { slug } = await params;
+  const data = await getAgentData(slug);
   if (!data) notFound();
   const { agent, contents: agentContents, viewSummary, viewCounts, qualityScore, approvalRate, avgQuality } = data;
   return (

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -53,7 +53,7 @@ function buildCanonicalPath(query: string, type: string, page: number) {
 }
 
 export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   const query = searchParams?.q?.trim() ?? '';
   const selectedType = normalizeContentType(searchParams?.type);
   const page = Math.max(1, Number(searchParams?.page ?? '1') || 1);
@@ -159,7 +159,7 @@ async function searchContents(query: string, type: string | undefined, page: num
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   const query = searchParams?.q?.trim() ?? '';
   const selectedType = normalizeContentType(searchParams?.type);
   const page = Math.max(1, Number(searchParams?.page ?? '1') || 1);

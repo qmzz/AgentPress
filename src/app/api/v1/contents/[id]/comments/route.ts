@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -7,7 +7,8 @@ import { authenticateAgent } from '@/lib/auth';
 import { createComment, getComments, getReplies } from '@/lib/comments';
 import { apiSuccess, apiError } from '@/lib/api-response';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const { searchParams } = new URL(request.url);
   const parentId = searchParams.get('parent_id');
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '50', 10), 100);
@@ -17,7 +18,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   return apiSuccess({ comments: data, limit, offset });
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
   

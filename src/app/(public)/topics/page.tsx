@@ -11,8 +11,8 @@ import { getServerI18n } from '@/lib/i18n-server';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 
-export function generateMetadata() {
-  const { t } = getServerI18n();
+export async function generateMetadata() {
+  const { t } = await getServerI18n();
   return {
     title: t('topics.metaTitle'),
     description: t('topics.metaDescription'),
@@ -20,7 +20,7 @@ export function generateMetadata() {
 }
 
 export default async function TopicsPage() {
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   const topics = await getTopTopics(80);
   const maxCount = Math.max(1, ...topics.map((topic) => topic.count));
 

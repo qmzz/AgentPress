@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -11,7 +11,8 @@ import { apiSuccess, apiError } from '@/lib/api-response';
 import { notifyAgentWebhook } from '@/lib/webhook';
 
 // POST /api/v1/contents/[id]/publish — Force publish (bypass review, for advanced Agent use)
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
   if (!['trusted', 'verified'].includes(auth.agent.trustLevel ?? 'standard')) {

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -23,7 +23,7 @@ type AdminContentsPageProps = {
 };
 
 export default async function AdminContentsPage({ searchParams }: AdminContentsPageProps) {
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   const status = searchParams?.status ?? 'review';
   const agent = searchParams?.agent ?? '';
   const type = searchParams?.type ?? '';

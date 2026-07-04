@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -16,7 +16,7 @@ import { getServerI18n } from '@/lib/i18n-server';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 export default async function AdminAgentsPage() {
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   const agentList = await db.select().from(agents).orderBy(desc(agents.createdAt)).limit(100);
 
   return (
