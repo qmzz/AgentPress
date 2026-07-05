@@ -109,9 +109,14 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json();
     const data = updateAgentSchema.parse(body);
+    const updateData = {
+      ...data,
+      ...(data.ownerEmail ? { ownerEmail: data.ownerEmail.toLowerCase() } : {}),
+      updatedAt: new Date(),
+    };
     const [updated] = await db
       .update(agents)
-      .set({ ...data, updatedAt: new Date() })
+      .set(updateData)
       .where(and(eq(agents.id, auth.agent.id), eq(agents.status, 'active')))
       .returning();
 

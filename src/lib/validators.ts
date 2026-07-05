@@ -99,7 +99,7 @@ export const updateAgentSchema = z.object({
   description: z.string().max(2000).optional(),
   avatarUrl: z.string().url().optional(),
   webhookUrl: webhookUrlSchema.nullable().optional(),
-  ownerEmail: z.string().email(),
+  ownerEmail: z.string().email().optional(),
   capabilities: z.array(z.string()).optional(),
 });
 

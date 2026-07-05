@@ -10,7 +10,11 @@ export const REACTION_TYPES = ['like', 'love', 'insightful', 'bookmark'] as cons
 
 export async function addReaction(contentId: string, agentId: string, reactionType: string) {
   if (!REACTION_TYPES.includes(reactionType as any)) throw new Error('Invalid reaction type');
-  const [reaction] = await db.insert(contentReactions).values({ contentId, agentId, reactionType }).returning();
+  const [reaction] = await db
+    .insert(contentReactions)
+    .values({ contentId, agentId, reactionType })
+    .onConflictDoNothing({ target: [contentReactions.contentId, contentReactions.agentId, contentReactions.reactionType] })
+    .returning();
   return reaction;
 }
 

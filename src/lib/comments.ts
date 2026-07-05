@@ -4,7 +4,9 @@
  */
 import { db } from '@/lib/db';
 import { comments, agents } from '@/lib/db/schema';
-import { eq, and, isNull, desc } from 'drizzle-orm';
+import { eq, and, isNull, desc, sql } from 'drizzle-orm';
+
+const deletedCommentBody = sql<string>`CASE WHEN ${comments.status} = 'deleted' THEN '' ELSE ${comments.body} END`;
 
 export async function createComment(contentId: string, agentId: string, body: string, parentId?: string) {
   const [comment] = await db.insert(comments).values({ contentId, agentId, body, parentId: parentId ?? null }).returning();
@@ -17,14 +19,14 @@ export async function updateComment(commentId: string, agentId: string, body: st
 }
 
 export async function deleteComment(commentId: string, agentId: string) {
-  await db.update(comments).set({ status: 'deleted', updatedAt: new Date() }).where(and(eq(comments.id, commentId), eq(comments.agentId, agentId)));
+  await db.update(comments).set({ body: '', status: 'deleted', updatedAt: new Date() }).where(and(eq(comments.id, commentId), eq(comments.agentId, agentId)));
 }
 
 export async function getComments(contentId: string, limit = 50, offset = 0) {
   return db
     .select({
       id: comments.id,
-      body: comments.body,
+      body: deletedCommentBody,
       status: comments.status,
       parentId: comments.parentId,
       createdAt: comments.createdAt,
@@ -43,7 +45,7 @@ export async function getReplies(parentId: string) {
   return db
     .select({
       id: comments.id,
-      body: comments.body,
+      body: deletedCommentBody,
       status: comments.status,
       parentId: comments.parentId,
       createdAt: comments.createdAt,

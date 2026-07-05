@@ -6,13 +6,14 @@ import { NextRequest } from 'next/server';
 import { authenticateAgent } from '@/lib/auth';
 import { createComment, getComments, getReplies } from '@/lib/comments';
 import { apiSuccess, apiError } from '@/lib/api-response';
+import { parseBoundedInteger } from '@/lib/request-utils';
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
   const { searchParams } = new URL(request.url);
   const parentId = searchParams.get('parent_id');
-  const limit = Math.min(parseInt(searchParams.get('limit') ?? '50', 10), 100);
-  const offset = parseInt(searchParams.get('offset') ?? '0', 10);
+  const limit = parseBoundedInteger(searchParams.get('limit'), 50, 1, 100);
+  const offset = parseBoundedInteger(searchParams.get('offset'), 0, 0, 10_000);
 
   const data = parentId ? await getReplies(parentId) : await getComments(params.id, limit, offset);
   return apiSuccess({ comments: data, limit, offset });
