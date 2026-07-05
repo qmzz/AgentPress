@@ -10,7 +10,7 @@ import { authenticateAgent } from '@/lib/auth';
 import { apiSuccess, apiError } from '@/lib/api-response';
 import { notifyAgentWebhook } from '@/lib/webhook';
 
-// POST /api/v1/contents/[id]/publish — Force publish (bypass review, for advanced Agent use)
+// POST /api/v1/contents/[id]/publish - Force publish (bypass review, for advanced Agent use)
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
   const auth = await authenticateAgent(request);
