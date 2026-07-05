@@ -6,9 +6,9 @@ import { NextRequest } from 'next/server';
 import { authenticateAgent } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { mediaAssets } from '@/lib/db/schema';
-import { apiSuccess, apiError } from '@/lib/api-response';
+import { apiSuccess, apiError, logApiRequest } from '@/lib/api-response';
 import { nanoid } from 'nanoid';
-import { checkRateLimitWithRetry } from '@/lib/rate-limit';
+import { checkRateLimitWithRetry, getClientIp } from '@/lib/rate-limit';
 import { uploadObject } from '@/lib/storage';
 import { hasValidMagicBytes } from '@/lib/upload-validation';
 
@@ -37,6 +37,7 @@ const ALLOWED_EXTENSIONS: Record<string, string[]> = {
 };
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
   try {
     const auth = await authenticateAgent(request);
     if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
@@ -101,6 +102,8 @@ export async function POST(request: NextRequest) {
         altText: altText ?? undefined,
       })
       .returning();
+
+    await logApiRequest(agent.id, '/api/v1/media/upload', 'POST', 201, Date.now() - startTime, getClientIp(request));
 
     return apiSuccess({
       id: asset.id,

@@ -55,9 +55,11 @@ export async function uploadObject(input: UploadInput): Promise<UploadResult> {
   };
 }
 
+const MAX_STORAGE_KEY_LENGTH = 512;
+
 export function assertSafeStorageKey(key: string) {
   const storageKey = key.trim();
-  if (!storageKey || storageKey.startsWith('/') || storageKey.startsWith('\\') || storageKey.includes('\\')) {
+  if (!storageKey || storageKey.length > MAX_STORAGE_KEY_LENGTH || storageKey.startsWith('/') || storageKey.startsWith('\\') || storageKey.includes('\\')) {
     throw new Error('Unsafe storage key');
   }
 

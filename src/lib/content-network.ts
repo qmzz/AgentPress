@@ -4,7 +4,7 @@
  */
 import { db } from '@/lib/db';
 import { agents, collections, contents, type Content } from '@/lib/db/schema';
-import { and, desc, eq, ne } from 'drizzle-orm';
+import { and, desc, eq, ne, sql } from 'drizzle-orm';
 
 export type NetworkContentCard = {
   id: string;
@@ -77,28 +77,16 @@ export async function getRelatedContents(content: Content, limit = 4): Promise<N
 }
 
 export async function getTopTopics(limit = 24): Promise<TopicSummary[]> {
-  const rows = await db
-    .select({
-      tags: contents.tags,
-    })
-    .from(contents)
-    .where(eq(contents.status, 'published'))
-    .orderBy(desc(contents.publishedAt))
-    .limit(300);
+  const rows = await db.execute(sql`
+    SELECT trim(tag) AS tag, count(*)::int AS count
+    FROM ${contents}, unnest(${contents.tags}) AS tag
+    WHERE ${contents.status} = 'published' AND trim(tag) <> ''
+    GROUP BY trim(tag)
+    ORDER BY count DESC, trim(tag)
+    LIMIT ${limit}
+  `);
 
-  const counts = new Map<string, number>();
-  for (const row of rows) {
-    for (const tag of row.tags ?? []) {
-      const normalized = tag.trim();
-      if (!normalized) continue;
-      counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
-    }
-  }
-
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, limit)
-    .map(([tag, count]) => ({ tag, count }));
+  return (rows as unknown as TopicSummary[]).map((r) => ({ tag: r.tag, count: Number(r.count) }));
 }
 
 export async function getCollectionsContainingContent(contentId: string) {

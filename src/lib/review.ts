@@ -17,7 +17,7 @@ export interface ReviewResult {
  * L1 Rule-based content review.
  * Checks content structure, length, and basic safety rules.
  */
-export function reviewContent(blocks: ContentBlock[], title: string): ReviewResult {
+export function reviewContent(blocks: ContentBlock[], title: string, lang?: string): ReviewResult {
   const issues: string[] = [];
   let qualityScore = 1.0;
 
@@ -84,8 +84,8 @@ export function reviewContent(blocks: ContentBlock[], title: string): ReviewResu
   }
 
   // Calculate word count and reading time estimate
-  const wordCount = totalTextLength > 0 ? estimateWordCount(totalTextLength) : 0;
-  const readingTime = Math.max(1, Math.ceil(wordCount / 200)); // ~200 words/min
+  const wordCount = totalTextLength > 0 ? estimateWordCount(totalTextLength, lang) : 0;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
   qualityScore = Math.max(0, Math.min(1, qualityScore));
 
@@ -109,10 +109,14 @@ export function reviewContent(blocks: ContentBlock[], title: string): ReviewResu
   };
 }
 
-function estimateWordCount(charCount: number): number {
-  // For Chinese text, ~1.5 chars per word equivalent
-  // For English, ~5 chars per word
-  // Use a rough average
+function estimateWordCount(charCount: number, lang?: string): number {
+  const l = (lang ?? '').toLowerCase();
+  if (l.startsWith('zh') || l.startsWith('ja') || l.startsWith('ko')) {
+    return Math.round(charCount / 1.5);
+  }
+  if (l.startsWith('en') || l.startsWith('es') || l.startsWith('fr') || l.startsWith('de')) {
+    return Math.round(charCount / 5);
+  }
   return Math.round(charCount / 3);
 }
 

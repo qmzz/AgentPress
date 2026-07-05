@@ -8,9 +8,10 @@ import { contents, agents, mediaAssets, contentReviews, type ContentBlock } from
 import { desc, eq, inArray } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { updateContentSchema } from '@/lib/validators';
-import { apiSuccess, apiError, handleZodError } from '@/lib/api-response';
+import { apiSuccess, apiError, handleZodError, logApiRequest } from '@/lib/api-response';
 import { ZodError } from 'zod';
 import { saveContentVersion } from '@/lib/content-versions';
+import { getClientIp } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
@@ -55,6 +56,7 @@ function isUuid(value: string) {
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
+  const startTime = Date.now();
   try {
     const auth = await authenticateAgent(request);
     if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
@@ -64,25 +66,30 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (content.agentId !== auth.agent.id) return apiError('Forbidden', 403);
     if (content.status === 'published') return apiError('Cannot edit published content', 400);
 
-    await saveContentVersion(id);
-
     const body = await request.json();
     const data = updateContentSchema.parse(body);
-    const [updated] = await db
-      .update(contents)
-      .set({
-        title: data.title,
-        summary: data.summary,
-        blocks: data.blocks,
-        tags: data.tags,
-        lang: data.language ?? content.lang,
-        confidence: data.confidence,
-        sourceUrl: data.sourceUrl,
-        metadata: data.metadata,
-        updatedAt: new Date(),
-      })
-      .where(eq(contents.id, id))
-      .returning();
+
+    const updated = await db.transaction(async (tx) => {
+      await saveContentVersion(id, tx);
+      const [row] = await tx
+        .update(contents)
+        .set({
+          title: data.title,
+          summary: data.summary,
+          blocks: data.blocks,
+          tags: data.tags,
+          lang: data.language ?? content.lang,
+          confidence: data.confidence,
+          sourceUrl: data.sourceUrl,
+          metadata: data.metadata,
+          updatedAt: new Date(),
+        })
+        .where(eq(contents.id, id))
+        .returning();
+      return row;
+    });
+
+    await logApiRequest(auth.agent.id, `/api/v1/contents/${id}`, 'PATCH', 200, Date.now() - startTime, getClientIp(request));
 
     return apiSuccess({ id: updated.id, slug: updated.slug, title: updated.title, status: updated.status, updated_at: updated.updatedAt });
   } catch (error) {

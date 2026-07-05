@@ -43,7 +43,8 @@ const aiReviewResponseSchema = z.object({
 });
 
 export function parseAIReviewResponse(content: string): L2ReviewResult {
-  const parsed = aiReviewResponseSchema.parse(JSON.parse(content));
+  const cleaned = content.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?\s*```\s*$/i, '').trim();
+  const parsed = aiReviewResponseSchema.parse(JSON.parse(cleaned));
   return {
     passed: parsed.verdict === 'approved',
     verdict: parsed.verdict,

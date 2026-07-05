@@ -4,12 +4,10 @@
  */
 import { NextRequest } from 'next/server';
 import { Redis } from '@upstash/redis';
-import { createClient, type RedisClientType } from 'redis';
+import { getRedisClient } from '@/lib/redis';
 
 const requestCounts = new Map<string, { count: number; resetAt: number }>();
 let upstashRedis: Redis | null | undefined;
-let redisClient: RedisClientType | null | undefined;
-let redisConnectPromise: Promise<RedisClientType> | null = null;
 
 type RateLimitStore = 'upstash' | 'redis' | 'memory';
 
@@ -22,10 +20,10 @@ export async function checkRateLimitWithRetry(
   limit: number,
   windowMs: number = 60000
 ): Promise<{ allowed: boolean; retryAfter: number; store: RateLimitStore }> {
-  const ordinaryRedisClient = getOrdinaryRedisClient();
-  if (ordinaryRedisClient) {
+  const sharedRedis = await getRedisClient();
+  if (sharedRedis) {
     try {
-      return await checkRedisRateLimit(await ordinaryRedisClient, key, limit, windowMs);
+      return await checkRedisRateLimit(sharedRedis, key, limit, windowMs);
     } catch (error) {
       console.warn('Redis rate limit failed, falling back to memory store:', error);
     }
@@ -44,10 +42,10 @@ export async function checkRateLimitWithRetry(
 }
 
 export async function getRateLimitStoreStatus(): Promise<{ ok: boolean; store: RateLimitStore; message?: string }> {
-  const ordinaryRedisClient = getOrdinaryRedisClient();
-  if (ordinaryRedisClient) {
+  const sharedRedis = await getRedisClient();
+  if (sharedRedis) {
     try {
-      await (await ordinaryRedisClient).ping();
+      await sharedRedis.ping();
       return { ok: true, store: 'redis' };
     } catch (error) {
       return { ok: false, store: 'redis', message: error instanceof Error ? error.message : 'Redis ping failed' };
@@ -64,15 +62,16 @@ export async function getRateLimitStoreStatus(): Promise<{ ok: boolean; store: R
     }
   }
 
-  return { ok: true, store: 'memory', message: 'No Redis configured; using in-memory rate limit store' };
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('[AgentPress] WARNING: No Redis configured in production. In-memory rate limiting does not work across multiple instances. Configure REDIS_URL or UPSTASH_REDIS_REST_URL for reliable rate limiting.');
+  }
+  return { ok: true, store: 'memory', message: 'No Redis configured; using in-memory rate limit store (not suitable for multi-instance production)' };
 }
 
 async function checkUpstashRateLimit(client: Redis, key: string, limit: number, windowMs: number) {
   const redisKey = `agentpress:rate-limit:${key}`;
   const count = await client.incr(redisKey);
-  if (count === 1) {
-    await client.pexpire(redisKey, windowMs);
-  }
+  await client.pexpire(redisKey, windowMs);
 
   if (count > limit) {
     const ttl = await client.pttl(redisKey);
@@ -86,12 +85,10 @@ async function checkUpstashRateLimit(client: Redis, key: string, limit: number, 
   return { allowed: true, retryAfter: 0, store: 'upstash' as const };
 }
 
-async function checkRedisRateLimit(client: RedisClientType, key: string, limit: number, windowMs: number) {
+async function checkRedisRateLimit(client: NonNullable<Awaited<ReturnType<typeof getRedisClient>>>, key: string, limit: number, windowMs: number) {
   const redisKey = `agentpress:rate-limit:${key}`;
   const count = await client.incr(redisKey);
-  if (count === 1) {
-    await client.pExpire(redisKey, windowMs);
-  }
+  await client.pExpire(redisKey, windowMs);
 
   if (count > limit) {
     const ttl = await client.pTTL(redisKey);
@@ -139,42 +136,6 @@ function getUpstashRedisClient() {
   return upstashRedis;
 }
 
-function getOrdinaryRedisClient() {
-  if (redisClient?.isOpen) return Promise.resolve(redisClient);
-  if (redisConnectPromise) return redisConnectPromise;
-
-  const url = normalizeRedisUrl(process.env.REDIS_URL);
-  if (!url) {
-    redisClient = null;
-    return null;
-  }
-
-  const client = createClient({ url }) as RedisClientType;
-  client.on('error', (error) => {
-    console.warn('Redis client error:', error);
-  });
-
-  redisConnectPromise = client.connect().then(() => {
-    redisClient = client;
-    return client;
-  }).catch((error) => {
-    redisClient = null;
-    redisConnectPromise = null;
-    throw error;
-  });
-
-  return redisConnectPromise;
-}
-
-function normalizeRedisUrl(value: string | undefined) {
-  if (!value) return null;
-  if (value.startsWith('redis://') || value.startsWith('rediss://')) return value;
-  if (value.includes('://')) {
-    console.warn('Ignoring REDIS_URL because it must use redis:// or rediss://.');
-    return null;
-  }
-  return `redis://${value}`;
-}
 
 export function getClientIp(request: NextRequest): string {
   return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()

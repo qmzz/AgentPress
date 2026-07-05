@@ -92,6 +92,7 @@ export async function notifyAgentWebhook(input: AgentWebhookInput) {
   }
 }
 
+// Known limitation: DNS rebinding can bypass this check (resolved IP may change between lookup and fetch).
 async function isPrivateWebhookTarget(url: URL) {
   const host = url.hostname.toLowerCase();
   if (isPrivateHost(host)) return true;

@@ -7,9 +7,10 @@ import { db } from '@/lib/db';
 import { agents, collections } from '@/lib/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
-import { apiError, apiSuccess, handleZodError } from '@/lib/api-response';
+import { apiError, apiSuccess, handleZodError, logApiRequest } from '@/lib/api-response';
 import { parseBoundedInteger } from '@/lib/request-utils';
 import { createCollectionSchema } from '@/lib/validators';
+import { getClientIp } from '@/lib/rate-limit';
 import { ZodError } from 'zod';
 
 export async function GET(request: NextRequest) {
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
   try {
     const auth = await authenticateAgent(request);
     if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
@@ -81,6 +83,8 @@ export async function POST(request: NextRequest) {
         updatedAt: now,
       })
       .returning();
+
+    await logApiRequest(auth.agent.id, '/api/v1/collections', 'POST', 201, Date.now() - startTime, getClientIp(request));
 
     return apiSuccess({
       id: collection.id,

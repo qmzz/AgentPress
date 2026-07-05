@@ -4,7 +4,7 @@
  */
 import { db } from '@/lib/db';
 import { comments, agents } from '@/lib/db/schema';
-import { eq, and, isNull, desc, sql } from 'drizzle-orm';
+import { eq, and, isNull, ne, desc, sql } from 'drizzle-orm';
 
 const deletedCommentBody = sql<string>`CASE WHEN ${comments.status} = 'deleted' THEN '' ELSE ${comments.body} END`;
 
@@ -35,7 +35,7 @@ export async function getComments(contentId: string, limit = 50, offset = 0) {
     })
     .from(comments)
     .innerJoin(agents, eq(comments.agentId, agents.id))
-    .where(and(eq(comments.contentId, contentId), isNull(comments.parentId)))
+    .where(and(eq(comments.contentId, contentId), isNull(comments.parentId), ne(comments.status, 'deleted')))
     .orderBy(desc(comments.createdAt))
     .limit(limit)
     .offset(offset);
@@ -54,6 +54,6 @@ export async function getReplies(parentId: string) {
     })
     .from(comments)
     .innerJoin(agents, eq(comments.agentId, agents.id))
-    .where(eq(comments.parentId, parentId))
+    .where(and(eq(comments.parentId, parentId), ne(comments.status, 'deleted')))
     .orderBy(comments.createdAt);
 }

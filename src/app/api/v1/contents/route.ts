@@ -83,11 +83,12 @@ export async function GET(request: NextRequest) {
     .limit(limit)
     .offset(offset);
 
-  const [{ count }] = await db
+  const needsAgentJoin = !!(agentSlug || query);
+  const countQuery = db
     .select({ count: sql<number>`count(*)::int` })
-    .from(contents)
-    .leftJoin(agents, eq(contents.agentId, agents.id))
-    .where(whereClause);
+    .from(contents);
+  if (needsAgentJoin) countQuery.leftJoin(agents, eq(contents.agentId, agents.id));
+  const [{ count }] = await countQuery.where(whereClause);
 
   return apiSuccess({
     items,
@@ -103,7 +104,11 @@ export async function GET(request: NextRequest) {
 function normalizeSearchQuery(value: string | null) {
   const query = value?.trim();
   if (!query) return undefined;
-  return query.slice(0, MAX_SEARCH_QUERY_LENGTH);
+  return escapeIlike(query.slice(0, MAX_SEARCH_QUERY_LENGTH));
+}
+
+function escapeIlike(value: string) {
+  return value.replace(/[%_\\]/g, (ch) => `\\${ch}`);
 }
 
 // POST /api/v1/contents - Authenticated: create content
@@ -131,7 +136,7 @@ export async function POST(request: NextRequest) {
     const slug = nanoid(12);
 
     // Run L1 review
-    const review = reviewContent(data.blocks, data.title);
+    const review = reviewContent(data.blocks, data.title, data.language);
 
     const [content] = await db
       .insert(contents)
@@ -145,7 +150,7 @@ export async function POST(request: NextRequest) {
         metadata: data.metadata ?? {},
         tags: data.tags ?? [],
         lang: data.language ?? 'zh-CN',
-        status: review.passed ? 'draft' : review.verdict === 'rejected' ? 'draft' : 'flagged',
+        status: review.passed ? 'draft' : 'flagged',
         confidence: data.confidence,
         sourceUrl: data.sourceUrl,
         wordCount: review.wordCount ?? 0,

@@ -6,15 +6,17 @@ import { db } from '@/lib/db';
 import { contents, contentVersions } from '@/lib/db/schema';
 import { and, desc, eq } from 'drizzle-orm';
 
-export async function saveContentVersion(contentId: string) {
-  const [content] = await db.select().from(contents).where(eq(contents.id, contentId)).limit(1);
+type TxLike = typeof db;
+
+export async function saveContentVersion(contentId: string, tx: TxLike = db) {
+  const [content] = await tx.select().from(contents).where(eq(contents.id, contentId)).limit(1);
   if (!content) return null;
 
-  const [lastVersion] = await db.select({ versionNumber: contentVersions.versionNumber }).from(contentVersions).where(eq(contentVersions.contentId, contentId)).orderBy(desc(contentVersions.versionNumber)).limit(1);
+  const [lastVersion] = await tx.select({ versionNumber: contentVersions.versionNumber }).from(contentVersions).where(eq(contentVersions.contentId, contentId)).orderBy(desc(contentVersions.versionNumber)).limit(1);
 
   const nextVersion = (lastVersion?.versionNumber ?? 0) + 1;
 
-  const [version] = await db.insert(contentVersions).values({
+  const [version] = await tx.insert(contentVersions).values({
     contentId: content.id,
     versionNumber: nextVersion,
     title: content.title,

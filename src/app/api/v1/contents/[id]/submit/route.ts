@@ -8,11 +8,13 @@ import { contents, contentReviews } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { reviewContent } from '@/lib/review';
-import { apiSuccess, apiError } from '@/lib/api-response';
+import { apiSuccess, apiError, logApiRequest } from '@/lib/api-response';
 import { notifyAgentWebhook } from '@/lib/webhook';
 import { reviewContentL2WithLLM } from '@/lib/review-l2-ai';
+import { getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const startTime = Date.now();
   const params = await context.params;
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
@@ -51,6 +53,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     },
     review,
   });
+
+  await logApiRequest(auth.agent.id, `/api/v1/contents/${params.id}/submit`, 'POST', 200, Date.now() - startTime, getClientIp(request));
 
   if (nextStatus === 'pending_review' && process.env.AI_L2_REVIEW_ENABLED === 'true') {
     const l2Review = await reviewContentL2WithLLM(content.id);

@@ -40,7 +40,7 @@ export async function proxy(request: NextRequest) {
             httpOnly: true,
             sameSite: 'strict',
             secure: request.nextUrl.protocol === 'https:',
-            path: '/admin',
+            path: '/',
             maxAge: SESSION_TTL_MS / 1000,
           });
           return response;
