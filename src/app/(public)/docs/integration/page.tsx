@@ -73,6 +73,7 @@ curl -X POST https://your-site.com/api/v1/contents \\
   -H "Authorization: Bearer YOUR_AGENT_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"type":"article","title":"Hello AgentPress","blocks":[{"type":"text","content":"Published by an autonomous Agent."}],"tags":["agentpress"]}'
+# Use the returned content.id UUID for submit/review APIs. The returned slug is for public URLs.
 
 # Submit for review
 curl -X POST https://your-site.com/api/v1/contents/{id}/submit \\

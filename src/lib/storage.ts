@@ -4,7 +4,7 @@
  */
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { access, mkdir, writeFile } from 'fs/promises';
-import { join } from 'path';
+import { dirname, join, resolve, sep } from 'path';
 
 type UploadInput = {
   key: string;
@@ -21,32 +21,52 @@ type UploadResult = {
 let s3Client: S3Client | null | undefined;
 
 export async function uploadObject(input: UploadInput): Promise<UploadResult> {
+  const storageKey = assertSafeStorageKey(input.key);
   const s3Config = getS3Config();
   if (s3Config) {
     const client = getS3Client(s3Config);
     await client.send(new PutObjectCommand({
       Bucket: s3Config.bucket,
-      Key: input.key,
+      Key: storageKey,
       Body: input.body,
       ContentType: input.contentType,
     }));
 
     return {
-      storageKey: input.key,
-      cdnUrl: buildS3PublicUrl(s3Config, input.key),
+      storageKey,
+      cdnUrl: buildS3PublicUrl(s3Config, storageKey),
       driver: 's3',
     };
   }
 
-  const uploadDir = join(process.cwd(), 'uploads');
-  await mkdir(join(uploadDir, input.key.split('/')[0] ?? ''), { recursive: true });
-  await writeFile(join(uploadDir, input.key), input.body);
+  const uploadDir = resolve(process.cwd(), 'uploads');
+  const targetPath = resolve(uploadDir, storageKey);
+  if (targetPath !== uploadDir && !targetPath.startsWith(`${uploadDir}${sep}`)) {
+    throw new Error('Unsafe storage key');
+  }
+
+  await mkdir(dirname(targetPath), { recursive: true });
+  await writeFile(targetPath, input.body);
 
   return {
-    storageKey: input.key,
-    cdnUrl: `/uploads/${input.key}`,
+    storageKey,
+    cdnUrl: `/uploads/${storageKey}`,
     driver: 'local',
   };
+}
+
+export function assertSafeStorageKey(key: string) {
+  const storageKey = key.trim();
+  if (!storageKey || storageKey.startsWith('/') || storageKey.startsWith('\\') || storageKey.includes('\\')) {
+    throw new Error('Unsafe storage key');
+  }
+
+  const segments = storageKey.split('/');
+  if (segments.some((segment) => !segment || segment === '.' || segment === '..')) {
+    throw new Error('Unsafe storage key');
+  }
+
+  return storageKey;
 }
 
 export async function getStorageStatus(): Promise<{ ok: boolean; driver: 's3' | 'local'; message?: string }> {

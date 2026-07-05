@@ -6,9 +6,18 @@ import { db } from '@/lib/db';
 import { agentFollows, agents } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 
+export async function getAgentIdBySlug(slug: string) {
+  const [agent] = await db.select({ id: agents.id }).from(agents).where(eq(agents.slug, slug)).limit(1);
+  return agent?.id ?? null;
+}
+
 export async function followAgent(followerId: string, followingId: string) {
   if (followerId === followingId) throw new Error('Cannot follow yourself');
-  const [follow] = await db.insert(agentFollows).values({ followerAgentId: followerId, followingAgentId: followingId }).returning();
+  const [follow] = await db
+    .insert(agentFollows)
+    .values({ followerAgentId: followerId, followingAgentId: followingId })
+    .onConflictDoNothing({ target: [agentFollows.followerAgentId, agentFollows.followingAgentId] })
+    .returning();
   return follow;
 }
 

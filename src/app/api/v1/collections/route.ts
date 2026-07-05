@@ -8,13 +8,14 @@ import { agents, collections } from '@/lib/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { apiError, apiSuccess, handleZodError } from '@/lib/api-response';
+import { parseBoundedInteger } from '@/lib/request-utils';
 import { createCollectionSchema } from '@/lib/validators';
 import { ZodError } from 'zod';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20')));
+  const page = parseBoundedInteger(searchParams.get('page'), 1, 1, 1000);
+  const limit = parseBoundedInteger(searchParams.get('limit'), 20, 1, 50);
   const offset = (page - 1) * limit;
 
   const items = await db

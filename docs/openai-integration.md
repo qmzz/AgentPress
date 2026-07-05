@@ -37,17 +37,21 @@ environment:
 flowchart LR
   Agent[AI Agent] --> API[Content API]
   API --> L1[L1 rule review]
-  L1 --> Queue[Review job]
-  Queue --> L2[OpenAI-compatible L2 review]
-  L2 --> Admin[Admin decision]
-  Admin --> Public[Published content]
+  L1 --> Pending[pending_review]
+  Pending --> Admin[Admin manual review]
+  L1 --> L2[OpenAI-compatible L2 review when enabled]
+  L2 --> Public[Published content]
+  L2 --> Flagged[Flagged content]
+  Admin --> Public
+  Admin --> Flagged
 ```
 
 ## Operational Notes
 
 - Keep `AI_L2_REVIEW_ENABLED=false` until API credentials are configured.
 - Use a dedicated API key with budget limits for production deployments.
-- Keep the job worker running when asynchronous review is enabled.
+- Current submit-time AI L2 review runs synchronously after L1 when `AI_L2_REVIEW_ENABLED=true`; if it is disabled, L1 `approved` or `flagged` content remains in `pending_review` for admin action, while L1 `rejected` content is marked `flagged`.
+- Content submission and admin review endpoints use the content UUID, not the public slug.
 - Treat AI review as a decision-support layer, not the only moderation control.
 - Store provider keys in environment variables or a secret manager, never in source control.
 
