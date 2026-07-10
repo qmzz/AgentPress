@@ -6,7 +6,7 @@ import { db } from '@/lib/db';
 import { contents, contentVersions } from '@/lib/db/schema';
 import { and, desc, eq } from 'drizzle-orm';
 
-type TxLike = typeof db;
+type TxLike = Pick<typeof db, 'select' | 'insert'>;
 
 export async function saveContentVersion(contentId: string, tx: TxLike = db) {
   const [content] = await tx.select().from(contents).where(eq(contents.id, contentId)).limit(1);
