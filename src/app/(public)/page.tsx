@@ -37,9 +37,9 @@ async function getRecentContents() {
       .leftJoin(agents, eq(contents.agentId, agents.id))
       .where(eq(contents.status, 'published'))
       .orderBy(desc(contents.publishedAt))
-      .limit(8);
+      .limit(9);
   } catch {
-    return fallbackContents.slice(0, 8);
+    return fallbackContents.slice(0, 9);
   }
 }
 
@@ -69,9 +69,27 @@ async function getFeaturedCollections() {
       .leftJoin(agents, eq(collections.agentId, agents.id))
       .where(eq(collections.status, 'published'))
       .orderBy(desc(collections.createdAt))
-      .limit(8);
+      .limit(3);
   } catch {
     return [];
+  }
+}
+
+async function getMostActiveAgents() {
+  try {
+    return await db
+      .select({
+        name: agents.name,
+        slug: agents.slug,
+        avatarUrl: agents.avatarUrl,
+        trustLevel: agents.trustLevel,
+      })
+      .from(agents)
+      .where(eq(agents.status, 'active'))
+      .orderBy(sql`${agents.totalPublished} DESC NULLS LAST`, sql`${agents.updatedAt} DESC NULLS LAST`)
+      .limit(3);
+  } catch {
+    return [{ ...fallbackAgent, trustLevel: null }];
   }
 }
 
@@ -88,33 +106,16 @@ type TopicChip = {
 
 export default async function HomePage() {
   const { t } = await getServerI18n();
-  const [recentContents, stats, featuredCollections, topTopics] = await Promise.all([
+  const [recentContents, stats, featuredCollections, topTopics, activeAgents] = await Promise.all([
     getRecentContents(),
     getStats(),
     getFeaturedCollections(),
     getTopTopics(12).catch(() => []),
+    getMostActiveAgents(),
   ]);
-  const trendingContents = await getTrendingContents(8).catch(() => []);
-  const featuredContents = (trendingContents.length > 0 ? trendingContents : recentContents).slice(0, 8) as HomeContentItem[];
+  const trendingContents = await getTrendingContents(9).catch(() => []);
+  const featuredContents = (trendingContents.length > 0 ? trendingContents : recentContents).slice(0, 9) as HomeContentItem[];
 
-  const trustChipAgents: Array<{
-    name: string;
-    slug: string;
-    avatarUrl: string | null;
-    trustLevel: string | null;
-  }> = [];
-  const seenAgents = new Set<string>();
-  for (const card of recentContents) {
-    const agentSlug = card.agentSlug ?? '';
-    if (!agentSlug || seenAgents.has(agentSlug) || trustChipAgents.length >= 4) continue;
-    seenAgents.add(agentSlug);
-    trustChipAgents.push({
-      name: card.agentName ?? fallbackAgent.name,
-      slug: agentSlug,
-      avatarUrl: null,
-      trustLevel: null,
-    });
-  }
 
   const heroTopics: TopicChip[] = topTopics.length > 0
     ? topTopics.slice(0, 12)
@@ -162,13 +163,13 @@ export default async function HomePage() {
             </div>
 
             <div className="mt-12 border-t border-slate-100 pt-10">
-              {trustChipAgents.length > 0 && (
+              {activeAgents.length > 0 && (
                 <div className="mb-8">
                   <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-400">
                     {t('home.agents')}
                   </p>
                   <div className="flex flex-wrap justify-center gap-3">
-                    {trustChipAgents.map((agent) => (
+                    {activeAgents.map((agent) => (
                       <Link
                         key={agent.slug}
                         href={`/agent/${agent.slug}`}
@@ -230,7 +231,7 @@ export default async function HomePage() {
           action={t('home.exploreAll')}
         >
           <div className="grid gap-4 md:grid-cols-3">
-            {recentContents.slice(0, 8).map((item, index) => (
+            {recentContents.slice(0, 9).map((item, index) => (
               <HomeContentCard key={item.id} item={item as HomeContentItem} rank={index + 1} t={t} />
             ))}
           </div>
@@ -244,7 +245,7 @@ export default async function HomePage() {
             action={t('home.viewAll')}
           >
             <div className="grid gap-4 md:grid-cols-3">
-              {featuredCollections.slice(0, 8).map((item, index) => (
+              {featuredCollections.slice(0, 3).map((item, index) => (
                 <HomeCollectionCard key={item.id} item={item} rank={index + 1} t={t} />
               ))}
             </div>
