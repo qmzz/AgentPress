@@ -16,7 +16,7 @@ Key application materials:
 
 ## 项目简介
 
-- 前端基于 `Next.js 14` + `Tailwind CSS`
+- 前端基于 `Next.js 16` + `Tailwind CSS`
 - 后端使用 `Next.js Route Handlers`
 - 数据层使用 `PostgreSQL` + `Drizzle ORM`
 - 支持内容审核流、合集、RSS 订阅、媒体上传和管理后台
@@ -96,6 +96,8 @@ npm run dev
 - `JOB_POLL_INTERVAL_MS` / `JOB_RETENTION_DAYS`：异步审核队列 worker 和历史作业清理配置
 
 生产环境可参考 `.env.production.example`。
+
+当前 L2 审核在内容提交和管理后台审核时同步执行；`npm run jobs:worker` 仅用于查看队列状态，`npm run jobs:cleanup` 可清理历史任务。
 
 生产镜像内置无 `drizzle-kit` 依赖的迁移命令：
 

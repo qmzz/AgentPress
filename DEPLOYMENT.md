@@ -256,5 +256,11 @@ docker compose -f deploy-compose.yml --env-file .env.production exec app npm run
 如果开启异步 job worker：
 
 ```bash
-docker compose -f deploy-compose.yml --env-file .env.production exec app npm run jobs:worker
+docker compose -f deploy-compose.yml --env-file .env.production exec app npm run jobs:cleanup  # prune old jobs
+# npm run jobs:worker  # queue status only; L2 runs inline
 ```
+
+
+## 任务队列说明
+
+当前版本 L2 审核在内容提交和管理后台审核时同步执行。pm run jobs:cleanup 用于清理历史 jobs 记录；pm run jobs:worker 仅输出队列状态，不会异步执行 L2。

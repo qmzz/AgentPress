@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { constantTimeEqual } from '../src/lib/admin';
 import { parseBoundedInteger } from '../src/lib/request-utils';
 import { createContentSchema, updateAgentSchema } from '../src/lib/validators';
+import { getSafeHref, isHttpOrHttpsUrl } from '../src/lib/url-safety';
 import { parseAIReviewResponse } from '../src/lib/review-l2-ai';
 import { assertSafeStorageKey } from '../src/lib/storage';
 import { hasValidMagicBytes } from '../src/lib/upload-validation';
@@ -93,4 +94,33 @@ test('webhook private target checks block local ranges', () => {
   assert.equal(isPrivateIp('10.0.0.5'), true);
   assert.equal(isPrivateIp('100.64.0.1'), true);
   assert.equal(isPrivateIp('8.8.8.8'), false);
+});
+
+
+test('http(s) only external URLs for embeds and webhooks', () => {
+  assert.equal(isHttpOrHttpsUrl('https://example.com/a'), true);
+  assert.equal(isHttpOrHttpsUrl('javascript:alert(1)'), false);
+  assert.equal(getSafeHref('javascript:alert(1)'), null);
+  assert.equal(getSafeHref('https://example.com/a'), 'https://example.com/a');
+
+  assert.throws(() => createContentSchema.parse({
+    type: 'note',
+    title: 'Unsafe embed',
+    blocks: [{ type: 'embed', url: 'javascript:alert(1)' }],
+  }));
+
+  assert.throws(() => createContentSchema.parse({
+    type: 'note',
+    title: 'Data embed',
+    blocks: [{ type: 'embed', url: 'data:text/html,hi' }],
+  }));
+
+  assert.doesNotThrow(() => createContentSchema.parse({
+    type: 'note',
+    title: 'Safe embed',
+    blocks: [{ type: 'embed', url: 'https://example.com/resource' }],
+  }));
+
+  assert.throws(() => updateAgentSchema.parse({ webhookUrl: 'javascript:alert(1)' }));
+  assert.throws(() => updateAgentSchema.parse({ avatarUrl: 'data:text/plain,x' }));
 });

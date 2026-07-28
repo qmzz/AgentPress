@@ -10,6 +10,8 @@ import { getDatabaseRuntimeConfig } from '../src/lib/db/config';
 import { checkRateLimitWithRetry } from '../src/lib/rate-limit';
 import { createCollectionSchema, createContentReportSchema, createContentSchema, updateAgentTrustSchema } from '../src/lib/validators';
 
+const hasDatabase = Boolean(process.env.DATABASE_URL);
+
 test('content schema accepts multimodal blocks', () => {
   const parsed = createContentSchema.parse({
     type: 'article',
@@ -99,7 +101,7 @@ test('content analytics hashValue produces consistent deterministic output', () 
   assert.equal(a.length, 64, 'SHA-256 hex should be 64 chars');
 });
 
-test('job queue enqueue creates pending job', async () => {
+test('job queue enqueue creates pending job', { skip: !hasDatabase }, async () => {
   const { enqueueJob } = await import('../src/lib/job-queue.js');
   const job = await enqueueJob('l2_review', { contentId: '12345678-1234-4234-8234-123456789012' });
   assert.equal(job.type, 'l2_review');
@@ -107,7 +109,7 @@ test('job queue enqueue creates pending job', async () => {
   assert.equal(job.attempts, 0);
 });
 
-test('content version save increments version number', async () => {
+test('content version save increments version number', { skip: !hasDatabase }, async () => {
   const { saveContentVersion, getContentVersions } = await import('../src/lib/content-versions.js');
   const contentId = '00000000-0000-4000-8000-000000000001';
   
@@ -119,7 +121,7 @@ test('content version save increments version number', async () => {
   }
 });
 
-test('follow/unfollow agent workflow', async () => {
+test('follow/unfollow agent workflow', { skip: !hasDatabase }, async () => {
   const { followAgent, unfollowAgent, getFollowCounts } = await import('../src/lib/follows.js');
   const agent1 = '00000000-0000-4000-8000-000000000001';
   const agent2 = '00000000-0000-4000-8000-000000000002';
@@ -131,7 +133,7 @@ test('follow/unfollow agent workflow', async () => {
   await unfollowAgent(agent1, agent2);
 });
 
-test('add and remove reaction', async () => {
+test('add and remove reaction', { skip: !hasDatabase }, async () => {
   const { addReaction, removeReaction, getReactionCounts } = await import('../src/lib/reactions.js');
   const contentId = '00000000-0000-4000-8000-000000000001';
   const agentId = '00000000-0000-4000-8000-000000000001';
@@ -143,7 +145,7 @@ test('add and remove reaction', async () => {
   await removeReaction(contentId, agentId, 'like');
 });
 
-test('create and get comments', async () => {
+test('create and get comments', { skip: !hasDatabase }, async () => {
   const { createComment, getComments } = await import('../src/lib/comments.js');
   const contentId = '00000000-0000-4000-8000-000000000001';
   const agentId = '00000000-0000-4000-8000-000000000001';

@@ -1,32 +1,50 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
+ *
+ * Job queue is reserved for future async workloads.
+ * Current L2 review runs inline during content submit and admin review.
+ * This worker stays production-safe: it only reports queue depth and exits
+ * unless JOB_WORKER_ENABLED=true is explicitly set for experimental use.
  */
-import { processNextJob } from '../src/lib/job-queue.js';
+import postgres from 'postgres';
 
-const POLL_INTERVAL_MS = parseInt(process.env.JOB_POLL_INTERVAL_MS ?? '5000', 10);
-const MAX_ITERATIONS = parseInt(process.env.JOB_MAX_ITERATIONS ?? '0', 10);
-
-async function main() {
-  console.log('Job worker started');
-  let iterations = 0;
-
-  while (MAX_ITERATIONS === 0 || iterations < MAX_ITERATIONS) {
-    try {
-      const result = await processNextJob();
-      if (result) {
-        console.log(`Job ${result.id} ${result.status}`, result.error ? `- ${result.error}` : '');
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-      }
-    } catch (error) {
-      console.error('Job worker error:', error);
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS * 2));
-    }
-    iterations++;
-  }
-
-  console.log('Job worker stopped');
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('DATABASE_URL not set');
+  process.exit(1);
 }
 
-main().catch(console.error);
+const enabled = process.env.JOB_WORKER_ENABLED === 'true';
+const sql = postgres(connectionString, {
+  max: 1,
+  connect_timeout: Number.parseInt(process.env.DATABASE_CONNECT_TIMEOUT_SECONDS ?? '10', 10),
+});
+
+try {
+  const rows = await sql`
+    select status, count(*)::int as count
+    from jobs
+    group by status
+    order by status
+  `;
+
+  const summary = Object.fromEntries(rows.map((row) => [row.status, row.count]));
+  console.log('Job queue summary:', summary);
+  console.log('Note: L2 review currently runs inline in the app process (submit/admin review).');
+
+  if (!enabled) {
+    console.log('Async job worker is reserved. Set JOB_WORKER_ENABLED=true only for experimental queue processing.');
+    process.exit(0);
+  }
+
+  const pending = summary.pending ?? 0;
+  if (pending > 0) {
+    console.warn(`Found ${pending} pending jobs, but async executors are not enabled in this release.`);
+    console.warn('Pending l2_review jobs should be handled by re-running admin L2 review or content resubmit.');
+  } else {
+    console.log('No pending jobs.');
+  }
+} finally {
+  await sql.end({ timeout: 5 });
+}

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -135,7 +135,7 @@ export async function runL2Review(contentId: string) {
 
   const [updated] = await db.update(contents).set(updateValues).where(eq(contents.id, content.id)).returning();
 
-  if (review.verdict === 'approved') {
+  if (review.verdict === 'approved' && content.status !== 'published') {
     await db.update(agents)
       .set({ totalPublished: sql`${agents.totalPublished} + 1`, updatedAt: now })
       .where(eq(agents.id, content.agentId));

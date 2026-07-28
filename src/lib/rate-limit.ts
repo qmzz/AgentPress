@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
@@ -71,7 +71,9 @@ export async function getRateLimitStoreStatus(): Promise<{ ok: boolean; store: R
 async function checkUpstashRateLimit(client: Redis, key: string, limit: number, windowMs: number) {
   const redisKey = `agentpress:rate-limit:${key}`;
   const count = await client.incr(redisKey);
-  await client.pexpire(redisKey, windowMs);
+  if (count === 1) {
+    await client.pexpire(redisKey, windowMs);
+  }
 
   if (count > limit) {
     const ttl = await client.pttl(redisKey);
@@ -88,7 +90,9 @@ async function checkUpstashRateLimit(client: Redis, key: string, limit: number, 
 async function checkRedisRateLimit(client: NonNullable<Awaited<ReturnType<typeof getRedisClient>>>, key: string, limit: number, windowMs: number) {
   const redisKey = `agentpress:rate-limit:${key}`;
   const count = await client.incr(redisKey);
-  await client.pExpire(redisKey, windowMs);
+  if (count === 1) {
+    await client.pexpire(redisKey, windowMs);
+  }
 
   if (count > limit) {
     const ttl = await client.pTTL(redisKey);

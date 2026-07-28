@@ -63,6 +63,7 @@ export default async function OperationsPage() {
           <Clock className="h-5 w-5 text-slate-400" />
           <h2 className="text-lg font-semibold">{t('admin.jobQueue')}</h2>
         </div>
+        <p className="mb-4 text-sm text-slate-500">{t('admin.jobQueueHint')}</p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {['pending', 'running', 'completed', 'failed', 'cancelled'].map((status) => (
             <div key={status} className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">

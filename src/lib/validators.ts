@@ -1,8 +1,9 @@
-﻿/*
+/*
  * Design: github.com/qmzz
  * Coding: Codex
  */
 import { z } from 'zod';
+import { isHttpOrHttpsUrl } from '@/lib/url-safety';
 
 const MAX_TEXT_BLOCK_LENGTH = 100_000;
 const MAX_CODE_BLOCK_LENGTH = 100_000;
@@ -11,18 +12,18 @@ const MAX_TAG_LENGTH = 80;
 const MAX_METADATA_BYTES = 20_000;
 const MAX_CHART_DATA_BYTES = 50_000;
 
-const webhookUrlSchema = z
+const httpUrlSchema = z
   .string()
   .url()
-  .refine((url) => url.startsWith('http://') || url.startsWith('https://'), 'Webhook URL must start with http:// or https://');
+  .refine((url) => isHttpOrHttpsUrl(url), 'URL must use http:// or https://');
+
+const webhookUrlSchema = httpUrlSchema;
 
 const boundedJsonRecord = (maxBytes: number, label: string) =>
   z.record(z.unknown()).refine(
     (value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= maxBytes,
     `${label} is too large`
   );
-
-// ─── Content Block Validators ────────────────────────
 
 const textBlockSchema = z.object({
   type: z.literal('text'),
@@ -64,7 +65,7 @@ const videoBlockSchema = z.object({
 
 const embedBlockSchema = z.object({
   type: z.literal('embed'),
-  url: z.string().url(),
+  url: httpUrlSchema,
   title: z.string().max(500).optional(),
 });
 
@@ -78,8 +79,6 @@ export const contentBlockSchema = z.discriminatedUnion('type', [
   embedBlockSchema,
 ]);
 
-// ─── Agent Validators ────────────────────────────────
-
 export const registerAgentSchema = z.object({
   name: z.string().min(1).max(100),
   slug: z
@@ -88,7 +87,7 @@ export const registerAgentSchema = z.object({
     .max(100)
     .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
   description: z.string().max(2000).optional(),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: httpUrlSchema.optional(),
   webhookUrl: webhookUrlSchema.optional(),
   ownerEmail: z.string().email(),
   capabilities: z.array(z.string()).optional(),
@@ -97,13 +96,11 @@ export const registerAgentSchema = z.object({
 export const updateAgentSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(2000).optional(),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: httpUrlSchema.optional(),
   webhookUrl: webhookUrlSchema.nullable().optional(),
   ownerEmail: z.string().email().optional(),
   capabilities: z.array(z.string()).optional(),
 });
-
-// ─── Content Validators ──────────────────────────────
 
 export const createContentSchema = z.object({
   type: z.enum(['article', 'note', 'image', 'code', 'data', 'audio', 'video', 'collection']),
@@ -113,7 +110,7 @@ export const createContentSchema = z.object({
   tags: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(20).optional(),
   language: z.string().max(10).optional(),
   confidence: z.number().min(0).max(1).optional(),
-  sourceUrl: z.string().url().optional(),
+  sourceUrl: httpUrlSchema.optional(),
   metadata: boundedJsonRecord(MAX_METADATA_BYTES, 'Metadata').optional(),
 });
 
@@ -124,11 +121,9 @@ export const updateContentSchema = z.object({
   tags: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(20).optional(),
   language: z.string().max(10).optional(),
   confidence: z.number().min(0).max(1).optional(),
-  sourceUrl: z.string().url().optional(),
+  sourceUrl: httpUrlSchema.optional(),
   metadata: boundedJsonRecord(MAX_METADATA_BYTES, 'Metadata').optional(),
 });
-
-// ─── Collection Validators ───────────────────────────
 
 export const collectionItemSchema = z.object({
   contentId: z.string().uuid(),
@@ -144,7 +139,7 @@ export const createCollectionSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens')
     .optional(),
   description: z.string().max(2000).optional(),
-  coverImageUrl: z.string().url().optional(),
+  coverImageUrl: httpUrlSchema.optional(),
   items: z.array(collectionItemSchema).max(100).optional(),
 });
 
@@ -157,11 +152,9 @@ export const updateCollectionSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens')
     .optional(),
   description: z.string().max(2000).optional(),
-  coverImageUrl: z.string().url().optional(),
+  coverImageUrl: httpUrlSchema.optional(),
   items: z.array(collectionItemSchema).max(100).optional(),
 });
-
-// ─── Governance Validators ───────────────────────────
 
 export const createContentReportSchema = z.object({
   contentId: z.string().uuid(),
@@ -180,4 +173,3 @@ export const updateContentReportSchema = z.object({
 export const updateAgentTrustSchema = z.object({
   trustLevel: z.enum(['standard', 'trusted', 'verified']),
 });
-

@@ -6,13 +6,13 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import { getSafeHref } from '@/lib/url-safety';
 
 interface TextBlockProps {
   block: { type: 'text'; content: string };
 }
 
-const TRAILING_PUNCTUATION = /[),.，。！？、；：》】」』）\]]+$/;
-const ALLOWED_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+const TRAILING_PUNCTUATION = /[),.，。！？、；：》」』】\]]+$/;
 
 function splitTrailingPunctuation(value: string) {
   const match = value.match(TRAILING_PUNCTUATION);
@@ -34,7 +34,10 @@ export function TextBlock({ block }: TextBlockProps) {
           const { clean, trailing } = splitTrailingPunctuation(rawHref);
           const text = typeof children === 'string' ? children : rawHref;
           const normalized = splitTrailingPunctuation(text);
-          const safeHref = getSafeHref(clean || rawHref);
+          const safeHref = getSafeHref(clean || rawHref, {
+            allowMailto: true,
+            allowRelative: true,
+          });
 
           if (!safeHref) {
             return <>{children}</>;
@@ -59,15 +62,4 @@ export function TextBlock({ block }: TextBlockProps) {
       {block.content}
     </ReactMarkdown>
   );
-}
-
-function getSafeHref(value: string) {
-  if (!value) return null;
-  try {
-    const url = new URL(value, 'https://agentpress.local');
-    if (url.origin === 'https://agentpress.local' && value.startsWith('/')) return value;
-    return ALLOWED_LINK_PROTOCOLS.has(url.protocol) ? value : null;
-  } catch {
-    return null;
-  }
 }

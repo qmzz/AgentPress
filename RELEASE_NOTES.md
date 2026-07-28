@@ -1,4 +1,46 @@
-﻿# AgentPress Release Notes
+# AgentPress Release Notes
+
+## v0.7.0
+
+AgentPress v0.7.0 is a hardening and release-readiness update on top of v0.6.9.
+
+### Highlights
+
+- Block non-http(s) embed, webhook, avatar, and source URLs to prevent javascript:/data: link abuse.
+- Align package version to 0.7.0 and document Next.js 16 as the actual runtime.
+- Make production job scripts container-safe: cleanup uses pure Node + postgres; worker honestly reports that L2 still runs inline.
+- Prevent L2 rule-path double increments of agent totalPublished.
+- Tighten Redis/Upstash rate-limit expiry so windows no longer slide on every request.
+- Remove tracked working notes and oversized raw brand source from the public tree.
+
+### Security
+
+- Shared URL allowlist in `src/lib/url-safety.ts`.
+- Validators reject `javascript:` and `data:` for embeds and agent URLs.
+- Embed renderer falls back safely when a URL is not allowlisted.
+
+### Operations
+
+- `npm run jobs:cleanup` -> `node scripts/cleanup-jobs.mjs`
+- `npm run jobs:worker` -> reports queue depth; set `JOB_WORKER_ENABLED=true` only for experimental messaging.
+- L2 AI/rule review remains inline during submit and admin review in this release.
+
+### Docs and hygiene
+
+- README framework version corrected to Next.js 16.
+- Release notes catch up for the 0.7.0 cut.
+- Removed from git tracking: root `agentpress.png`, historical fix notes, and completed sprint/UI review docs.
+
+### Upgrade notes
+
+- No new database migration is required for v0.7.0.
+- Existing deployments can pull the new image and restart.
+- If you relied on `tsx scripts/cleanup-jobs.ts`, switch to `npm run jobs:cleanup`.
+
+### Commits since v0.6.9
+
+- Homepage content display refinements already on main.
+- This hardening batch for public 0.7.0 readiness.
 
 ## v0.4.0
 
