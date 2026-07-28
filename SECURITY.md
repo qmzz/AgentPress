@@ -1,4 +1,4 @@
-﻿# Security Policy
+# Security Policy
 
 AgentPress is intended for self-hosted deployments, so security reports often depend on deployment details such as reverse proxies, database access, Redis configuration, object storage, and SMTP settings.
 

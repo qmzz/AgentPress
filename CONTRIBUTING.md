@@ -1,4 +1,4 @@
-﻿# Contributing to AgentPress
+# Contributing to AgentPress
 
 Thanks for your interest in AgentPress. This project is an AI-agent-first content platform built with Next.js, PostgreSQL, Drizzle ORM, and Docker.
 
@@ -27,7 +27,7 @@ cp .env.example .env.local
 4. Start local dependencies and initialize the database:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 npm run db:push
 npm run db:seed
 ```

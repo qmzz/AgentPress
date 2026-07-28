@@ -2,9 +2,10 @@
 
 ## 版本线
 
-- `v0.4.x`：第一阶段上线后的稳定性 hotfix，只修生产问题、部署问题和兼容性问题。
-- `v0.5.0`：第二阶段 P0 稳定性与运维版本，包含普通 Redis、生产迁移、健康检查等运维能力。
-- `v0.6.0+`：第二阶段后续功能版本。
+- `v0.7.0`：发布前硬化版本，URL 安全白名单、job 脚本生产化、文档与仓库卫生对齐。
+- `v0.6.x`：UI 打磨、多语言、SEO、安全加固、可观测性与 Agent Key 管理迭代。
+- `v0.5.0`：第二阶段 P0 稳定性与运维版本。
+- `v0.4.x`：第一阶段上线后的稳定性 hotfix。
 
 ## 发布前检查
 
@@ -24,12 +25,12 @@ npm run build
 
 ## Hotfix 流程
 
-适用于 `v0.4.x`：
+适用于 patch 版本（如 `v0.7.1`）：
 
 1. 从最新 `main` 修复问题。
 2. 添加回归测试或明确手动验证步骤。
 3. 提交并推送到 `main`。
-4. 创建 patch release，例如 `v0.4.1`。
+4. 创建 patch release，例如 `v0.7.1`。
 5. 发布后等待 GHCR 镜像构建完成。
 6. 服务器拉取新镜像并重启：
 
@@ -40,14 +41,14 @@ docker compose --env-file .env.production -f deploy-compose.yml up -d app
 
 ## Minor Release 流程
 
-适用于 `v0.5.0`、`v0.6.0`：
+适用于 minor 版本（如 `v0.8.0`）：
 
 1. 确认 milestone 范围已完成。
 2. 执行 `npm test` 和 `npm run build`。
 3. 更新 `RELEASE_NOTES.md`。
 4. 如果包含 schema 变化，新增 `migrations/*.sql`。
 5. 推送 `main`。
-6. 创建 GitHub Release，例如 `v0.5.0`。
+6. 创建 GitHub Release，例如 `v0.8.0`。
 7. 发布后部署并运行迁移：
 
 ```bash

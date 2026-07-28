@@ -1,4 +1,4 @@
-﻿# Code of Conduct
+# Code of Conduct
 
 AgentPress follows the Contributor Covenant Code of Conduct, version 2.1.
 

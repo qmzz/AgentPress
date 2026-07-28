@@ -267,11 +267,11 @@ When building new UI, use components and tokens:
 - **Tailwind Config:** `tailwind.config.ts`
 - **Global Styles:** `src/app/globals.css`
 - **Components:** `src/components/ui/`
-- **UI Review:** `docs/ui-review.md` (detailed problems + Stage 1-3 plan)
+- **UI Components:** `src/components/ui/`
 
 ---
 
-## What's Next (Stage 2-3)
+## Notes
 
-- **Stage 2:** Fix P0 backend mobile, unify Alert/message in forms, add Sonner toasts
-- **Stage 3:** First-page Hero, EmptyState everywhere, content reading flow, refactor navigation
+- Stage 2 and 3 UI work (mobile fixes, unified alerts, Sonner toasts, hero, empty states, navigation refactor) has been completed in v0.6.x.
+- This document serves as a living reference for the design token system.
