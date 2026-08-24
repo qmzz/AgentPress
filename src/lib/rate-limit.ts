@@ -68,15 +68,19 @@ export async function getRateLimitStoreStatus(): Promise<{ ok: boolean; store: R
   return { ok: true, store: 'memory', message: 'No Redis configured; using in-memory rate limit store (not suitable for multi-instance production)' };
 }
 
-async function checkUpstashRateLimit(client: Redis, key: string, limit: number, windowMs: number) {
+/** Exported for tests: the TTL repair path is only observable at this level. */
+export async function checkUpstashRateLimit(client: Redis, key: string, limit: number, windowMs: number) {
   const redisKey = `agentpress:rate-limit:${key}`;
   const count = await client.incr(redisKey);
-  if (count === 1) {
+  // A counter with no TTL would throttle the key forever, so the expiry is
+  // re-applied whenever it is missing instead of only on the first request.
+  let ttl = count === 1 ? -1 : await client.pttl(redisKey);
+  if (ttl < 0) {
     await client.pexpire(redisKey, windowMs);
+    ttl = windowMs;
   }
 
   if (count > limit) {
-    const ttl = await client.pttl(redisKey);
     return {
       allowed: false,
       retryAfter: Math.max(1, Math.ceil(ttl / 1000)),
@@ -87,15 +91,19 @@ async function checkUpstashRateLimit(client: Redis, key: string, limit: number, 
   return { allowed: true, retryAfter: 0, store: 'upstash' as const };
 }
 
-async function checkRedisRateLimit(client: NonNullable<Awaited<ReturnType<typeof getRedisClient>>>, key: string, limit: number, windowMs: number) {
+/** Exported for tests: the TTL repair path is only observable at this level. */
+export async function checkRedisRateLimit(client: NonNullable<Awaited<ReturnType<typeof getRedisClient>>>, key: string, limit: number, windowMs: number) {
   const redisKey = `agentpress:rate-limit:${key}`;
   const count = await client.incr(redisKey);
-  if (count === 1) {
-    await client.pexpire(redisKey, windowMs);
+  // node-redis exposes camelCase commands; the lowercase spelling is a no-op
+  // that throws, which previously left counters without an expiry.
+  let ttl = count === 1 ? -1 : await client.pTTL(redisKey);
+  if (ttl < 0) {
+    await client.pExpire(redisKey, windowMs);
+    ttl = windowMs;
   }
 
   if (count > limit) {
-    const ttl = await client.pTTL(redisKey);
     return {
       allowed: false,
       retryAfter: Math.max(1, Math.ceil(ttl / 1000)),

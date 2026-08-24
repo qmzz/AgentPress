@@ -23,19 +23,39 @@ export function getSafeHref(
   const allowRelative = options.allowRelative ?? false;
   if (!value) return null;
 
+  // Relative values only parse against a base, so they are classified before
+  // the protocol checks. Resolving them first made every relative path inherit
+  // the base's https: protocol and pass as absolute, ignoring allowRelative.
+  const absolute = parseAbsoluteUrl(value);
+  if (!absolute) {
+    return allowRelative && isSameOriginPath(value) ? value : null;
+  }
+
+  if (HTTP_PROTOCOLS.has(absolute.protocol)) return value;
+  if (allowMailto && absolute.protocol === 'mailto:') return value;
+  return null;
+}
+
+function parseAbsoluteUrl(value: string): URL | null {
   try {
-    const base = 'https://agentpress.local';
-    const url = new URL(value, base);
-
-    if (allowRelative && url.origin === base && value.startsWith('/')) {
-      return value;
-    }
-
-    if (HTTP_PROTOCOLS.has(url.protocol)) return value;
-    if (allowMailto && url.protocol === 'mailto:') return value;
-    return null;
+    return new URL(value);
   } catch {
     return null;
+  }
+}
+
+/**
+ * A leading slash alone does not make a path local: `//host` is scheme-relative
+ * and `/\host` normalizes the backslash to a slash, so both navigate off-site.
+ * Resolution against a sentinel origin is what decides it.
+ */
+function isSameOriginPath(value: string): boolean {
+  if (!value.startsWith('/')) return false;
+  const base = 'https://agentpress.local';
+  try {
+    return new URL(value, base).origin === base;
+  } catch {
+    return false;
   }
 }
 

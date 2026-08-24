@@ -12,9 +12,10 @@ interface TextBlockProps {
   block: { type: 'text'; content: string };
 }
 
-const TRAILING_PUNCTUATION = /[),.，。！？、；：》」』】\]]+$/;
+const TRAILING_PUNCTUATION = /[),.，。！？、；：》」』】）\]]+$/;
 
-function splitTrailingPunctuation(value: string) {
+/** Exported for tests: the punctuation set is only observable through this. */
+export function splitTrailingPunctuation(value: string) {
   const match = value.match(TRAILING_PUNCTUATION);
   if (!match) return { clean: value, trailing: '' };
   return {
