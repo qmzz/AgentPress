@@ -11,6 +11,10 @@ const MAX_BLOCKS_PER_CONTENT = 100;
 const MAX_TAG_LENGTH = 80;
 const MAX_METADATA_BYTES = 20_000;
 const MAX_CHART_DATA_BYTES = 50_000;
+const MAX_CITATIONS_PER_CONTENT = 200;
+const MAX_CLAIM_TEXT_LENGTH = 2_000;
+const MAX_QUOTE_LENGTH = 2_000;
+const MAX_TOOL_CALLS_BYTES = 20_000;
 
 const httpUrlSchema = z
   .string()
@@ -102,6 +106,60 @@ export const updateAgentSchema = z.object({
   capabilities: z.array(z.string()).optional(),
 });
 
+/*
+ * Provenance input (migration 0011).
+ *
+ * A citation is per block: `blockIndex` addresses one block of the content, and
+ * omitting it means the citation supports the document as a whole. The index is
+ * range-checked against the submitted blocks by the route, not here — this
+ * schema does not see them.
+ *
+ * `quote` is the passage the agent says appears at `url`. It is what makes a
+ * citation checkable later; without it a citation can only be tested for
+ * reachability, which any live URL passes.
+ */
+export const citationInputSchema = z.object({
+  blockIndex: z.number().int().min(0).optional(),
+  claimText: z.string().min(1).max(MAX_CLAIM_TEXT_LENGTH).optional(),
+  url: httpUrlSchema,
+  title: z.string().max(500).optional(),
+  publisher: z.string().max(200).optional(),
+  accessedAt: z.coerce.date().optional(),
+  quote: z.string().min(1).max(MAX_QUOTE_LENGTH).optional(),
+});
+
+/*
+ * What the agent claims about how it produced the content.
+ *
+ * `attestation` is absent on purpose: it is set by the platform, always to
+ * `self_declared` on this path. Accepting it here would let an agent mark its
+ * own claims as platform-verified, which is exactly the assurance the column
+ * exists to keep honest.
+ *
+ * `promptHash` is a hash, not a prompt. The route rejects anything that is not
+ * 64 hex characters rather than hashing a prompt for the caller — accepting
+ * prompt text would mean storing it, which this column was designed to avoid.
+ */
+export const disclosureInputSchema = z.object({
+  modelName: z.string().min(1).max(120).optional(),
+  modelVersion: z.string().max(80).optional(),
+  provider: z.string().max(80).optional(),
+  promptHash: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/i, 'promptHash must be a 64-character hex digest (e.g. sha256)')
+    .optional(),
+  toolCalls: z
+    .array(z.record(z.unknown()))
+    .max(200)
+    .refine(
+      (value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= MAX_TOOL_CALLS_BYTES,
+      'Tool calls are too large'
+    )
+    .optional(),
+  generatedAt: z.coerce.date().optional(),
+  humanEdited: z.boolean().optional(),
+});
+
 export const createContentSchema = z.object({
   type: z.enum(['article', 'note', 'image', 'code', 'data', 'audio', 'video', 'collection']),
   title: z.string().min(1).max(500),
@@ -109,8 +167,10 @@ export const createContentSchema = z.object({
   blocks: z.array(contentBlockSchema).min(1).max(MAX_BLOCKS_PER_CONTENT),
   tags: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(20).optional(),
   language: z.string().max(10).optional(),
-  confidence: z.number().min(0).max(1).optional(),
+  /** @deprecated Send a document-level `citations` entry instead. Still written. */
   sourceUrl: httpUrlSchema.optional(),
+  citations: z.array(citationInputSchema).max(MAX_CITATIONS_PER_CONTENT).optional(),
+  disclosure: disclosureInputSchema.optional(),
   metadata: boundedJsonRecord(MAX_METADATA_BYTES, 'Metadata').optional(),
 });
 
@@ -120,10 +180,20 @@ export const updateContentSchema = z.object({
   blocks: z.array(contentBlockSchema).min(1).max(MAX_BLOCKS_PER_CONTENT).optional(),
   tags: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(20).optional(),
   language: z.string().max(10).optional(),
-  confidence: z.number().min(0).max(1).optional(),
+  /** @deprecated Send a document-level `citations` entry instead. Still written. */
   sourceUrl: httpUrlSchema.optional(),
+  /**
+   * Present means "replace the whole set". A citation has no client-visible id,
+   * so there is nothing to address for a partial update; omitting the field
+   * leaves existing citations untouched.
+   */
+  citations: z.array(citationInputSchema).max(MAX_CITATIONS_PER_CONTENT).optional(),
+  disclosure: disclosureInputSchema.optional(),
   metadata: boundedJsonRecord(MAX_METADATA_BYTES, 'Metadata').optional(),
 });
+
+export type CitationInput = z.infer<typeof citationInputSchema>;
+export type DisclosureInput = z.infer<typeof disclosureInputSchema>;
 
 export const collectionItemSchema = z.object({
   contentId: z.string().uuid(),

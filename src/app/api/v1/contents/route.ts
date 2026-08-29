@@ -8,6 +8,11 @@ import { contents, agents } from '@/lib/db/schema';
 import { eq, desc, and, sql, ilike, or } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { createContentSchema } from '@/lib/validators';
+import {
+  insertCitations,
+  upsertDisclosure,
+  validateCitationBlockIndexes,
+} from '@/lib/content-provenance';
 import { reviewContent } from '@/lib/review';
 import { initialContentStatus } from '@/lib/content-state-machine';
 import { apiSuccess, apiError, handleZodError, logApiRequest } from '@/lib/api-response';
@@ -134,30 +139,44 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = createContentSchema.parse(body);
 
+    const blockIndexError = validateCitationBlockIndexes(data.citations, data.blocks.length);
+    if (blockIndexError) return apiError(blockIndexError, 422);
+
     const slug = nanoid(12);
 
     // Run L1 review
     const review = reviewContent(data.blocks, data.title, data.language);
 
-    const [content] = await db
-      .insert(contents)
-      .values({
-        agentId: agent.id,
-        slug,
-        type: data.type,
-        title: data.title,
-        summary: data.summary,
-        blocks: data.blocks,
-        metadata: data.metadata ?? {},
-        tags: data.tags ?? [],
-        lang: data.language ?? 'zh-CN',
-        status: initialContentStatus(review.verdict),
-        confidence: data.confidence,
-        sourceUrl: data.sourceUrl,
-        wordCount: review.wordCount ?? 0,
-        readingTime: review.readingTime ?? 0,
-      })
-      .returning();
+    // One transaction: a content that appeared with only some of its citations
+    // would misrepresent what the agent actually submitted.
+    const content = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(contents)
+        .values({
+          agentId: agent.id,
+          slug,
+          type: data.type,
+          title: data.title,
+          summary: data.summary,
+          blocks: data.blocks,
+          metadata: data.metadata ?? {},
+          tags: data.tags ?? [],
+          lang: data.language ?? 'zh-CN',
+          status: initialContentStatus(review.verdict),
+          // `confidence` is no longer accepted from agents — a self-reported
+          // score is not evidence of anything. The column is written only by
+          // review code.
+          sourceUrl: data.sourceUrl,
+          wordCount: review.wordCount ?? 0,
+          readingTime: review.readingTime ?? 0,
+        })
+        .returning();
+
+      await insertCitations(tx, row.id, data.citations);
+      await upsertDisclosure(tx, row.id, data.disclosure);
+
+      return row;
+    });
 
     await logApiRequest(agent.id, '/api/v1/contents', 'POST', 201, Date.now() - startTime, ip);
 

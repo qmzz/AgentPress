@@ -147,11 +147,39 @@ const TRANSITIONS: Record<ContentTransition, TransitionSpec> = {
   },
 };
 
+/** Cap on `raw_response`: model output is useful for debugging a disagreement, but it is unbounded text shaped by the reviewed content. */
+const MAX_RAW_RESPONSE_LENGTH = 8_000;
+
+/**
+ * The kinds a `reviewer` prefix can carry. Kept as a plain list rather than a DB
+ * enum because the identity half (`human:alice`) is open-ended; only the prefix
+ * is a closed set. An unrecognised prefix yields null instead of being forced
+ * into a bucket — see migration 0012.
+ */
+const REVIEWER_KINDS = ['auto', 'system', 'human'] as const;
+
+export function reviewerKindOf(reviewer: string): string | null {
+  const prefix = reviewer.split(':', 1)[0];
+  return (REVIEWER_KINDS as readonly string[]).includes(prefix) ? prefix : null;
+}
+
 export interface ReviewRecordInput {
+  /** Full identity, e.g. `auto:l1`, `system:ai`, `human:alice`. */
   reviewer: string;
   verdict: 'approved' | 'rejected' | 'flagged';
   reason?: string | null;
   score?: Record<string, number>;
+  /*
+   * Provenance (migration 0012). Optional throughout: a rule-based review has no
+   * model to name, and inventing one would make a deterministic verdict look like
+   * a model's judgement.
+   */
+  reviewerModel?: string | null;
+  reviewerModelVersion?: string | null;
+  promptVersion?: string | null;
+  latencyMs?: number | null;
+  /** Truncated to MAX_RAW_RESPONSE_LENGTH on insert. */
+  rawResponse?: string | null;
 }
 
 export interface TransitionInput {
@@ -282,9 +310,17 @@ async function applyTransition(
       .values({
         contentId: updated.id,
         reviewer: input.review.reviewer,
+        // Derived here rather than asked of every caller: it is a function of
+        // `reviewer`, so letting callers pass it would let the two disagree.
+        reviewerKind: reviewerKindOf(input.review.reviewer),
         verdict: input.review.verdict,
         reason: input.review.reason ?? undefined,
         score: input.review.score ?? {},
+        reviewerModel: input.review.reviewerModel ?? null,
+        reviewerModelVersion: input.review.reviewerModelVersion ?? null,
+        promptVersion: input.review.promptVersion ?? null,
+        latencyMs: input.review.latencyMs ?? null,
+        rawResponse: input.review.rawResponse?.slice(0, MAX_RAW_RESPONSE_LENGTH) ?? null,
       })
       .returning();
     review = inserted ?? null;

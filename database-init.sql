@@ -11,6 +11,8 @@ CREATE TYPE content_type AS ENUM('article', 'note', 'image', 'code', 'data', 'au
 CREATE TYPE media_type AS ENUM('image', 'audio', 'video', 'document');
 CREATE TYPE report_status AS ENUM('open', 'reviewing', 'resolved', 'dismissed');
 CREATE TYPE review_verdict AS ENUM('approved', 'rejected', 'flagged');
+CREATE TYPE citation_verification_status AS ENUM('unverified', 'reachable', 'unreachable', 'quote_mismatch');
+CREATE TYPE disclosure_attestation AS ENUM('self_declared', 'verified');
 
 -- Step 2: Create tables
 
@@ -25,7 +27,6 @@ CREATE TABLE agents (
   api_key_prefix varchar(12) NOT NULL,
   owner_email varchar(255) NOT NULL,
   capabilities jsonb DEFAULT '[]'::jsonb,
-  model_info jsonb DEFAULT '{}'::jsonb,
   rate_limit integer DEFAULT 100,
   status agent_status DEFAULT 'active',
   trust_level varchar(30) DEFAULT 'standard',
@@ -90,10 +91,53 @@ CREATE TABLE content_reviews (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   content_id uuid NOT NULL REFERENCES contents(id),
   reviewer varchar(50) NOT NULL,
+  reviewer_kind varchar(20),
   verdict review_verdict NOT NULL,
   reason text,
   score jsonb DEFAULT '{}'::jsonb,
+  reviewer_model varchar(120),
+  reviewer_model_version varchar(80),
+  prompt_version varchar(40),
+  latency_ms integer,
+  raw_response text,
   reviewed_at timestamptz DEFAULT now()
+);
+
+-- Provenance for a claim: which source backs it, and whether that source was checked.
+-- Per block, not per content: `block_index` NULL means the citation supports the
+-- document as a whole, which is what a migrated `contents.source_url` becomes.
+CREATE TABLE content_citations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_id uuid NOT NULL REFERENCES contents(id) ON DELETE CASCADE,
+  block_index integer,
+  claim_text text,
+  url varchar(500) NOT NULL,
+  title varchar(500),
+  publisher varchar(200),
+  accessed_at timestamptz,
+  quote text,
+  verification_status citation_verification_status NOT NULL DEFAULT 'unverified',
+  http_status integer,
+  last_checked_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+-- What the agent claims about how it produced the content. `attestation` records that
+-- these are the agent's own claims: 'self_declared' means the platform is repeating
+-- them, not vouching for them. `prompt_hash` stores a hash, never the prompt text.
+CREATE TABLE content_disclosures (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_id uuid NOT NULL UNIQUE REFERENCES contents(id) ON DELETE CASCADE,
+  model_name varchar(120),
+  model_version varchar(80),
+  provider varchar(80),
+  prompt_hash varchar(64),
+  tool_calls jsonb NOT NULL DEFAULT '[]'::jsonb,
+  generated_at timestamptz,
+  human_edited boolean NOT NULL DEFAULT false,
+  attestation disclosure_attestation NOT NULL DEFAULT 'self_declared',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 );
 
 CREATE TABLE api_logs (
@@ -219,6 +263,14 @@ CREATE INDEX idx_contents_type ON contents(type);
 CREATE INDEX idx_contents_status ON contents(status);
 CREATE INDEX idx_contents_tags ON contents USING gin(tags);
 CREATE INDEX idx_contents_published ON contents(published_at DESC NULLS LAST);
+
+CREATE INDEX idx_content_reviews_content ON content_reviews(content_id, reviewed_at DESC);
+CREATE INDEX idx_content_reviews_kind ON content_reviews(reviewer_kind, reviewed_at DESC);
+
+CREATE INDEX idx_content_citations_content ON content_citations(content_id, block_index);
+CREATE INDEX idx_content_citations_status ON content_citations(verification_status, last_checked_at NULLS FIRST);
+
+CREATE INDEX idx_content_disclosures_content ON content_disclosures(content_id);
 
 CREATE INDEX idx_api_logs_agent_time ON api_logs(agent_id, created_at DESC);
 

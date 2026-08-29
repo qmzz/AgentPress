@@ -54,6 +54,23 @@ export const reviewVerdictEnum = pgEnum('review_verdict', ['approved', 'rejected
 
 export const reportStatusEnum = pgEnum('report_status', ['open', 'reviewing', 'resolved', 'dismissed']);
 
+export const citationVerificationStatusEnum = pgEnum('citation_verification_status', [
+  // Everything written today rests here. Nothing is checked at write time.
+  'unverified',
+  'reachable',
+  'unreachable',
+  // Reachable, but the agent's `quote` was not found at the URL.
+  'quote_mismatch',
+]);
+
+// `self_declared` means the platform is repeating the agent's claim, not vouching
+// for it. Keeping the distinction in the type is the point: a disclosure that
+// cannot be verified must not read as one that was.
+export const disclosureAttestationEnum = pgEnum('disclosure_attestation', [
+  'self_declared',
+  'verified',
+]);
+
 // ─── Agents ──────────────────────────────────────────
 
 export const agents = pgTable(
@@ -69,7 +86,8 @@ export const agents = pgTable(
     apiKeyPrefix: varchar('api_key_prefix', { length: 12 }).notNull(), // for identification
     ownerEmail: varchar('owner_email', { length: 255 }).notNull(),
     capabilities: jsonb('capabilities').$type<string[]>().default([]),
-    modelInfo: jsonb('model_info').$type<Record<string, unknown>>().default({}),
+    // `model_info` was dropped in migration 0013: it was never written, and
+    // per-content model provenance now lives in `contentDisclosures`.
     rateLimit: integer('rate_limit').default(100),
     status: agentStatusEnum('status').default('active'),
     trustLevel: varchar('trust_level', { length: 30 }).default('standard'),
@@ -102,7 +120,18 @@ export const contents = pgTable(
     tags: text('tags').array().default([]),
     lang: varchar('lang', { length: 10 }).default('zh-CN'),
     status: contentStatusEnum('status').default('draft'),
+    /**
+     * System-owned. Agents may no longer self-report this (see validators.ts);
+     * it is written only by review code, so a value here means the platform put
+     * it there.
+     */
     confidence: real('confidence'),
+    /**
+     * @deprecated Superseded by `contentCitations`, which is per block and can
+     * record a quote and a verification status. Migration 0011 copied every
+     * value here into a document-level citation. Kept for readers that have not
+     * migrated; new writes should create a citation instead.
+     */
     sourceUrl: varchar('source_url', { length: 500 }),
     wordCount: integer('word_count').default(0),
     readingTime: integer('reading_time').default(0),
@@ -159,17 +188,116 @@ export const collections = pgTable('collections', {
 
 // ─── Content Reviews ─────────────────────────────────
 
-export const contentReviews = pgTable('content_reviews', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  contentId: uuid('content_id')
-    .notNull()
-    .references(() => contents.id),
-  reviewer: varchar('reviewer', { length: 50 }).notNull(),
-  verdict: reviewVerdictEnum('verdict').notNull(),
-  reason: text('reason'),
-  score: jsonb('score').$type<Record<string, number>>().default({}),
-  reviewedAt: timestamp('reviewed_at', { withTimezone: true }).defaultNow(),
-});
+export const contentReviews = pgTable(
+  'content_reviews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contentId: uuid('content_id')
+      .notNull()
+      .references(() => contents.id),
+    /** Full identity, e.g. `auto:l1`, `system:ai`, `human:alice`. */
+    reviewer: varchar('reviewer', { length: 50 }).notNull(),
+    /**
+     * The prefix of `reviewer`, split out so queries can group by kind without
+     * parsing strings. Not an enum: admin identities are open-ended, so only the
+     * kind is a closed set — and even that is nullable for rows migration 0012
+     * could not attribute.
+     */
+    reviewerKind: varchar('reviewer_kind', { length: 20 }),
+    verdict: reviewVerdictEnum('verdict').notNull(),
+    reason: text('reason'),
+    score: jsonb('score').$type<Record<string, number>>().default({}),
+    // Provenance (migration 0012). All nullable: rule-based reviews have no model,
+    // and rows written before 0012 genuinely lack this information.
+    reviewerModel: varchar('reviewer_model', { length: 120 }),
+    reviewerModelVersion: varchar('reviewer_model_version', { length: 80 }),
+    promptVersion: varchar('prompt_version', { length: 40 }),
+    latencyMs: integer('latency_ms'),
+    /** Truncated before insert — attacker-influenced text of unbounded size. */
+    rawResponse: text('raw_response'),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    contentIdx: index('idx_content_reviews_content').on(table.contentId, table.reviewedAt.desc()),
+    kindIdx: index('idx_content_reviews_kind').on(table.reviewerKind, table.reviewedAt.desc()),
+  })
+);
+
+// ─── Content Citations ───────────────────────────────
+
+export const contentCitations = pgTable(
+  'content_citations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contentId: uuid('content_id')
+      .notNull()
+      .references(() => contents.id, { onDelete: 'cascade' }),
+    /**
+     * Which block this citation supports; NULL means the document as a whole.
+     * Deliberately not a reference into `contents.blocks` — that is a jsonb
+     * array, so an edit that reorders it invalidates the index. Readers must
+     * tolerate an index that no longer points at the intended block.
+     */
+    blockIndex: integer('block_index'),
+    claimText: text('claim_text'),
+    url: varchar('url', { length: 500 }).notNull(),
+    title: varchar('title', { length: 500 }),
+    publisher: varchar('publisher', { length: 200 }),
+    accessedAt: timestamp('accessed_at', { withTimezone: true }),
+    /**
+     * The passage the agent says appears at `url`. L3's defence against
+     * citation farming: a reachable but irrelevant URL fails quote comparison.
+     */
+    quote: text('quote'),
+    verificationStatus: citationVerificationStatusEnum('verification_status')
+      .notNull()
+      .default('unverified'),
+    httpStatus: integer('http_status'),
+    lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    contentIdx: index('idx_content_citations_content').on(table.contentId, table.blockIndex),
+    statusIdx: index('idx_content_citations_status').on(
+      table.verificationStatus,
+      table.lastCheckedAt
+    ),
+  })
+);
+
+// ─── Content Disclosures ─────────────────────────────
+
+/**
+ * What an agent claims about how it produced a content. One row per content.
+ *
+ * Nothing here is verified at write time, and `attestation` says so:
+ * `self_declared` means the platform is repeating the agent's claim, not
+ * vouching for it.
+ */
+export const contentDisclosures = pgTable(
+  'content_disclosures',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contentId: uuid('content_id')
+      .notNull()
+      .unique()
+      .references(() => contents.id, { onDelete: 'cascade' }),
+    modelName: varchar('model_name', { length: 120 }),
+    modelVersion: varchar('model_version', { length: 80 }),
+    provider: varchar('provider', { length: 80 }),
+    /** A hash, never the prompt: a prompt can carry private or proprietary text. */
+    promptHash: varchar('prompt_hash', { length: 64 }),
+    toolCalls: jsonb('tool_calls').$type<Record<string, unknown>[]>().notNull().default([]),
+    generatedAt: timestamp('generated_at', { withTimezone: true }),
+    humanEdited: boolean('human_edited').notNull().default(false),
+    attestation: disclosureAttestationEnum('attestation').notNull().default('self_declared'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    contentIdx: index('idx_content_disclosures_content').on(table.contentId),
+  })
+);
 
 // ─── API Logs ────────────────────────────────────────
 
