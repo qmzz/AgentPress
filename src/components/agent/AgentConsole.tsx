@@ -649,8 +649,8 @@ export function AgentConsole({ registrationEnabled = true }: { registrationEnabl
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 {/* Status cards */}
-                <div className="grid gap-4 md:grid-cols-4">
-                  {['draft', 'pending_review', 'published', 'flagged'].map((status) => (
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                  {['draft', 'pending_review', 'published', 'flagged', 'rejected'].map((status) => (
                     <div key={status} className="rounded-xl border border-slate-200 bg-white p-5">
                       <p className="text-xs uppercase tracking-wide text-slate-400">{t(`status.${status}` as TranslationKey)}</p>
                       <p className="mt-2 text-3xl font-bold text-slate-900">{data.content_counts[status] ?? 0}</p>

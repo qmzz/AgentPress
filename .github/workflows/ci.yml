@@ -1,0 +1,97 @@
+name: CI
+
+# Runs the checks that Phase 0 treats as its exit criteria: types, tests, build.
+#
+# The Postgres service exists because a third of the test suite is skip-gated on
+# DATABASE_URL — including the concurrency cases that are the only real proof the
+# row locks in content-state-machine.ts work. Without a database those tests
+# report as "skipped" and a green run would mean almost nothing.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Types, tests, build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: agentpress_test
+          POSTGRES_USER: agentpress
+          POSTGRES_PASSWORD: agentpress
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agentpress"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://agentpress:agentpress@localhost:5432/agentpress_test
+      # Tests that touch admin auth set their own values; this is only so the
+      # module-level config read does not see an unconfigured deployment.
+      ADMIN_SECRET: ci-admin-secret-not-a-real-credential
+      ANALYTICS_HASH_SALT: ci-salt
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Matches the Dockerfile's node:20-alpine, so CI cannot pass on a
+          # runtime the production image never uses.
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Applies the same forward-only migrations production runs, rather than
+      # loading schema.sql. That way a migration that is broken or misordered
+      # fails here instead of on someone's upgrade.
+      - name: Run migrations
+        run: npm run db:migrate:prod
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # Run once and keep the output: the database-backed tests write and delete
+      # real rows, so a second run is neither free nor guaranteed to be a no-op.
+      - name: Test
+        run: set -o pipefail && npm test 2>&1 | tee test-output.txt
+
+      # Guards against the database-backed tests silently reverting to skipped:
+      # if the service or DATABASE_URL breaks, the suite still exits 0 and only
+      # this step notices. Matches both reporter formats ("ℹ skipped N" from the
+      # spec reporter, "# skipped N" from tap) so a reporter change surfaces as
+      # "unknown" rather than passing by accident.
+      - name: Assert database tests actually ran
+        run: |
+          skipped=$(sed -n 's/^[^ ]* skipped \([0-9]\{1,\}\)$/\1/p' test-output.txt | tail -1)
+          echo "skipped: ${skipped:-unknown}"
+          if [ "${skipped:-unknown}" != "0" ]; then
+            echo "::error::Expected 0 skipped tests with a database present, got ${skipped:-unknown}."
+            exit 1
+          fi
+
+      - name: Build
+        env:
+          SKIP_ENV_VALIDATION: "1"
+        run: npm run build

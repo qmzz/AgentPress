@@ -9,6 +9,7 @@ import { eq, desc, and, sql, ilike, or } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { createContentSchema } from '@/lib/validators';
 import { reviewContent } from '@/lib/review';
+import { initialContentStatus } from '@/lib/content-state-machine';
 import { apiSuccess, apiError, handleZodError, logApiRequest } from '@/lib/api-response';
 import { nanoid } from 'nanoid';
 import { ZodError } from 'zod';
@@ -150,7 +151,7 @@ export async function POST(request: NextRequest) {
         metadata: data.metadata ?? {},
         tags: data.tags ?? [],
         lang: data.language ?? 'zh-CN',
-        status: review.passed ? 'draft' : 'flagged',
+        status: initialContentStatus(review.verdict),
         confidence: data.confidence,
         sourceUrl: data.sourceUrl,
         wordCount: review.wordCount ?? 0,

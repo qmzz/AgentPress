@@ -8,6 +8,7 @@ import { agents } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { apiError, apiSuccess, handleZodError } from '@/lib/api-response';
 import { isAdminRequest } from '@/lib/admin';
+import { auditContext, recordAdminAction } from '@/lib/admin-audit';
 import { updateAgentTrustSchema } from '@/lib/validators';
 import { ZodError } from 'zod';
 
@@ -19,6 +20,15 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const body = await request.json();
     const data = updateAgentTrustSchema.parse(body);
     const now = new Date();
+
+    // Read the prior level first: a trust change is the single most
+    // consequential admin action, and the audit row is worth little without it.
+    const [before] = await db
+      .select({ trustLevel: agents.trustLevel })
+      .from(agents)
+      .where(eq(agents.id, params.id))
+      .limit(1);
+
     const [agent] = await db
       .update(agents)
       .set({
@@ -28,6 +38,15 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       })
       .where(eq(agents.id, params.id))
       .returning();
+
+    await recordAdminAction({
+      ...auditContext(request),
+      action: 'agent.trust_level',
+      targetType: 'agent',
+      targetId: params.id,
+      details: { from: before?.trustLevel ?? null, to: data.trustLevel },
+      succeeded: Boolean(agent),
+    });
 
     if (!agent) return apiError('Agent not found', 404);
 

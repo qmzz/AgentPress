@@ -11,6 +11,7 @@ import { updateContentSchema } from '@/lib/validators';
 import { apiSuccess, apiError, handleZodError, logApiRequest } from '@/lib/api-response';
 import { ZodError } from 'zod';
 import { saveContentVersion } from '@/lib/content-versions';
+import { transitionContent } from '@/lib/content-state-machine';
 import { getClientIp } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -103,10 +104,12 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   const auth = await authenticateAgent(request);
   if ('error' in auth) return apiError(auth.error ?? 'Unauthorized', auth.status ?? 401);
   const { id } = params;
-  const content = await db.query.contents.findFirst({ where: eq(contents.id, id) });
-  if (!content) return apiError('Content not found', 404);
-  if (content.agentId !== auth.agent.id) return apiError('Forbidden', 403);
-  await db.update(contents).set({ status: 'archived', updatedAt: new Date() }).where(eq(contents.id, id));
+  const outcome = await transitionContent({
+    contentId: id,
+    transition: 'archive',
+    requireAgentId: auth.agent.id,
+  });
+  if (!outcome.ok) return apiError(outcome.error, outcome.status);
   return apiSuccess({ message: 'Content archived' });
 }
 

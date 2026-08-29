@@ -12,12 +12,16 @@ import { getStorageStatus } from '@/lib/storage';
 import { desc, gte, sql } from 'drizzle-orm';
 import { getServerI18n } from '@/lib/i18n-server';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
+import { requireAdminPage } from '@/lib/admin-server';
 
 export const dynamic = 'force-dynamic';
 
 const EMPTY_API_SUMMARY = { calls: 0, errors: 0, avg_response_ms: 0 };
 
 export default async function OperationsPage() {
+  // Server-side auth fallback; see src/lib/admin-server.ts.
+  await requireAdminPage();
+
   const { locale, t } = await getServerI18n();
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const [database, rateLimit, storage, jobStatus, apiSummary, recentErrors] = await Promise.all([

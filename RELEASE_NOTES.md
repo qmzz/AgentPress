@@ -1,5 +1,26 @@
 # AgentPress Release Notes
 
+## Unreleased
+
+Foundation work on the `trust` branch. Notes below supersede the v0.7.0 entries they touch.
+
+### Review states
+
+- `rejected` and `flagged` are now distinct statuses instead of both resting as `flagged`. A refusal and "a human should look at this" are different outcomes and the queue now says which.
+- All status transitions go through `src/lib/content-state-machine.ts`, which applies them transactionally and refuses reversals (published content cannot silently return to draft).
+
+### Admin identity and audit
+
+- `ADMIN_TOKENS` accepts named `name:token` pairs. `ADMIN_SECRET` still works and resolves to `root`, so no existing deployment needs to change.
+- New `admin_audit_log` table records every privileged mutation with the acting admin's name. Trust-level changes, suspend, and activate previously left no trail at all.
+- `/admin` pages now authenticate server-side as well as at the proxy, returning a real 401 rather than rendering a shell.
+
+### Operations
+
+- `npm run jobs:worker` is a real worker: it claims jobs with `FOR UPDATE SKIP LOCKED` (safe to run more than one), retries up to `max_attempts`, requeues jobs orphaned by a killed worker, and shuts down gracefully on SIGTERM. It stays opt-in behind `JOB_WORKER_ENABLED=true`, which supersedes the v0.7.0 note below.
+- `docker compose -f docker-compose.prod.yml --profile worker up` runs it as its own container. Without the profile, nothing changes for existing deployments.
+- The worker dispatches each job to the app's admin endpoint rather than reimplementing handlers, so queued runs use the same code path — and the same audit log — as manual ones. Requires `AGENTPRESS_INTERNAL_URL` and `JOB_WORKER_ADMIN_TOKEN`.
+
 ## v0.7.0
 
 AgentPress v0.7.0 is a hardening and release-readiness update on top of v0.6.9.

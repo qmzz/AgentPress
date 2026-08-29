@@ -3,10 +3,10 @@
  * Coding: Codex
  */
 import { db } from '@/lib/db';
-import { agents, contents, contentReviews } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { contents } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { reviewContentL2, type L2ReviewResult } from '@/lib/review-l2';
-import { notifyAgentWebhook, type AgentWebhookEvent } from '@/lib/webhook';
+import { transitionContent, type ContentStatus } from '@/lib/content-state-machine';
 import { z } from 'zod';
 
 const AI_L2_ENABLED = process.env.AI_L2_REVIEW_ENABLED === 'true';
@@ -72,49 +72,39 @@ export async function reviewContentL2WithLLM(contentId: string) {
     result = reviewContentL2({ title: content.title, summary: content.summary, blocks: content.blocks as unknown[], tags: content.tags });
   }
 
-  const [review] = await db.insert(contentReviews).values({
-    contentId: content.id,
-    verdict: result.verdict,
-    reason: result.reason,
-    reviewer: `system:${reviewerType}`,
-    score: result.score,
-  }).returning();
-
-  const now = new Date();
-  const nextStatus = result.verdict === 'approved' ? 'published' : 'flagged';
-
-  const [updated] = await db.update(contents).set({
-    status: nextStatus,
-    publishedAt: result.verdict === 'approved' ? now : content.publishedAt,
-    updatedAt: now,
-    confidence: result.score.quality,
-  }).where(eq(contents.id, contentId)).returning();
-
-  if (result.verdict === 'approved' && content.status !== 'published') {
-    await db.update(agents)
-      .set({ totalPublished: sql`${agents.totalPublished} + 1`, updatedAt: now })
-      .where(eq(agents.id, content.agentId));
-  }
-
-  const event: AgentWebhookEvent = result.verdict === 'approved'
-    ? 'content.approved'
+  const transition = result.verdict === 'approved'
+    ? 'l2_approve'
     : result.verdict === 'rejected'
-      ? 'content.rejected'
-      : 'content.flagged';
+      ? 'l2_reject'
+      : 'l2_flag';
 
-  await notifyAgentWebhook({
-    agentId: content.agentId,
-    event,
-    content: {
-      id: updated.id,
-      slug: updated.slug,
-      title: updated.title,
-      status: updated.status,
+  // The review record, the status change and the total_published bump all land in one
+  // transaction guarded by a row lock, so a concurrent approve cannot double-count.
+  const outcome = await transitionContent({
+    contentId: content.id,
+    transition,
+    review: {
+      reviewer: `system:${reviewerType}`,
+      verdict: result.verdict,
+      reason: result.reason,
+      score: result.score,
     },
-    review,
+    confidence: result.score.quality,
   });
 
-  return result;
+  // A conflict means another actor moved the content first (e.g. an admin approved it
+  // while L2 was still calling out to the model). The review verdict is still returned
+  // to the caller; the status reflects whatever actually holds.
+  if (!outcome.ok) {
+    const [fresh] = await db
+      .select({ status: contents.status })
+      .from(contents)
+      .where(eq(contents.id, contentId))
+      .limit(1);
+    return { ...result, status: (fresh?.status ?? content.status) as ContentStatus, applied: false as const };
+  }
+
+  return { ...result, status: outcome.content.status as ContentStatus, applied: true as const };
 }
 
 async function callAIReview(

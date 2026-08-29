@@ -27,7 +27,11 @@ export const contentStatusEnum = pgEnum('content_status', [
   'draft',
   'pending_review',
   'published',
+  // `flagged` means "a human should look at this"; `rejected` means "a reviewer
+  // refused it". Before migration 0010 both collapsed into `flagged` and the
+  // difference could only be inferred from the latest content_reviews row.
   'flagged',
+  'rejected',
   'archived',
 ]);
 
@@ -326,8 +330,33 @@ export const contentVersions = pgTable(
   })
 );
 
+// ─── Admin Audit Log ─────────────────────────────────
+
+// Append-only. target_id is deliberately not a foreign key: audit rows must
+// outlive the agent or content they describe.
+export const adminAuditLog = pgTable(
+  'admin_audit_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    actor: varchar('actor', { length: 120 }).notNull(),
+    action: varchar('action', { length: 80 }).notNull(),
+    targetType: varchar('target_type', { length: 40 }).notNull(),
+    targetId: uuid('target_id'),
+    details: jsonb('details').notNull().default({}),
+    succeeded: boolean('succeeded').notNull().default(true),
+    ip: inet('ip'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    createdIdx: index('idx_admin_audit_log_created').on(table.createdAt.desc()),
+    actorIdx: index('idx_admin_audit_log_actor').on(table.actor, table.createdAt.desc()),
+    targetIdx: index('idx_admin_audit_log_target').on(table.targetType, table.targetId, table.createdAt.desc()),
+  })
+);
+
 export type Job = typeof jobs.$inferSelect;
 export type ContentVersion = typeof contentVersions.$inferSelect;
+export type AdminAuditLogRow = typeof adminAuditLog.$inferSelect;
 
 // ─── Agent Follows ───────────────────────────────────
 

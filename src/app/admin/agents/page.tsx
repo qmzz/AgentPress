@@ -14,8 +14,12 @@ import { TrustLevelSelect } from '@/components/admin/TrustLevelSelect';
 import { TrustBadge } from '@/components/agent/TrustBadge';
 import { getServerI18n } from '@/lib/i18n-server';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { requireAdminPage } from '@/lib/admin-server';
 
 export default async function AdminAgentsPage() {
+  // Server-side auth fallback; see src/lib/admin-server.ts.
+  await requireAdminPage();
+
   const { t } = await getServerI18n();
   const agentList = await db.select().from(agents).orderBy(desc(agents.createdAt)).limit(100);
 

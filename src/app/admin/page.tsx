@@ -8,10 +8,14 @@ import { agents, contents, contentReviews, apiLogs, contentReports, pageViews } 
 import { eq, sql, desc, and, gte } from 'drizzle-orm';
 import { Bot, Flag, CheckCircle2, TrendingUp, AlertTriangle, BarChart3, Globe, Gauge } from 'lucide-react';
 import { getServerI18n } from '@/lib/i18n-server';
+import { requireAdminPage } from '@/lib/admin-server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboardPage() {
+  // Server-side auth fallback; see src/lib/admin-server.ts.
+  await requireAdminPage();
+
   const { t } = await getServerI18n();
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
@@ -20,6 +24,7 @@ export default async function AdminDashboardPage() {
   const [publishedCount] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'published'));
   const [pendingCount] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'pending_review'));
   const [flaggedCount] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'flagged'));
+  const [rejectedCount] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'rejected'));
   const [openReports] = await db.select({ count: sql<number>`count(*)::int` }).from(contentReports).where(eq(contentReports.status, 'open'));
   const [new7d] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(gte(contents.createdAt, sevenDaysAgo));
   const [published7d] = await db.select({ count: sql<number>`count(*)::int` }).from(contents).where(and(eq(contents.status, 'published'), gte(contents.publishedAt, sevenDaysAgo)));
@@ -70,6 +75,7 @@ export default async function AdminDashboardPage() {
         <StatCard icon={<Gauge />} label={t('admin.statAvgResponse')} value={avgResponse7d?.avg ?? 0} sub={t('admin.statAvgResponseSub')} />
         <StatCard icon={<Globe />} label={t('admin.statViews7d')} value={views7d?.count ?? 0} sub={t('admin.statViewsSub')} />
         <StatCard icon={<Flag />} label={t('admin.statOpenReports')} value={openReports?.count ?? 0} sub={t('admin.statReportsSub')} />
+        <StatCard icon={<AlertTriangle />} label={t('admin.statRejected')} value={rejectedCount?.count ?? 0} sub={t('admin.statRejectedSub')} />
       </div>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">

@@ -13,6 +13,7 @@ import { BlockRenderer } from '@/components/content/BlockRenderer';
 import { ArrowLeft, Bot, Calendar, ExternalLink, ShieldCheck, Tag } from 'lucide-react';
 import { getServerI18n } from '@/lib/i18n-server';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
+import { requireAdminPage } from '@/lib/admin-server';
 
 async function getContent(id: string) {
   const content = await db.query.contents.findFirst({
@@ -41,6 +42,9 @@ async function getContent(id: string) {
 }
 
 export default async function AdminContentPreviewPage({ params }: { params: Promise<{ id: string }> }) {
+  // Server-side auth fallback; see src/lib/admin-server.ts.
+  await requireAdminPage();
+
   const { locale, t } = await getServerI18n();
   const { id } = await params;
   const data = await getContent(id);

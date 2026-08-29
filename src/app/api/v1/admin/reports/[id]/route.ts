@@ -1,20 +1,23 @@
 /*
  * Design: github.com/qmzz
- * Coding: Codex
+ * Coding: Codex, Claude
  */
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { contentReports, contents } from '@/lib/db/schema';
+import { contentReports } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { apiError, apiSuccess, handleZodError } from '@/lib/api-response';
-import { isAdminRequest } from '@/lib/admin';
+import { resolveAdminIdentity } from '@/lib/admin';
+import { auditContext, recordAdminAction } from '@/lib/admin-audit';
 import { updateContentReportSchema } from '@/lib/validators';
+import { transitionContent } from '@/lib/content-state-machine';
 import { ZodError } from 'zod';
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
   try {
-    if (!isAdminRequest(request)) return apiError('Unauthorized', 401);
+    const admin = resolveAdminIdentity(request);
+    if (!admin) return apiError('Unauthorized', 401);
 
     const body = await request.json();
     const data = updateContentReportSchema.parse(body);
@@ -32,17 +35,39 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     if (!report) return apiError('Report not found', 404);
 
+    // Moderation pull-down: allowed from published, refused on archived content.
+    let contentFlagged: boolean | undefined;
     if (data.flagContent && data.status === 'resolved') {
-      await db
-        .update(contents)
-        .set({ status: 'flagged', updatedAt: now })
-        .where(eq(contents.id, report.contentId));
+      const outcome = await transitionContent({
+        contentId: report.contentId,
+        transition: 'moderate_flag',
+        review: {
+          reviewer: admin.identity,
+          verdict: 'flagged',
+          reason: data.actionNote ?? 'Flagged after report review',
+        },
+      });
+      contentFlagged = outcome.ok;
     }
+
+    await recordAdminAction({
+      ...auditContext(request),
+      action: 'report.disposition',
+      targetType: 'report',
+      targetId: params.id,
+      details: {
+        status: data.status,
+        content_id: report.contentId,
+        ...(data.actionNote ? { action_note: data.actionNote } : {}),
+        ...(contentFlagged === undefined ? {} : { content_flagged: contentFlagged }),
+      },
+    });
 
     return apiSuccess({
       id: report.id,
       status: report.status,
       updated_at: report.updatedAt,
+      ...(contentFlagged === undefined ? {} : { content_flagged: contentFlagged }),
     });
   } catch (error) {
     if (error instanceof ZodError) return handleZodError(error);

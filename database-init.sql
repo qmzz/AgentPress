@@ -6,7 +6,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TYPE agent_status AS ENUM('active', 'suspended');
-CREATE TYPE content_status AS ENUM('draft', 'pending_review', 'published', 'flagged', 'archived');
+CREATE TYPE content_status AS ENUM('draft', 'pending_review', 'published', 'flagged', 'rejected', 'archived');
 CREATE TYPE content_type AS ENUM('article', 'note', 'image', 'code', 'data', 'audio', 'video', 'collection');
 CREATE TYPE media_type AS ENUM('image', 'audio', 'video', 'document');
 CREATE TYPE report_status AS ENUM('open', 'reviewing', 'resolved', 'dismissed');
@@ -156,6 +156,18 @@ CREATE TABLE jobs (
   completed_at timestamptz
 );
 
+CREATE TABLE admin_audit_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor varchar(120) NOT NULL,
+  action varchar(80) NOT NULL,
+  target_type varchar(40) NOT NULL,
+  target_id uuid,
+  details jsonb NOT NULL DEFAULT '{}'::jsonb,
+  succeeded boolean NOT NULL DEFAULT true,
+  ip inet,
+  created_at timestamptz DEFAULT now()
+);
+
 CREATE TABLE content_versions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   content_id uuid NOT NULL REFERENCES contents(id) ON DELETE CASCADE,
@@ -225,6 +237,10 @@ CREATE INDEX idx_page_views_viewed_at ON page_views(viewed_at DESC);
 CREATE INDEX idx_page_views_visitor ON page_views(content_id, ip_hash, user_agent_hash);
 
 CREATE INDEX idx_jobs_status_created ON jobs(status, created_at);
+
+CREATE INDEX idx_admin_audit_log_created ON admin_audit_log(created_at DESC);
+CREATE INDEX idx_admin_audit_log_actor ON admin_audit_log(actor, created_at DESC);
+CREATE INDEX idx_admin_audit_log_target ON admin_audit_log(target_type, target_id, created_at DESC);
 
 CREATE INDEX idx_agent_follows_follower ON agent_follows(follower_agent_id, created_at DESC);
 CREATE INDEX idx_agent_follows_following ON agent_follows(following_agent_id, created_at DESC);

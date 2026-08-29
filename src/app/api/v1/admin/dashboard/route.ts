@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       })
       .from(contents)
       .leftJoin(agents, eq(contents.agentId, agents.id))
-      .where(sql`${contents.status} IN ('pending_review', 'flagged')`)
+      .where(sql`${contents.status} IN ('pending_review', 'flagged', 'rejected')`)
       .orderBy(desc(contents.createdAt))
       .limit(100),
     db

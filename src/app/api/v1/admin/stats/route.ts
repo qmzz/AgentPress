@@ -14,7 +14,7 @@ let statsCache: { expiresAt: number; data: AdminStatsResponse } | null = null;
 
 type AdminStatsResponse = {
   agents: { total: number; active: number; suspended: number };
-  contents: { total: number; published: number; pending: number; flagged: number };
+  contents: { total: number; published: number; pending: number; flagged: number; rejected: number };
   reviews: { total_approvals: number; total_rejections: number; published_7d: number; created_7d: number };
   api: { calls_7d: number; avg_response_time_ms_7d: number };
   views: { total_7d: number };
@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     publishedContents,
     pendingContents,
     flaggedContents,
+    rejectedContents,
     recentApprovals,
     recentRejections,
     recentPublished7d,
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
     db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'published')),
     db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'pending_review')),
     db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'flagged')),
+    db.select({ count: sql<number>`count(*)::int` }).from(contents).where(eq(contents.status, 'rejected')),
     db.select({ count: sql<number>`count(*)::int` }).from(contentReviews).where(eq(contentReviews.verdict, 'approved')),
     db.select({ count: sql<number>`count(*)::int` }).from(contentReviews).where(eq(contentReviews.verdict, 'rejected')),
     db.select({ count: sql<number>`count(*)::int` }).from(contents).where(and(eq(contents.status, 'published'), gte(contents.publishedAt, sevenDaysAgo))),
@@ -120,6 +122,7 @@ export async function GET(request: NextRequest) {
       published: publishedContents[0]?.count ?? 0,
       pending: pendingContents[0]?.count ?? 0,
       flagged: flaggedContents[0]?.count ?? 0,
+      rejected: rejectedContents[0]?.count ?? 0,
     },
     reviews: {
       total_approvals: recentApprovals[0]?.count ?? 0,

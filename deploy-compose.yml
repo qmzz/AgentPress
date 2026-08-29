@@ -66,6 +66,43 @@ services:
       start_period: 10s
       retries: 3
 
+  # Same image as app, different entrypoint. The worker claims jobs in SQL and
+  # dispatches each one to the app's admin endpoint, so job runs go through the
+  # same code path — and the same audit log — as manual admin actions.
+  #
+  # Behind a profile, so `docker compose up` on an existing deployment does not
+  # silently gain a worker: start it with `--profile worker`. Starting the
+  # service *is* the opt-in, so JOB_WORKER_ENABLED is pinned true here rather
+  # than read from the shared env — a false there would make the container
+  # print queue depth, exit 0, and be restarted forever by the restart policy.
+  worker:
+    profiles: ["worker"]
+    image: ghcr.io/qmzz/agentpress:latest
+    command: ["node", "scripts/job-worker.mjs"]
+    # The image's HEALTHCHECK wgets the Next server, which this container does
+    # not run; left in place the worker would report unhealthy while working.
+    healthcheck:
+      disable: true
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_CONNECT_TIMEOUT_SECONDS: ${DATABASE_CONNECT_TIMEOUT_SECONDS:-3}
+      AGENTPRESS_INTERNAL_URL: ${AGENTPRESS_INTERNAL_URL:-http://app:3000}
+      # Prefer a dedicated `worker:...` entry in ADMIN_TOKENS so the audit trail
+      # distinguishes queued work from a person clicking approve.
+      JOB_WORKER_ADMIN_TOKEN: ${JOB_WORKER_ADMIN_TOKEN:-}
+      ADMIN_SECRET: ${ADMIN_SECRET}
+      JOB_WORKER_ENABLED: "true"
+      JOB_POLL_INTERVAL_MS: ${JOB_POLL_INTERVAL_MS:-5000}
+      JOB_MAX_ITERATIONS: ${JOB_MAX_ITERATIONS:-0}
+      JOB_HTTP_TIMEOUT_MS: ${JOB_HTTP_TIMEOUT_MS:-60000}
+      JOB_STALE_TIMEOUT_MS: ${JOB_STALE_TIMEOUT_MS:-900000}
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+    restart: unless-stopped
+
   db:
     image: postgres:16-alpine
     environment:

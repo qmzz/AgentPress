@@ -10,9 +10,10 @@ import { desc, eq, and, sql } from 'drizzle-orm';
 import { ContentReviewQueue } from '@/components/admin/ContentReviewQueue';
 import { getServerI18n } from '@/lib/i18n-server';
 import type { TranslationKey } from '@/lib/i18n';
+import { requireAdminPage } from '@/lib/admin-server';
 
 const contentTypes = ['article', 'note', 'image', 'code', 'data', 'audio', 'video', 'collection'];
-const contentStatuses = ['draft', 'pending_review', 'published', 'flagged', 'archived'];
+const contentStatuses = ['draft', 'pending_review', 'published', 'flagged', 'rejected', 'archived'];
 
 type AdminContentsPageProps = {
   searchParams?: {
@@ -23,6 +24,9 @@ type AdminContentsPageProps = {
 };
 
 export default async function AdminContentsPage({ searchParams }: AdminContentsPageProps) {
+  // Server-side auth fallback; see src/lib/admin-server.ts.
+  await requireAdminPage();
+
   const { t } = await getServerI18n();
   const status = searchParams?.status ?? 'review';
   const agent = searchParams?.agent ?? '';
@@ -30,7 +34,7 @@ export default async function AdminContentsPage({ searchParams }: AdminContentsP
   const conditions = [];
 
   if (status === 'review') {
-    conditions.push(sql`${contents.status} IN ('pending_review', 'flagged')`);
+    conditions.push(sql`${contents.status} IN ('pending_review', 'flagged', 'rejected')`);
   } else if (contentStatuses.includes(status)) {
     conditions.push(eq(contents.status, status as typeof contents.status.enumValues[number]));
   }

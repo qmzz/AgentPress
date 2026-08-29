@@ -1,10 +1,18 @@
 ﻿/*
  * Design: github.com/qmzz
- * Coding: Codex
+ * Coding: Codex, Claude
  */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { ADMIN_SESSION_HEADER, constantTimeEqual, createAdminSessionHeader } from '@/lib/admin';
+import {
+  ADMIN_SESSION_HEADER,
+  ROOT_ADMIN_NAME,
+  configuredAdminTokens,
+  constantTimeEqual,
+  createAdminSessionHeader,
+  createSessionToken,
+  verifySessionToken,
+} from '@/lib/admin';
 
 const SESSION_COOKIE = 'admin_session';
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
@@ -14,46 +22,74 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/admin') ||
     request.nextUrl.pathname.startsWith('/api/v1/admin')
   ) {
-    const secret = process.env.ADMIN_SECRET;
-    if (!secret) {
+    const tokens = configuredAdminTokens();
+    if (tokens.length === 0) {
       return NextResponse.json({ error: 'Admin not configured' }, { status: 503 });
     }
 
-    const authHeader = request.headers.get('authorization');
-    const headerSecret = request.headers.get('x-admin-secret');
-    const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
     const requestHeaders = new Headers(request.headers);
+    // Never let a client supply its own session header.
     requestHeaders.delete(ADMIN_SESSION_HEADER);
 
-    const bearerValid = Boolean(authHeader?.startsWith('Bearer ') && constantTimeEqual(authHeader.slice(7), secret));
-    const headerValid = constantTimeEqual(headerSecret, secret);
-    const cookieValid = sessionToken ? await verifySessionToken(sessionToken, secret) : false;
+    const authHeader = request.headers.get('authorization');
+    const headerSecret = request.headers.get('x-admin-secret');
+    const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-    if (!bearerValid && !headerValid && !cookieValid) {
-      const basicAuth = request.headers.get('authorization');
-      if (basicAuth?.startsWith('Basic ')) {
-        const decoded = decodeBasicAuth(basicAuth);
-        if (decoded && constantTimeEqual(decoded, 'admin:' + secret)) {
-          requestHeaders.set(ADMIN_SESSION_HEADER, createAdminSessionHeader(secret));
+    // Direct credentials: which admin do they belong to?
+    let matched = tokens.find(
+      (admin) =>
+        (headerSecret && constantTimeEqual(headerSecret, admin.token)) ||
+        (bearer && constantTimeEqual(bearer, admin.token))
+    );
+
+    // Browser session cookie.
+    if (!matched) {
+      const cookie = request.cookies.get(SESSION_COOKIE)?.value;
+      const session = cookie ? await verifySessionToken(cookie) : null;
+      if (session) matched = tokens.find((admin) => admin.name === session.name);
+    }
+
+    // Basic auth: username is the admin name, password is the token. `admin` is
+    // accepted as an alias for root so pre-0.8 saved browser credentials work.
+    if (!matched && authHeader?.startsWith('Basic ')) {
+      const decoded = decodeBasicAuth(authHeader);
+      const separator = decoded ? decoded.indexOf(':') : -1;
+      if (decoded && separator > 0) {
+        const user = decoded.slice(0, separator).toLowerCase();
+        const pass = decoded.slice(separator + 1);
+        const wanted = user === 'admin' ? ROOT_ADMIN_NAME : user;
+        const candidate = tokens.find((admin) => admin.name === wanted);
+
+        if (candidate && constantTimeEqual(pass, candidate.token)) {
+          requestHeaders.set(
+            ADMIN_SESSION_HEADER,
+            createAdminSessionHeader(candidate.name, candidate.token)
+          );
           const response = NextResponse.next({ request: { headers: requestHeaders } });
-          response.cookies.set(SESSION_COOKIE, await createSessionToken(secret), {
-            httpOnly: true,
-            sameSite: 'strict',
-            secure: request.nextUrl.protocol === 'https:',
-            path: '/',
-            maxAge: SESSION_TTL_MS / 1000,
-          });
+          response.cookies.set(
+            SESSION_COOKIE,
+            await createSessionToken(candidate.name, candidate.token, SESSION_TTL_MS),
+            {
+              httpOnly: true,
+              sameSite: 'strict',
+              secure: request.nextUrl.protocol === 'https:',
+              path: '/',
+              maxAge: SESSION_TTL_MS / 1000,
+            }
+          );
           return response;
         }
       }
+    }
 
+    if (!matched) {
       return new NextResponse('Authentication required', {
         status: 401,
         headers: { 'WWW-Authenticate': 'Basic realm="AgentPress Admin"' },
       });
     }
 
-    requestHeaders.set(ADMIN_SESSION_HEADER, createAdminSessionHeader(secret));
+    requestHeaders.set(ADMIN_SESSION_HEADER, createAdminSessionHeader(matched.name, matched.token));
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
   return NextResponse.next();
@@ -63,18 +99,6 @@ export const config = {
   matcher: ['/admin/:path*', '/api/v1/admin/:path*'],
 };
 
-async function createSessionToken(secret: string) {
-  const expiresAt = Date.now() + SESSION_TTL_MS;
-  const signature = await sign(String(expiresAt), secret);
-  return `${expiresAt}.${signature}`;
-}
-
-async function verifySessionToken(token: string, secret: string) {
-  const [expiresAt, signature] = token.split('.');
-  if (!expiresAt || !signature || Number(expiresAt) < Date.now()) return false;
-  return constantTimeEqual(signature, await sign(expiresAt, secret));
-}
-
 function decodeBasicAuth(value: string) {
   try {
     return atob(value.slice(6));
@@ -82,17 +106,3 @@ function decodeBasicAuth(value: string) {
     return null;
   }
 }
-
-async function sign(value: string, secret: string) {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(value));
-  return btoa(String.fromCharCode(...new Uint8Array(signature)));
-}
-

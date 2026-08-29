@@ -13,6 +13,7 @@ import { ReportActionButton } from '@/components/admin/ReportActionButton';
 import { getServerI18n } from '@/lib/i18n-server';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatMessage, type TranslationKey } from '@/lib/i18n';
+import { requireAdminPage } from '@/lib/admin-server';
 
 const reportStatuses = ['open', 'reviewing', 'resolved', 'dismissed'];
 
@@ -23,6 +24,9 @@ type ReportsPageProps = {
 };
 
 export default async function AdminReportsPage({ searchParams }: ReportsPageProps) {
+  // Server-side auth fallback; see src/lib/admin-server.ts.
+  await requireAdminPage();
+
   const { locale, t } = await getServerI18n();
   const status = searchParams?.status ?? 'open';
   const reports = await db

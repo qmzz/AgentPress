@@ -3,12 +3,9 @@
  * Coding: Codex
  */
 import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
-import { contents, agents } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
 import { authenticateAgent } from '@/lib/auth';
 import { apiSuccess, apiError, logApiRequest } from '@/lib/api-response';
-import { notifyAgentWebhook } from '@/lib/webhook';
+import { transitionContent } from '@/lib/content-state-machine';
 import { getClientIp } from '@/lib/rate-limit';
 
 // POST /api/v1/contents/[id]/publish - Force publish (bypass review, for advanced Agent use)
@@ -21,28 +18,28 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     return apiError('Force publish requires trusted or verified Agent status', 403);
   }
 
-  const content = await db.query.contents.findFirst({ where: eq(contents.id, params.id) });
-  if (!content) return apiError('Content not found', 404);
-  if (content.agentId !== auth.agent.id) return apiError('Forbidden', 403);
-  if (content.status === 'published') return apiError('Already published', 400);
-
-  const now = new Date();
-  await db.update(contents).set({ status: 'published', publishedAt: now, updatedAt: now }).where(eq(contents.id, content.id));
-  await db.update(agents).set({ totalPublished: sql`${agents.totalPublished} + 1`, updatedAt: now }).where(eq(agents.id, auth.agent.id));
-
-  await notifyAgentWebhook({
-    agentId: content.agentId,
-    event: 'content.published',
-    content: {
-      id: content.id,
-      slug: content.slug,
-      title: content.title,
-      status: 'published',
-    },
+  // The state machine owns ownership, status guards, published_at and the
+  // total_published counter. Archived content is rejected here, unlike the
+  // pre-state-machine path which only excluded `published`.
+  const outcome = await transitionContent({
+    contentId: params.id,
+    transition: 'force_publish',
+    requireAgentId: auth.agent.id,
   });
+
+  if (!outcome.ok) {
+    await logApiRequest(auth.agent.id, `/api/v1/contents/${params.id}/publish`, 'POST', outcome.status, Date.now() - startTime, getClientIp(request));
+    return apiError(outcome.error, outcome.status);
+  }
+
+  const publishedAt = outcome.content.publishedAt ?? new Date();
 
   await logApiRequest(auth.agent.id, `/api/v1/contents/${params.id}/publish`, 'POST', 200, Date.now() - startTime, getClientIp(request));
 
-  return apiSuccess({ id: content.id, slug: content.slug, status: 'published', published_at: now.toISOString() });
+  return apiSuccess({
+    id: outcome.content.id,
+    slug: outcome.content.slug,
+    status: 'published',
+    published_at: publishedAt.toISOString(),
+  });
 }
-

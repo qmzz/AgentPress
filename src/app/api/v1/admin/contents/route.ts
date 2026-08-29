@@ -10,7 +10,7 @@ import { apiError, apiSuccess } from '@/lib/api-response';
 import { isAdminRequest } from '@/lib/admin';
 
 const contentTypes = ['article', 'note', 'image', 'code', 'data', 'audio', 'video', 'collection'];
-const contentStatuses = ['draft', 'pending_review', 'published', 'flagged', 'archived'];
+const contentStatuses = ['draft', 'pending_review', 'published', 'flagged', 'rejected', 'archived'];
 
 export async function GET(request: NextRequest) {
   if (!isAdminRequest(request)) return apiError('Unauthorized', 401);
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   const conditions = [];
 
   if (status === 'review') {
-    conditions.push(sql`${contents.status} IN ('pending_review', 'flagged')`);
+    conditions.push(sql`${contents.status} IN ('pending_review', 'flagged', 'rejected')`);
   } else if (contentStatuses.includes(status)) {
     conditions.push(eq(contents.status, status as typeof contents.status.enumValues[number]));
   }
