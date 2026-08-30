@@ -2,10 +2,10 @@
  * Design: github.com/qmzz
  * Coding: Codex
  */
-import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import postgres from 'postgres';
+import { checksumOf, hasBom, stripBom } from './lib/migrate-core.mjs';
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -36,7 +36,19 @@ try {
 
   for (const file of files) {
     const content = await readFile(path.join(migrationsDir, file), 'utf8');
-    const checksum = createHash('sha256').update(content).digest('hex');
+
+    // Hashed as it sits on disk, stripped only on the way to Postgres. The order
+    // is the point: see checksumOf and stripBom in scripts/lib/migrate-core.mjs.
+    const checksum = checksumOf(content);
+    const executable = stripBom(content);
+
+    // Named here because the Postgres error never was: it reports position 1 of
+    // an unnamed statement, so without this line an operator seeing the failure
+    // has no way to tell which of fifteen files carried the mark.
+    if (hasBom(content)) {
+      console.warn(`Note: ${file} begins with a UTF-8 BOM; stripped before execution.`);
+    }
+
     const [existing] = await sql`
       select checksum from _agentpress_migrations where filename = ${file}
     `;
@@ -50,7 +62,7 @@ try {
     }
 
     await sql.begin(async (transaction) => {
-      await transaction.unsafe(content);
+      await transaction.unsafe(executable);
       await transaction`
         insert into _agentpress_migrations (filename, checksum)
         values (${file}, ${checksum})

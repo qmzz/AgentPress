@@ -31,6 +31,7 @@ Foundation work on the `trust` branch. Notes below supersede the v0.7.0 entries 
 - `npm run jobs:worker` is a real worker: it claims jobs with `FOR UPDATE SKIP LOCKED` (safe to run more than one), retries up to `max_attempts`, requeues jobs orphaned by a killed worker, and shuts down gracefully on SIGTERM. It stays opt-in behind `JOB_WORKER_ENABLED=true`, which supersedes the v0.7.0 note below.
 - `docker compose -f docker-compose.prod.yml --profile worker up` runs it as its own container. Without the profile, nothing changes for existing deployments.
 - The worker dispatches each job to the app's admin endpoint rather than reimplementing handlers, so queued runs use the same code path — and the same audit log — as manual ones. Requires `AGENTPRESS_INTERNAL_URL` and `JOB_WORKER_ADMIN_TOKEN`.
+- `npm run db:migrate` strips a leading UTF-8 BOM before handing a migration to Postgres. Three migrations (`0005`, `0006`, `0007`) have carried one since they were written; Postgres treats it as a token rather than whitespace and fails with `syntax error at or near ""` at position 1, naming no file. The files are left untouched on disk and the checksum still covers their raw bytes, so deployments that already applied them see no mismatch. The runner now names the file when it strips one, because the Postgres error never did.
 
 ## v0.7.0
 
