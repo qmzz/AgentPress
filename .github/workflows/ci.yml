@@ -77,11 +77,30 @@ jobs:
       - name: Test
         run: set -o pipefail && npm test 2>&1 | tee test-output.txt
 
-      # Guards against the database-backed tests silently reverting to skipped:
-      # if the service or DATABASE_URL breaks, the suite still exits 0 and only
-      # this step notices. Matches both reporter formats ("ℹ skipped N" from the
-      # spec reporter, "# skipped N" from tap) so a reporter change surfaces as
+      # Two guards on the same output.
+      #
+      # The count guard exists because `npm test` passes its glob to Node, and a
+      # glob that matches nothing is not always an error: Node 20 treats an
+      # unexpanded pattern as a missing file (loud), but a pattern that resolves
+      # to a subset of the suite runs that subset and exits 0 (silent). Asserting
+      # a floor means dropping test files has to be deliberate.
+      #
+      # The skip guard exists because a third of the suite is skip-gated on
+      # DATABASE_URL. If the service or the URL breaks, the suite still exits 0
+      # and only this step notices. Both match either reporter format ("ℹ tests N"
+      # from spec, "# tests N" from tap), so a reporter change surfaces as
       # "unknown" rather than passing by accident.
+      - name: Assert the whole suite ran
+        env:
+          MIN_TESTS: "89"
+        run: |
+          total=$(sed -n 's/^[^ ]* tests \([0-9]\{1,\}\)$/\1/p' test-output.txt | tail -1)
+          echo "tests: ${total:-unknown} (floor ${MIN_TESTS})"
+          if [ "${total:-0}" -lt "$MIN_TESTS" ] 2>/dev/null; then
+            echo "::error::Expected at least ${MIN_TESTS} tests, got ${total:-unknown}. Did the test glob stop matching?"
+            exit 1
+          fi
+
       - name: Assert database tests actually ran
         run: |
           skipped=$(sed -n 's/^[^ ]* skipped \([0-9]\{1,\}\)$/\1/p' test-output.txt | tail -1)

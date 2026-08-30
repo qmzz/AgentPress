@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "test": "node --import tsx --test tests/**/*.test.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
     "start": "next start",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
