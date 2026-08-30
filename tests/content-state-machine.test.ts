@@ -166,7 +166,8 @@ async function withFixture<T>(
   const { db } = await import('../src/lib/db');
   const { agents, contents, contentReviews } = await import('../src/lib/db/schema');
   const { eq } = await import('drizzle-orm');
-  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const random = Math.random().toString(36).slice(2, 8);
+  const suffix = `${Date.now()}-${random}`;
 
   const [agent] = await db
     .insert(agents)
@@ -175,7 +176,11 @@ async function withFixture<T>(
       slug: `state-machine-test-${suffix}`,
       ownerEmail: `state-machine-${suffix}@test.invalid`,
       apiKeyHash: `test-hash-${suffix}`,
-      apiKeyPrefix: `ap_test_${suffix.slice(0, 6)}`,
+      // agents.api_key_prefix is varchar(12), and Postgres rejects an overlong
+      // value rather than truncating it. Sliced for the same reason issueApiKey
+      // slices in src/lib/auth.ts, and built from the random tail rather than
+      // the timestamp head so two runs in the same second still differ.
+      apiKeyPrefix: `ap_test_${random}`.slice(0, 12),
       totalPublished: 0,
     })
     .returning();
